@@ -277,10 +277,88 @@ function App() {
 
 
       {/* =====================================================
+          ABOUT US
+      ===================================================== */}
+
+      <section id="about" className="mx-auto max-w-7xl px-5 py-20 lg:px-8">
+
+        <div className="text-center">
+
+          <p className="text-sm font-bold uppercase tracking-widest text-sky-600">
+            About Us
+          </p>
+
+          <h2 className="mt-2 text-3xl font-black text-slate-900 md:text-4xl">
+            About PESO-Mabini
+          </h2>
+
+          <p className="mx-auto mt-4 max-w-2xl leading-7 text-slate-500">
+            The Public Employment Service Office (PESO) empowers jobseekers and
+            employers by providing accessible, professional employment
+            services, skills development, and local labor market information.
+          </p>
+
+        </div>
+
+        <div className="mt-12 grid gap-6 md:grid-cols-3">
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-600 text-xl font-black text-white">
+              🎯
+            </div>
+            <h3 className="mt-5 text-xl font-bold text-slate-900">Our Mission</h3>
+            <p className="mt-3 text-sm leading-6 text-slate-500">
+              To connect community members to meaningful employment
+              opportunities through responsive career services, employer
+              engagement, and targeted programs that foster inclusive economic
+              growth.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-400 text-xl font-black text-slate-900">
+              👁️
+            </div>
+            <h3 className="mt-5 text-xl font-bold text-slate-900">Our Vision</h3>
+            <p className="mt-3 text-sm leading-6 text-slate-500">
+              A thriving Mabini where every resident has the opportunity and
+              support to participate in the local economy and build a
+              prosperous future.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500 text-xl font-black text-white">
+              ★
+            </div>
+            <h3 className="mt-5 text-xl font-bold text-slate-900">Core Values</h3>
+            <p className="mt-3 text-sm leading-6 text-slate-500">
+              Integrity, accessibility, collaboration, and excellence — the
+              principles that guide every service we deliver to our community.
+            </p>
+          </div>
+
+        </div>
+
+        <div className="mt-10 text-center">
+
+          <a
+            href="#jobs"
+            className="rounded-xl bg-sky-600 px-7 py-3.5 font-bold text-white shadow-sm transition hover:bg-sky-700 hover:shadow-md"
+          >
+            Explore Job Opportunities →
+          </a>
+
+        </div>
+
+      </section>
+
+
+      {/* =====================================================
           EMPLOYMENT FEED + ANNOUNCEMENTS
       ===================================================== */}
 
-      <main className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+      <main id="jobs" className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
 
         <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
 
