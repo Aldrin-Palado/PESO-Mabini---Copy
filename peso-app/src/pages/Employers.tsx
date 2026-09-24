@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Navbar from "../components/Navbar";
 
 type Employer = {
   id: number;
@@ -35,6 +36,8 @@ export default function Employers() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+
+      <Navbar />
 
       {/* Header */}
       <header className="bg-white shadow-sm">

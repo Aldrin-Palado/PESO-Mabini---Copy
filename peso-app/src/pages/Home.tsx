@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import Navbar from "../components/Navbar";
 
 type EmploymentPost = {
   id: number;
@@ -44,6 +45,8 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
+
+      <Navbar />
 
       {/* =====================================================
           HEADER
