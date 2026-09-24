@@ -1,0 +1,379 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import JobCard from "../components/JobCard";
+import type { JobVacancy } from "../types/JobVacancy";
+
+function JobVacancies() {
+  const [jobs, setJobs] = useState<JobVacancy[]>([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  // Temporary local data
+  // Replace this with Supabase later.
+  const temporaryJobs: JobVacancy[] = [
+    {
+      job_vacancy_id: "JOB-001",
+      position_title: "Web Developer",
+      location: "Mabini, Batangas",
+      employment_type: "Full-time",
+      salary: "₱25,000 - ₱35,000",
+      description:
+        "Responsible for developing and maintaining web applications for the company.",
+      date_posted: "2026-09-20",
+      employer: {
+        name: "Mabini Tech Solutions",
+      },
+    },
+    {
+      job_vacancy_id: "JOB-002",
+      position_title: "Administrative Assistant",
+      location: "Batangas City",
+      employment_type: "Full-time",
+      salary: "₱18,000 - ₱22,000",
+      description:
+        "Provides administrative support, manages documents, and assists with daily office operations.",
+      date_posted: "2026-09-18",
+      employer: {
+        name: "Batangas Business Center",
+      },
+    },
+    {
+      job_vacancy_id: "JOB-003",
+      position_title: "Sales Representative",
+      location: "Lipa City, Batangas",
+      employment_type: "Full-time",
+      salary: "₱20,000 - ₱28,000",
+      description:
+        "Handles customer inquiries, promotes products, and maintains good relationships with clients.",
+      date_posted: "2026-09-15",
+      employer: {
+        name: "Batangas Trading Corporation",
+      },
+    },
+  ];
+
+  useEffect(() => {
+    // Simulate loading from a backend.
+    // Later, this function can fetch from Supabase.
+    const loadJobs = () => {
+      setLoading(true);
+
+      setTimeout(() => {
+        setJobs(temporaryJobs);
+        setLoading(false);
+      }, 500);
+    };
+
+    loadJobs();
+  }, []);
+
+  const filteredJobs = jobs.filter((job) => {
+    const searchText = search.toLowerCase();
+
+    return (
+      job.position_title.toLowerCase().includes(searchText) ||
+      (job.location?.toLowerCase() ?? "").includes(searchText) ||
+      (job.employment_type?.toLowerCase() ?? "").includes(searchText) ||
+      (job.employer?.name?.toLowerCase() ?? "").includes(searchText)
+    );
+  });
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-800">
+
+      {/* Philippine-inspired accent */}
+      <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
+
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
+
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-600 shadow-sm">
+              <span className="text-xl font-black text-white">
+                P
+              </span>
+            </div>
+
+            <div>
+              <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
+                PESO<span className="text-sky-600">-Hub</span>
+              </h1>
+
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                Public Employment Service Office
+              </p>
+            </div>
+          </Link>
+
+          {/* Navigation */}
+          <nav className="hidden items-center gap-8 lg:flex">
+            <Link
+              to="/"
+              className="font-medium text-slate-600 transition hover:text-sky-600"
+            >
+              Home
+            </Link>
+
+            <Link
+              to="/about"
+              className="font-medium text-slate-600 transition hover:text-sky-600"
+            >
+              About Us
+            </Link>
+
+            <Link
+              to="/jobs"
+              className="font-semibold text-sky-600"
+            >
+              Job Vacancies
+            </Link>
+
+            <Link
+              to="/employers"
+              className="font-medium text-slate-600 transition hover:text-sky-600"
+            >
+              Employers
+            </Link>
+
+            <Link
+              to="/contact"
+              className="font-medium text-slate-600 transition hover:text-sky-600"
+            >
+              Contact Us
+            </Link>
+          </nav>
+
+          {/* Login / Register */}
+          <div className="flex items-center gap-2">
+            <button className="hidden rounded-lg px-4 py-2.5 font-semibold text-slate-600 transition hover:bg-slate-100 sm:block">
+              Log In
+            </button>
+
+            <button className="rounded-lg bg-sky-600 px-5 py-2.5 font-semibold text-white shadow-sm transition hover:bg-sky-700 hover:shadow-md">
+              Register
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section className="relative overflow-hidden bg-slate-950">
+
+        <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-sky-600/20 blur-3xl" />
+
+        <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-yellow-400/10 blur-3xl" />
+
+        <div className="relative mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-24">
+          <div className="max-w-3xl">
+
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 backdrop-blur-sm">
+              <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
+
+              <span className="text-sm font-semibold text-white">
+                Public Employment Service Office
+              </span>
+            </div>
+
+            <h1 className="text-4xl font-black tracking-tight text-white md:text-5xl lg:text-6xl">
+              Job{" "}
+              <span className="text-sky-300">
+                Vacancies
+              </span>
+            </h1>
+
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300 md:text-xl">
+              Find available employment opportunities and connect with
+              employers through PESO Mabini.
+            </p>
+
+          </div>
+        </div>
+
+        <div className="h-1 bg-gradient-to-r from-sky-400 via-yellow-400 to-red-500" />
+      </section>
+
+      {/* Main */}
+      <main className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+
+        {/* Search */}
+        <section className="mb-12">
+
+          <div className="mb-6">
+            <p className="text-sm font-bold uppercase tracking-widest text-sky-600">
+              Find Opportunities
+            </p>
+
+            <h2 className="mt-2 text-3xl font-black text-slate-900">
+              Search Available Jobs
+            </h2>
+
+            <p className="mt-2 text-slate-500">
+              Search by job title, employer, location, or employment type.
+            </p>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
+
+            <div className="p-5">
+              <label
+                htmlFor="job-search"
+                className="mb-2 block text-sm font-bold text-slate-700"
+              >
+                Search Jobs
+              </label>
+
+              <div className="relative">
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                  🔍
+                </span>
+
+                <input
+                  id="job-search"
+                  type="search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search by job title, employer, location, or type..."
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Jobs */}
+        <section>
+
+          <div className="mb-7 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+
+            <div>
+              <p className="text-sm font-bold uppercase tracking-widest text-sky-600">
+                Employment Opportunities
+              </p>
+
+              <h2 className="mt-2 text-3xl font-black text-slate-900">
+                Available Jobs
+              </h2>
+            </div>
+
+            {!loading && (
+              <div className="rounded-full bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700">
+                {filteredJobs.length}{" "}
+                {filteredJobs.length === 1 ? "job" : "jobs"} found
+              </div>
+            )}
+
+          </div>
+
+          {/* Loading */}
+          {loading && (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+
+              <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
+
+              <div className="px-6 py-20 text-center">
+
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sky-50">
+                  <div className="h-7 w-7 animate-spin rounded-full border-4 border-sky-200 border-t-sky-600" />
+                </div>
+
+                <h3 className="mt-6 text-xl font-bold text-slate-800">
+                  Loading job vacancies...
+                </h3>
+
+                <p className="mt-2 text-slate-500">
+                  Please wait while we retrieve the latest opportunities.
+                </p>
+
+              </div>
+            </div>
+          )}
+
+          {/* No Jobs */}
+          {!loading && filteredJobs.length === 0 && (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+
+              <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
+
+              <div className="px-6 py-20 text-center">
+
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-sky-50">
+                  <span className="text-3xl">
+                    💼
+                  </span>
+                </div>
+
+                <h3 className="mt-6 text-2xl font-bold text-slate-800">
+                  No Job Vacancies Found
+                </h3>
+
+                <p className="mx-auto mt-3 max-w-md leading-7 text-slate-500">
+                  There are currently no job vacancies matching your search.
+                  Please check back later for new opportunities.
+                </p>
+
+                {search && (
+                  <button
+                    onClick={() => setSearch("")}
+                    className="mt-6 rounded-xl bg-sky-600 px-5 py-3 font-semibold text-white transition hover:bg-sky-700"
+                  >
+                    Clear Search
+                  </button>
+                )}
+
+              </div>
+            </div>
+          )}
+
+          {/* Job Cards */}
+          {!loading && filteredJobs.length > 0 && (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+
+              {filteredJobs.map((job) => (
+                <JobCard
+                  key={job.job_vacancy_id}
+                  job={job}
+                />
+              ))}
+
+            </div>
+          )}
+
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="mt-8 bg-slate-950 text-slate-400">
+
+        <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
+
+        <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
+
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+            <div>
+              <h3 className="font-bold text-white">
+                PESO<span className="text-sky-400">-Hub</span>
+              </h3>
+
+              <p className="mt-1 text-xs">
+                Public Employment Service Office
+              </p>
+            </div>
+
+            <p className="text-xs">
+              © 2026 PESO-Hub. All rights reserved.
+            </p>
+
+          </div>
+
+        </div>
+      </footer>
+
+    </div>
+  );
+}
+
+export default JobVacancies;
