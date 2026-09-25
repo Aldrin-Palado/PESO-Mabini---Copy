@@ -5,8 +5,8 @@ import About from "./pages/About";
 import JobVacancies from "./pages/JobVacancies";
 import Employers from "./pages/Employers";
 import Contact from "./pages/Contact";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+import Login from "./components/Login";
+import Register from "./components/Register";
 
 function App() {
   return (
