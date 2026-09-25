@@ -37,8 +37,8 @@ export default function Navbar() {
                 to={item.path}
                 className={`font-semibold transition ${
                   isActive
-                    ? "text-red-500"
-                    : "text-white hover:text-red-300"
+                    ? "text-yellow-400"
+                    : "text-white hover:text-yellow-300"
                 }`}
               >
                 {item.name}
@@ -51,14 +51,14 @@ export default function Navbar() {
         <div className="flex shrink-0 flex-nowrap items-center gap-2">
   <Link
     to="/login"
-    className="whitespace-nowrap rounded-xl border border-sky-600 px-4 py-2 font-bold text-sky-600 transition hover:bg-sky-50"
+    className="whitespace-nowrap rounded-xl bg-yellow-400 px-4 py-2 font-bold text-slate-900 transition hover:bg-yellow-300"
   >
     Login
   </Link>
 
   <Link
     to="/register"
-    className="whitespace-nowrap rounded-xl bg-sky-600 px-4 py-2 font-bold text-white transition hover:bg-sky-700"
+    className="whitespace-nowrap rounded-xl bg-red-500 px-4 py-2 font-bold text-white transition hover:bg-red-600"
   >
     Register
   </Link>
