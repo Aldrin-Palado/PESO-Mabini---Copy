@@ -2,6 +2,11 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 
+const backgroundImage = new URL(
+  "../assets/images/bg-image.png",
+  import.meta.url,
+).href;
+
 type EmploymentPost = {
   id: number;
   content: string;
@@ -64,7 +69,7 @@ function Home() {
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: "url('/src/assets/images/bg-image.png')",
+            backgroundImage: `url(${backgroundImage})`,
           }}
         />
 
