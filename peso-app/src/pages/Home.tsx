@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import Navbar from "../components/Navbar";
 
 type EmploymentPost = {
   id: number;
@@ -45,106 +46,9 @@ function Home() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
 
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
+      <Navbar />
 
-      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
-
-        {/* Philippine-inspired accent */}
-        <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
-
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
-
-          {/* LOGO */}
-
-          <a
-            href="#home"
-            className="flex items-center gap-3"
-          >
-
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-600 shadow-sm">
-              <span className="text-xl font-black text-white">
-                P
-              </span>
-            </div>
-
-            <div>
-              <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
-                PESO<span className="text-sky-600">-Hub</span>
-              </h1>
-
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                Public Employment Service Office
-              </p>
-            </div>
-
-          </a>
-
-
-          {/* NAVIGATION */}
-
-          <nav className="hidden items-center gap-8 lg:flex">
-
-            <a
-              href="#home"
-              className="font-semibold text-sky-600 transition hover:text-sky-700"
-            >
-              Home
-            </a>
-
-            <a
-              href="#about"
-              className="font-medium text-slate-600 transition hover:text-sky-600"
-            >
-              About Us
-            </a>
-
-            <a
-              href="#jobs"
-              className="font-medium text-slate-600 transition hover:text-sky-600"
-            >
-              Job Vacancies
-            </a>
-
-            <Link
-  to="/employers"
-  className="font-medium text-slate-600 transition hover:text-sky-600"
->
-  Employers
-</Link>
-
-            <a
-              href="#contact"
-              className="font-medium text-slate-600 transition hover:text-sky-600"
-            >
-              Contact Us
-            </a>
-
-          </nav>
-
-
-          {/* LOGIN / REGISTER */}
-
-          <div className="flex items-center gap-2">
-
-            <button
-              className="hidden rounded-lg px-4 py-2.5 font-semibold text-slate-600 transition hover:bg-slate-100 sm:block"
-            >
-              Log In
-            </button>
-
-            <button
-              className="rounded-lg bg-sky-600 px-5 py-2.5 font-semibold text-white shadow-sm transition hover:bg-sky-700 hover:shadow-md"
-            >
-              Register
-            </button>
-
-          </div>
-
-        </div>
-      </header>
-
+      <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
 
       {/* =====================================================
           HERO SECTION
