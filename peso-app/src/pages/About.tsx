@@ -1,6 +1,11 @@
 import React from "react";
 import Navbar from "../components/Navbar";
 
+const backgroundImage = new URL(
+  "../assets/images/Random.jpg",
+  import.meta.url,
+).href;
+
 const About: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
@@ -11,13 +16,20 @@ const About: React.FC = () => {
       <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-slate-950">
+      <section className="relative min-h-[420px] overflow-hidden bg-slate-950">
+
+        <div
+          className="absolute inset-0 z-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `url(${backgroundImage})`,
+          }}
+        />
 
         {/* Background decoration */}
         <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-sky-600/20 blur-3xl" />
         <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-yellow-400/10 blur-3xl" />
 
-        <div className="relative mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-24">
+        <div className="relative z-10 mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-24">
           <div className="max-w-3xl">
 
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 backdrop-blur-sm">
@@ -312,7 +324,7 @@ const About: React.FC = () => {
 
             <div>
               <h3 className="font-bold text-white">
-                PESO<span className="text-sky-400">-Hub</span>
+                PESO<span className="text-sky-400">-HUB</span>
               </h3>
 
               <p className="mt-1 text-xs">

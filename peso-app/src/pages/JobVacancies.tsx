@@ -16,7 +16,7 @@ function JobVacancies() {
       position_title: "Web Developer",
       location: "Mabini, Batangas",
       employment_type: "Full-time",
-      salary: "₱25,000 - ₱35,000",
+      salary: "₱25,000 - ₱65,000",
       description:
         "Responsible for developing and maintaining web applications for the company.",
       date_posted: "2026-09-20",
