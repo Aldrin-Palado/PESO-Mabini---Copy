@@ -67,10 +67,11 @@ function Home() {
         {/* Background image */}
 
         <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage: `url(${backgroundImage})`,
-          }}
+  className="absolute inset-0 bg-cover bg-center"
+  style={{
+    backgroundImage: `url(${backgroundImage})`,
+  }}
+/>
         />
 
         {/* Overlay */}
