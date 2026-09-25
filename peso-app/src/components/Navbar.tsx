@@ -48,19 +48,21 @@ export default function Navbar() {
         </div>
 
         {/* Authentication buttons */}
-        <Link
-  to="/login"
-  className="rounded-xl border border-sky-600 px-4 py-2 font-bold text-sky-600 transition hover:bg-sky-50"
->
-  Login
-</Link>
+        <div className="flex shrink-0 flex-nowrap items-center gap-2">
+  <Link
+    to="/login"
+    className="whitespace-nowrap rounded-xl border border-sky-600 px-4 py-2 font-bold text-sky-600 transition hover:bg-sky-50"
+  >
+    Login
+  </Link>
 
-<Link
-  to="/register"
-  className="rounded-xl bg-sky-600 px-4 py-2 font-bold text-white transition hover:bg-sky-700"
->
-  Register
-</Link>
+  <Link
+    to="/register"
+    className="whitespace-nowrap rounded-xl bg-sky-600 px-4 py-2 font-bold text-white transition hover:bg-sky-700"
+  >
+    Register
+  </Link>
+</div>
 
       </div>
     </nav>
