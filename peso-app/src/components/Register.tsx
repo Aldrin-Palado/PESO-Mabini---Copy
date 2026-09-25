@@ -1,0 +1,351 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+
+function Register() {
+  const navigate = useNavigate();
+
+  const [accountType, setAccountType] = useState("jobseeker");
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState(false);
+
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleRegister = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (
+      formData.password !==
+      formData.confirmPassword
+    ) {
+      alert("Passwords do not match.");
+      return;
+    }
+
+    // UI only for now
+    console.log("Registration:", {
+      ...formData,
+      accountType,
+    });
+
+    // Temporary redirect to login
+    navigate("/login");
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+
+      {/* Top Accent */}
+      <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
+
+      <div className="px-6 py-10">
+        <div className="mx-auto w-full max-w-2xl">
+
+          {/* Logo */}
+          <div className="mb-8 text-center">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-3"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-600 text-xl font-black text-white shadow-sm">
+                P
+              </div>
+
+              <div className="text-left">
+                <h1 className="text-xl font-black text-slate-900">
+                  PESO-Hub
+                </h1>
+
+                <p className="text-xs text-slate-500">
+                  Public Employment Service
+                </p>
+              </div>
+            </Link>
+          </div>
+
+          {/* Registration Card */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-lg sm:p-10">
+
+            {/* Header */}
+            <div className="mb-8 text-center">
+              <h2 className="text-3xl font-black text-slate-900">
+                Create an Account
+              </h2>
+
+              <p className="mt-2 text-sm text-slate-500">
+                Join PESO-Hub and access employment services
+              </p>
+            </div>
+
+            <form
+              onSubmit={handleRegister}
+              className="space-y-6"
+            >
+
+              {/* Account Type */}
+              <div>
+                <label className="mb-3 block text-sm font-bold text-slate-700">
+                  I am registering as
+                </label>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+
+                  {/* Job Seeker */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setAccountType("jobseeker")
+                    }
+                    className={`rounded-2xl border p-4 text-left transition ${
+                      accountType === "jobseeker"
+                        ? "border-sky-500 bg-sky-50 ring-2 ring-sky-100"
+                        : "border-slate-200 hover:border-sky-300"
+                    }`}
+                  >
+                    <div className="mb-2 text-2xl">
+                      👤
+                    </div>
+
+                    <h3 className="font-bold text-slate-900">
+                      Job Seeker
+                    </h3>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      Find jobs and submit applications
+                    </p>
+                  </button>
+
+                  {/* Employer */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setAccountType("employer")
+                    }
+                    className={`rounded-2xl border p-4 text-left transition ${
+                      accountType === "employer"
+                        ? "border-sky-500 bg-sky-50 ring-2 ring-sky-100"
+                        : "border-slate-200 hover:border-sky-300"
+                    }`}
+                  >
+                    <div className="mb-2 text-2xl">
+                      🏢
+                    </div>
+
+                    <h3 className="font-bold text-slate-900">
+                      Employer
+                    </h3>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      Post vacancies and find applicants
+                    </p>
+                  </button>
+
+                </div>
+              </div>
+
+              {/* First and Last Name */}
+              <div className="grid gap-5 sm:grid-cols-2">
+
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">
+                    First Name
+                  </label>
+
+                  <input
+                    type="text"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    placeholder="Enter first name"
+                    required
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">
+                    Last Name
+                  </label>
+
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    placeholder="Enter last name"
+                    required
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                  />
+                </div>
+
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  Email Address
+                </label>
+
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="Enter your email"
+                  required
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  Password
+                </label>
+
+                <div className="relative">
+                  <input
+                    type={
+                      showPassword
+                        ? "text"
+                        : "password"
+                    }
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Create a password"
+                    required
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 pr-20 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowPassword(
+                        !showPassword
+                      )
+                    }
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500 transition hover:text-sky-600"
+                  >
+                    {showPassword
+                      ? "Hide"
+                      : "Show"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  Confirm Password
+                </label>
+
+                <div className="relative">
+                  <input
+                    type={
+                      showConfirmPassword
+                        ? "text"
+                        : "password"
+                    }
+                    name="confirmPassword"
+                    value={
+                      formData.confirmPassword
+                    }
+                    onChange={handleChange}
+                    placeholder="Confirm your password"
+                    required
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 pr-20 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowConfirmPassword(
+                        !showConfirmPassword
+                      )
+                    }
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500 transition hover:text-sky-600"
+                  >
+                    {showConfirmPassword
+                      ? "Hide"
+                      : "Show"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Terms */}
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  required
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                />
+
+                <p className="text-sm text-slate-500">
+                  I agree to the PESO-Hub terms and
+                  conditions and understand that my
+                  information will be used for
+                  employment services.
+                </p>
+              </div>
+
+              {/* Register Button */}
+              <button
+                type="submit"
+                className="w-full rounded-xl bg-sky-600 px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-sky-700 hover:shadow-md"
+              >
+                Create Account
+              </button>
+
+            </form>
+
+            {/* Login */}
+            <div className="mt-8 text-center">
+              <p className="text-sm text-slate-500">
+                Already have an account?{" "}
+                <Link
+                  to="/login"
+                  className="font-bold text-sky-600 transition hover:text-sky-700"
+                >
+                  Sign in
+                </Link>
+              </p>
+            </div>
+
+          </div>
+
+          {/* Back Button */}
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="mx-auto flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-600 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600"
+            >
+              <span>←</span>
+              Back
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default Register;

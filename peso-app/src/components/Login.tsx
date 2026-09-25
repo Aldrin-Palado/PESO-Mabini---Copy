@@ -1,0 +1,183 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+
+function Login() {
+  const navigate = useNavigate();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // UI only for now
+    console.log("Login:", {
+      email,
+      password,
+    });
+
+    // Temporary redirect
+    navigate("/");
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      {/* Top Accent */}
+      <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
+
+      <div className="flex min-h-[calc(100vh-4px)] items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md">
+
+          {/* Logo */}
+          <div className="mb-8 text-center">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-3"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-600 text-xl font-black text-white shadow-sm">
+                P
+              </div>
+
+              <div className="text-left">
+                <h1 className="text-xl font-black text-slate-900">
+                  PESO-Hub
+                </h1>
+
+                <p className="text-xs text-slate-500">
+                  Public Employment Service
+                </p>
+              </div>
+            </Link>
+          </div>
+
+          {/* Login Card */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-lg sm:p-10">
+
+            {/* Header */}
+            <div className="mb-8 text-center">
+              <h2 className="text-3xl font-black text-slate-900">
+                Welcome Back
+              </h2>
+
+              <p className="mt-2 text-sm text-slate-500">
+                Sign in to your PESO-Hub account
+              </p>
+            </div>
+
+            <form
+              onSubmit={handleLogin}
+              className="space-y-5"
+            >
+
+              {/* Email */}
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  Email Address
+                </label>
+
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  required
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <label className="block text-sm font-bold text-slate-700">
+                    Password
+                  </label>
+
+                  <button
+                    type="button"
+                    className="text-sm font-semibold text-sky-600 transition hover:text-sky-700"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    required
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-20 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowPassword(!showPassword)
+                    }
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500 transition hover:text-sky-600"
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Remember Me */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="remember"
+                  className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                />
+
+                <label
+                  htmlFor="remember"
+                  className="text-sm text-slate-600"
+                >
+                  Remember me
+                </label>
+              </div>
+
+              {/* Login Button */}
+              <button
+                type="submit"
+                className="w-full rounded-xl bg-sky-600 px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-sky-700 hover:shadow-md"
+              >
+                Sign In
+              </button>
+            </form>
+
+            {/* Register */}
+            <div className="mt-8 text-center">
+              <p className="text-sm text-slate-500">
+                Don't have an account?{" "}
+                <Link
+                  to="/register"
+                  className="font-bold text-sky-600 transition hover:text-sky-700"
+                >
+                  Create an account
+                </Link>
+              </p>
+            </div>
+          </div>
+
+          {/* Back Button */}
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="mx-auto flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-600 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600"
+            >
+              <span>←</span>
+              Back
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default Login;
