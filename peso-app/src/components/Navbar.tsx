@@ -16,7 +16,7 @@ export default function Navbar() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
 
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-3">
+        <Link to="/src/assets/images/Peso-logo.png" className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0446A7] font-black text-white">
             P
           </div>
