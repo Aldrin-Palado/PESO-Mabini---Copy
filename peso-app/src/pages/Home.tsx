@@ -64,7 +64,7 @@ function Home() {
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: "url('/peso-bg.jpg')",
+            backgroundImage: "url('/bg-image.png')",
           }}
         />
 
