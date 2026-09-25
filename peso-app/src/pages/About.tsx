@@ -1,12 +1,9 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import Navbar from "../components/Navbar";
 
 const About: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
-
-      <Navbar />
 
       {/* Philippine-inspired top accent */}
       <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
