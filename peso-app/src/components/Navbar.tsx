@@ -48,15 +48,19 @@ export default function Navbar() {
         </div>
 
         {/* Authentication buttons */}
-        <div className="flex gap-2">
-          <button className="rounded-xl border border-sky-600 px-4 py-2 font-bold text-sky-600 transition hover:bg-sky-50">
-            Login
-          </button>
+        <Link
+  to="/login"
+  className="rounded-xl border border-sky-600 px-4 py-2 font-bold text-sky-600 transition hover:bg-sky-50"
+>
+  Login
+</Link>
 
-          <button className="rounded-xl bg-sky-600 px-4 py-2 font-bold text-white transition hover:bg-sky-500">
-            Register
-          </button>
-        </div>
+<Link
+  to="/register"
+  className="rounded-xl bg-sky-600 px-4 py-2 font-bold text-white transition hover:bg-sky-700"
+>
+  Register
+</Link>
 
       </div>
     </nav>
