@@ -38,7 +38,7 @@ export default function Navbar() {
                 className={`font-semibold transition ${
                   isActive
                     ? "text-red-500"
-                    : "text-slate-600 hover:text-red-500"
+                    : "text-white hover:text-red-300"
                 }`}
               >
                 {item.name}
