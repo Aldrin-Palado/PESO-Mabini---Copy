@@ -39,35 +39,47 @@ export default function Employers() {
 
       <Navbar />
 
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
+      {/* Philippine-inspired accent */}
+      <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
 
-        <div className="mx-auto max-w-7xl px-6 py-5">
-          <div className="flex items-center justify-between">
+      {/* Hero */}
+      <section className="relative overflow-hidden bg-slate-950">
 
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">
-                Employers
-              </h1>
+        <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-sky-600/20 blur-3xl" />
 
-              <p className="mt-1 text-sm text-slate-500">
-                Explore employers and their available job opportunities.
-              </p>
-            </div>
+        <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-yellow-400/10 blur-3xl" />
 
-            <div className="rounded-full bg-sky-50 px-4 py-2">
-              <span className="text-sm font-semibold text-sky-600">
-                Public Employment Service
+        <div className="relative mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-24">
+          <div className="max-w-3xl">
+
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 backdrop-blur-sm">
+              <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
+
+              <span className="text-sm font-semibold text-white">
+                Public Employment Service Office
               </span>
             </div>
 
+            <h1 className="text-4xl font-black tracking-tight text-white md:text-5xl lg:text-6xl">
+              Explore{" "}
+              <span className="text-sky-300">
+                Employers
+              </span>
+            </h1>
+
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300 md:text-xl">
+              Explore employers and connect with their available job
+              opportunities through PESO Mabini.
+            </p>
+
           </div>
         </div>
-      </header>
+
+        <div className="h-1 bg-gradient-to-r from-sky-400 via-yellow-400 to-red-500" />
+      </section>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-6 py-8">
+      <main className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
