@@ -2,23 +2,24 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Home from "./pages/Home";
 import About from "./pages/About";
-import Contact from "./pages/Contact";
-import Employers from "./pages/Employers";
 import JobVacancies from "./pages/JobVacancies";
+import Employers from "./pages/Employers";
+import Contact from "./pages/Contact";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
-
         <Route path="/about" element={<About />} />
-
+        <Route path="/jobs" element={<JobVacancies />} />
+        <Route path="/employers" element={<Employers />} />
         <Route path="/contact" element={<Contact />} />
 
-        <Route path="/employers" element={<Employers />} />
-
-        <Route path="/jobs" element={<JobVacancies />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
       </Routes>
     </BrowserRouter>
   );
