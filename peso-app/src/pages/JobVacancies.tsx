@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import JobCard from "../components/JobCard";
 import Navbar from "../components/Navbar";
 import type { JobVacancy } from "../types/JobVacancy";
+import { supabase } from "../services/supabase";
 
 function JobVacancies() {
   const [jobs, setJobs] = useState<JobVacancy[]>([]);
@@ -52,20 +53,74 @@ function JobVacancies() {
     },
   ];
 
-  useEffect(() => {
-    // Simulate loading from a backend.
-    // Later, this function can fetch from Supabase.
-    const loadJobs = () => {
-      setLoading(true);
+useEffect(() => {
+  const loadJobs = async () => {
+    setLoading(true);
 
-      setTimeout(() => {
-        setJobs(temporaryJobs);
-        setLoading(false);
-      }, 500);
-    };
+    const { data, error } = await supabase
+      .from("job_vacancy")
+      .select(`
+        job_vacancy_id,
+        position_title,
+        location,
+        employment_type,
+        salary_min,
+        salary_max,
+        description,
+        date_posted,
+        employer (
+          name
+        )
+      `)
+      .eq("status", "open")
+      .order("date_posted", { ascending: false });
 
-    loadJobs();
-  }, []);
+    if (error) {
+      console.error("Error loading job vacancies:", error);
+      setJobs([]);
+      setLoading(false);
+      return;
+    }
+
+    const formattedJobs: JobVacancy[] = (data ?? []).map((job) => {
+      let salary = "Salary not specified";
+
+      if (job.salary_min != null && job.salary_max != null) {
+        salary = `₱${Number(job.salary_min).toLocaleString()} - ₱${Number(
+          job.salary_max
+        ).toLocaleString()}`;
+      } else if (job.salary_min != null) {
+        salary = `From ₱${Number(job.salary_min).toLocaleString()}`;
+      } else if (job.salary_max != null) {
+        salary = `Up to ₱${Number(job.salary_max).toLocaleString()}`;
+      }
+
+      const employer = Array.isArray(job.employer)
+  ? job.employer[0]
+  : job.employer;
+
+      return {
+        job_vacancy_id: job.job_vacancy_id,
+        position_title: job.position_title,
+        location: job.location ?? undefined,
+        employment_type: job.employment_type ?? undefined,
+        salary,
+        description: job.description ?? undefined,
+        date_posted: job.date_posted ?? undefined,
+        employer: employer
+          ? {
+              name: employer.name ?? undefined,
+            }
+          : undefined,
+      };
+    });
+
+    setJobs(formattedJobs);
+    setLoading(false);
+  };
+
+  loadJobs();
+}, []);
 
   const filteredJobs = jobs.filter((job) => {
     const searchText = search.toLowerCase();
