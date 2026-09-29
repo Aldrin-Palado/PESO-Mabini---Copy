@@ -10,6 +10,7 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 
 import SuperadminDashboard from "./dashboards/AdminDashboard";
+import StaffDashboard from "./dashboards/StaffDashboard";
 import EmployerDashboard from "./dashboards/EmployerDashboard";
 
 function App() {
@@ -62,6 +63,11 @@ function App() {
         <Route
           path="/superadmin"
           element={<SuperadminDashboard />}
+        />
+
+        <Route
+          path="/staff"
+          element={<StaffDashboard />}
         />
 
         {/* Employer */}
