@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Footer from "../components/Footer";
 import JobCard from "../components/JobCard";
 import Navbar from "../components/Navbar";
 import type { JobVacancy } from "../types/JobVacancy";
@@ -272,33 +273,7 @@ function JobVacancies() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="mt-8 bg-slate-950 text-slate-400">
-
-        <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
-
-        <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
-
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-
-            <div>
-              <h3 className="font-bold text-white">
-                PESO<span className="text-sky-400">-Hub</span>
-              </h3>
-
-              <p className="mt-1 text-xs">
-                Public Employment Service Office
-              </p>
-            </div>
-
-            <p className="text-xs">
-              © 2026 PESO-Hub. All rights reserved.
-            </p>
-
-          </div>
-
-        </div>
-      </footer>
+      <Footer />
 
     </div>
   );

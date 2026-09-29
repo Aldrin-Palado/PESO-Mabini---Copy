@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import pesoLogo from "../assets/images/Peso-logo.png";
+import pesoLogo from "../src/assets/images/Peso-logo.png";
 
 export default function Navbar() {
   const location = useLocation();
