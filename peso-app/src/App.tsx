@@ -9,76 +9,43 @@ import Contact from "./pages/Contact";
 import Login from "./components/Login";
 import Register from "./components/Register";
 
-import SuperadminDashboard from "./dashboards/AdminDashboard";
+import AdminDashboard from "./dashboards/AdminDashboard";
 import StaffDashboard from "./dashboards/StaffDashboard";
 import EmployerDashboard from "./dashboards/EmployerDashboard";
 
 function App() {
   return (
     <BrowserRouter>
-
       <Routes>
-
         {/* Public Pages */}
-
-        <Route
-          path="/"
-          element={<Home />}
-        />
-
-        <Route
-          path="/about"
-          element={<About />}
-        />
-
-        <Route
-          path="/jobs"
-          element={<JobVacancies />}
-        />
-
-        <Route
-          path="/employers"
-          element={<Employers />}
-        />
-
-        <Route
-          path="/contact"
-          element={<Contact />}
-        />
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/jobs" element={<JobVacancies />} />
+        <Route path="/employers" element={<Employers />} />
+        <Route path="/contact" element={<Contact />} />
 
         {/* Authentication */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-        <Route
-          path="/login"
-          element={<Login />}
-        />
-
-        <Route
-          path="/register"
-          element={<Register />}
-        />
-
-        {/* Superadmin / PESO Staff */}
-
+        {/* Admin */}
         <Route
           path="/superadmin"
-          element={<SuperadminDashboard />}
+          element={<AdminDashboard />}
         />
 
+        {/* Staff */}
         <Route
           path="/staff"
           element={<StaffDashboard />}
         />
 
         {/* Employer */}
-
         <Route
           path="/employer"
           element={<EmployerDashboard />}
         />
-
       </Routes>
-
     </BrowserRouter>
   );
 }

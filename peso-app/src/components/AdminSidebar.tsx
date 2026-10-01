@@ -1,61 +1,22 @@
-import { useNavigate } from "react-router-dom";
+import { supabase } from "../services/supabase";
 
 export type AdminModule =
-  | "Dashboard Overview"
-  | "Analytics"
-  | "Job Posts"
-  | "Job Application"
+  | "Dashboard"
+  | "Job Post"
   | "Employers"
   | "Job Seekers"
+  | "Applications"
+  | "Announcement"
+  | "Analytics & Reports"
   | "Admin Accounts"
-  | "Notifications";
+  | "Admin Audit Logs";
 
 type AdminSidebarProps = {
   activePage: AdminModule | "My Profile";
-  setActivePage: (
-    page: AdminModule | "My Profile"
-  ) => void;
+  setActivePage: (page: AdminModule | "My Profile") => void;
   permissions: AdminModule[];
   isSuperadmin: boolean;
 };
-
-const modules: {
-  name: AdminModule;
-  icon: string;
-}[] = [
-  {
-    name: "Dashboard Overview",
-    icon: "▣",
-  },
-  {
-    name: "Analytics",
-    icon: "◉",
-  },
-  {
-    name: "Job Posts",
-    icon: "▤",
-  },
-  {
-    name: "Job Application",
-    icon: "▥",
-  },
-  {
-    name: "Employers",
-    icon: "♙",
-  },
-  {
-    name: "Job Seekers",
-    icon: "♙",
-  },
-  {
-    name: "Admin Accounts",
-    icon: "⚙",
-  },
-  {
-    name: "Notifications",
-    icon: "🔔",
-  },
-];
 
 export default function AdminSidebar({
   activePage,
@@ -63,120 +24,95 @@ export default function AdminSidebar({
   permissions,
   isSuperadmin,
 }: AdminSidebarProps) {
-  const navigate = useNavigate();
+  const modules: AdminModule[] = [
+    "Dashboard",
+    "Job Post",
+    "Employers",
+    "Job Seekers",
+    "Applications",
+    "Announcement",
+    "Analytics & Reports",
+    "Admin Accounts",
+    "Admin Audit Logs",
+  ];
 
-  const visibleModules = isSuperadmin
-    ? modules
-    : modules.filter((module) =>
-        permissions.includes(module.name)
-      );
+  const canAccess = (module: AdminModule) => {
+    if (
+      module === "Admin Accounts" ||
+      module === "Admin Audit Logs"
+    ) {
+      return isSuperadmin;
+    }
+
+    return isSuperadmin || permissions.includes(module);
+  };
 
   const handleLogout = async () => {
-    // Supabase logout will be added here
-    navigate("/login");
+    await supabase.auth.signOut();
+    window.location.href = "/login";
   };
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-72 flex-col bg-[#0446A7] text-white">
-
-      {/* Logo */}
-      <div className="border-b border-blue-400/30 px-6 py-6">
-
-        <div className="flex items-center gap-3">
-
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#FED442] text-xl font-black text-[#123B70]">
-            P
-          </div>
-
-          <div>
-            <h1 className="text-xl font-black">
-              PESO-Hub
-            </h1>
-
-            <p className="text-xs text-blue-100">
-              Staff / Admin Portal
-            </p>
-          </div>
-
-        </div>
-
+    <aside className="fixed left-0 top-0 z-50 flex h-screen w-64 flex-col bg-blue-900 text-white shadow-xl">
+      
+      {/* Logo / Title */}
+      <div className="border-b border-blue-800 px-6 py-5">
+        <h1 className="text-xl font-bold">Admin Portal</h1>
+        <p className="mt-1 text-xs text-blue-200">
+          PESO-Hub
+        </p>
       </div>
 
-      {/* Main Navigation */}
-      <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-6">
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-blue-300">
+          Main Menu
+        </p>
 
-        {visibleModules.map((module) => {
-          const isActive =
-            activePage === module.name;
+        <div className="space-y-1">
+          {modules.map((module) => {
+            if (!canAccess(module)) return null;
 
-          return (
-            <button
-              key={module.name}
-              onClick={() =>
-                setActivePage(module.name)
-              }
-              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-bold transition ${
-                isActive
-                  ? "bg-white text-[#0446A7] shadow-sm"
-                  : "text-blue-50 hover:bg-blue-600"
-              }`}
-            >
+            const isActive = activePage === module;
 
-              <span
-                className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+            return (
+              <button
+                key={module}
+                onClick={() => setActivePage(module)}
+                className={`w-full rounded-lg px-4 py-3 text-left text-sm font-medium transition ${
                   isActive
-                    ? "bg-[#FED442] text-[#123B70]"
-                    : "bg-blue-600"
+                    ? "bg-red-600 text-white shadow"
+                    : "text-blue-100 hover:bg-blue-800 hover:text-white"
                 }`}
               >
-                {module.icon}
-              </span>
-
-              {module.name}
-
-            </button>
-          );
-        })}
+                {module}
+              </button>
+            );
+          })}
+        </div>
 
       </nav>
 
-      {/* Bottom */}
-      <div className="border-t border-blue-400/30 p-4">
-
+      {/* Bottom Menu */}
+      <div className="border-t border-blue-800 p-3">
         <button
-          onClick={() =>
-            setActivePage("My Profile")
-          }
-          className={`mb-2 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold ${
+          onClick={() => setActivePage("My Profile")}
+          className={`mb-1 w-full rounded-lg px-4 py-3 text-left text-sm font-medium transition ${
             activePage === "My Profile"
-              ? "bg-white text-[#0446A7]"
-              : "text-blue-50 hover:bg-blue-600"
+              ? "bg-red-600 text-white"
+              : "text-blue-100 hover:bg-blue-800 hover:text-white"
           }`}
         >
-
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
-            ♙
-          </span>
-
           My Profile
-
         </button>
 
         <button
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-blue-50 transition hover:bg-red-500"
+          className="w-full rounded-lg px-4 py-3 text-left text-sm font-medium text-red-200 transition hover:bg-red-700 hover:text-white"
         >
-
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
-            ↪
-          </span>
-
           Logout
-
         </button>
-
       </div>
-
     </aside>
   );
 }

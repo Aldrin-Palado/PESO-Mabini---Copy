@@ -290,6 +290,21 @@ export default function StaffDashboard() {
   ===================================================== */
 
   const renderContent = () => {
+    if (
+      activePage !== "My Profile" &&
+      !isAssigned(activePage)
+    ) {
+      return (
+        <div className="rounded-2xl border border-red-200 bg-white p-8 text-center">
+          <h2 className="font-bold text-red-700">
+            Access Denied
+          </h2>
+          <p className="mt-2 text-sm text-slate-500">
+            This module has not been assigned to your account.
+          </p>
+        </div>
+      );
+    }
 
     switch (activePage) {
 
