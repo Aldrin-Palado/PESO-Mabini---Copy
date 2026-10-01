@@ -318,19 +318,15 @@ function Login() {
 
           {/* Back Button */}
           <div className="mt-6 text-center">
-
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="mx-auto flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-600 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600"
-            >
-
-              <span>←</span>
-              Back
-
-            </button>
-
-          </div>
+           <button
+           type="button"
+           onClick={() => navigate("/")}
+           className="mx-auto flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-600 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600"
+    >
+          <span>←</span>
+           Back
+          </button>
+         </div>
 
         </div>
 
