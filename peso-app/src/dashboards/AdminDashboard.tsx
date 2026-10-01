@@ -33,9 +33,11 @@ type AuditLog = {
 };
 
 export default function AdminDashboard() {
-  const [account, setAccount] = useState<Account | null>(null);
+  const [account, setAccount] =
+    useState<Account | null>(null);
 
-  const [permissions, setPermissions] = useState<AdminModule[]>([]);
+  const [permissions, setPermissions] =
+    useState<AdminModule[]>([]);
 
   const [activePage, setActivePage] =
     useState<AdminModule | "My Profile">("Dashboard");
@@ -49,12 +51,14 @@ export default function AdminDashboard() {
     jobSeekers: 0,
   });
 
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [auditLogs, setAuditLogs] =
+    useState<AuditLog[]>([]);
 
-  const isSuperadmin = account?.role === "superadmin";
+  const isSuperadmin =
+    account?.role === "superadmin";
 
   // ============================================================
-  // LOAD ACCOUNT
+  // LOAD CURRENT ACCOUNT
   // ============================================================
 
   useEffect(() => {
@@ -76,7 +80,10 @@ export default function AdminDashboard() {
   // ============================================================
 
   useEffect(() => {
-    if (isSuperadmin && activePage === "Admin Audit Logs") {
+    if (
+      isSuperadmin &&
+      activePage === "Admin Audit Logs"
+    ) {
       loadAuditLogs();
     }
   }, [isSuperadmin, activePage]);
@@ -86,34 +93,113 @@ export default function AdminDashboard() {
   // ============================================================
 
   const loadCurrentAccount = async () => {
+    setLoading(true);
+
     try {
-      setLoading(true);
+      // --------------------------------------------------------
+      // 1. GET CURRENT AUTHENTICATED USER
+      // --------------------------------------------------------
 
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser();
+
+      if (authError) {
+        console.error(
+          "Authentication error:",
+          authError
+        );
+
+        window.location.href = "/login";
+        return;
+      }
 
       if (!user) {
         window.location.href = "/login";
         return;
       }
 
+      console.log(
+        "AUTH USER ID:",
+        user.id
+      );
+
+      console.log(
+        "AUTH USER EMAIL:",
+        user.email
+      );
+
       // --------------------------------------------------------
-      // CHECK SUPERADMIN
+      // 2. CHECK PESO ADMIN FIRST
       // --------------------------------------------------------
 
-      const { data: admin, error: adminError } = await supabase
+      const {
+        data: admin,
+        error: adminError,
+      } = await supabase
         .from("peso_admin")
-        .select("*")
+        .select(
+          `
+            admin_id,
+            user_id,
+            full_name,
+            email,
+            contact_no,
+            is_active
+          `
+        )
         .eq("user_id", user.id)
-        .eq("is_active", true)
         .maybeSingle();
 
+      console.log(
+        "PESO ADMIN RECORD:",
+        admin
+      );
+
       if (adminError) {
-        console.error("Superadmin query error:", adminError);
+        console.error(
+          "Superadmin query error:",
+          adminError
+        );
+
+        /*
+         * IMPORTANT:
+         * Do NOT continue to peso_staff if the
+         * peso_admin query itself failed.
+         */
+        alert(
+          "Unable to verify your Superadmin account."
+        );
+
+        return;
       }
 
+      // --------------------------------------------------------
+      // 3. USER IS SUPERADMIN
+      // --------------------------------------------------------
+
       if (admin) {
+        console.log(
+          "ROLE DETECTED: SUPERADMIN"
+        );
+
+        // Check active status
+        if (!admin.is_active) {
+          alert(
+            "Your Superadmin account is inactive."
+          );
+
+          await supabase.auth.signOut();
+
+          window.location.href = "/login";
+          return;
+        }
+
+        // ------------------------------------------------------
+        // SET SUPERADMIN ACCOUNT
+        // ------------------------------------------------------
+
         setAccount({
           id: admin.admin_id,
           user_id: admin.user_id,
@@ -124,7 +210,10 @@ export default function AdminDashboard() {
           role: "superadmin",
         });
 
-        // Superadmin has ALL permissions
+        // ------------------------------------------------------
+        // SUPERADMIN GETS ALL ADMIN MODULES
+        // ------------------------------------------------------
+
         setPermissions([
           "Dashboard",
           "Job Post",
@@ -137,71 +226,167 @@ export default function AdminDashboard() {
           "Admin Audit Logs",
         ]);
 
+        /*
+         * VERY IMPORTANT:
+         *
+         * Once peso_admin is found, we STOP.
+         *
+         * We DO NOT query peso_staff.
+         */
         setLoading(false);
         return;
       }
 
       // --------------------------------------------------------
-      // CHECK STAFF
+      // 4. USER WAS NOT FOUND IN PESO_ADMIN
+      //    NOW CHECK PESO_STAFF
       // --------------------------------------------------------
 
-      const { data: staff, error: staffError } = await supabase
+      console.log(
+        "User is not registered as Superadmin."
+      );
+
+      const {
+        data: staff,
+        error: staffError,
+      } = await supabase
         .from("peso_staff")
-        .select("*")
+        .select(
+          `
+            peso_staff_id,
+            user_id,
+            admin_id,
+            full_name,
+            email,
+            contact_no,
+            is_active
+          `
+        )
         .eq("user_id", user.id)
-        .eq("is_active", true)
         .maybeSingle();
 
-      if (staffError) {
-        console.error("Staff query error:", staffError);
-      }
+      console.log(
+        "PESO STAFF RECORD:",
+        staff
+      );
 
-      if (!staff) {
-        alert("Your account does not have access to this system.");
-        await supabase.auth.signOut();
-        window.location.href = "/login";
+      if (staffError) {
+        console.error(
+          "Staff query error:",
+          staffError
+        );
+
+        alert(
+          "Unable to verify your PESO Staff account."
+        );
+
         return;
       }
 
-      setAccount({
-        id: staff.peso_staff_id,
-        user_id: staff.user_id,
-        full_name: staff.full_name,
-        email: staff.email,
-        contact_no: staff.contact_no,
-        is_active: staff.is_active,
-        role: "staff",
-      });
-
       // --------------------------------------------------------
-      // LOAD STAFF PERMISSIONS
+      // 5. USER IS STAFF
       // --------------------------------------------------------
 
-      const {
-        data: permissionData,
-        error: permissionError,
-      } = await supabase
-        .from("staff_permissions")
-        .select("*")
-        .eq("peso_staff_id", staff.peso_staff_id)
-        .maybeSingle();
-
-      if (permissionError) {
-        console.error(
-          "Permission query error:",
-          permissionError
+      if (staff) {
+        console.log(
+          "ROLE DETECTED: PESO STAFF"
         );
+
+        if (!staff.is_active) {
+          alert(
+            "Your PESO Staff account is inactive."
+          );
+
+          await supabase.auth.signOut();
+
+          window.location.href = "/login";
+          return;
+        }
+
+        // ------------------------------------------------------
+        // SET STAFF ACCOUNT
+        // ------------------------------------------------------
+
+        setAccount({
+          id: staff.peso_staff_id,
+          user_id: staff.user_id,
+          full_name: staff.full_name,
+          email: staff.email,
+          contact_no: staff.contact_no,
+          is_active: staff.is_active,
+          role: "staff",
+        });
+
+        // ------------------------------------------------------
+        // LOAD STAFF PERMISSIONS
+        // ------------------------------------------------------
+
+        const {
+          data: permissionData,
+          error: permissionError,
+        } = await supabase
+          .from("staff_permissions")
+          .select(
+            `
+              dashboard_overview,
+              analytics,
+              job_posts,
+              job_application,
+              employers,
+              job_seekers,
+              notifications
+            `
+          )
+          .eq(
+            "peso_staff_id",
+            staff.peso_staff_id
+          )
+          .maybeSingle();
+
+        if (permissionError) {
+          console.error(
+            "Permission query error:",
+            permissionError
+          );
+
+          setPermissions([]);
+        } else {
+          setPermissions(
+            convertPermissions(
+              permissionData as Permissions | null
+            )
+          );
+        }
+
+        setLoading(false);
+        return;
       }
 
-      setPermissions(
-        convertPermissions(
-          permissionData as Permissions | null
-        )
+      // --------------------------------------------------------
+      // 6. USER IS NOT ADMIN OR STAFF
+      // --------------------------------------------------------
+
+      console.error(
+        "No PESO Admin or PESO Staff record found."
       );
 
-      setLoading(false);
+      alert(
+        "Your account does not have access to this system."
+      );
+
+      await supabase.auth.signOut();
+
+      window.location.href = "/login";
     } catch (error) {
-      console.error("Account loading error:", error);
+      console.error(
+        "Account loading error:",
+        error
+      );
+
+      alert(
+        "An error occurred while loading your account."
+      );
+    } finally {
       setLoading(false);
     }
   };
@@ -213,7 +398,9 @@ export default function AdminDashboard() {
   const convertPermissions = (
     permission: Permissions | null
   ): AdminModule[] => {
-    if (!permission) return [];
+    if (!permission) {
+      return [];
+    }
 
     const result: AdminModule[] = [];
 
@@ -255,11 +442,13 @@ export default function AdminDashboard() {
   const canAccess = (
     page: AdminModule | "My Profile"
   ) => {
+    // Everyone can access their own profile
     if (page === "My Profile") {
       return true;
     }
 
-    if (isSuperadmin) {
+    // Superadmin can access EVERYTHING
+    if (account?.role === "superadmin") {
       return true;
     }
 
@@ -271,11 +460,12 @@ export default function AdminDashboard() {
       return false;
     }
 
+    // Staff uses assigned permissions
     return permissions.includes(page);
   };
 
   // ============================================================
-  // DASHBOARD COUNTS
+  // LOAD DASHBOARD COUNTS
   // ============================================================
 
   const loadDashboardCounts = async () => {
@@ -317,12 +507,18 @@ export default function AdminDashboard() {
 
       setCounts({
         jobs: jobsResult.count ?? 0,
-        applications: applicationsResult.count ?? 0,
-        employers: employersResult.count ?? 0,
-        jobSeekers: jobSeekersResult.count ?? 0,
+        applications:
+          applicationsResult.count ?? 0,
+        employers:
+          employersResult.count ?? 0,
+        jobSeekers:
+          jobSeekersResult.count ?? 0,
       });
     } catch (error) {
-      console.error("Dashboard count error:", error);
+      console.error(
+        "Dashboard count error:",
+        error
+      );
     }
   };
 
@@ -332,7 +528,10 @@ export default function AdminDashboard() {
 
   const loadAuditLogs = async () => {
     try {
-      const { data, error } = await supabase
+      const {
+        data,
+        error,
+      } = await supabase
         .from("admin_activity_log")
         .select("*")
         .order("created_at", {
@@ -341,13 +540,19 @@ export default function AdminDashboard() {
         .limit(100);
 
       if (error) {
-        console.error("Audit log error:", error);
+        console.error(
+          "Audit log error:",
+          error
+        );
         return;
       }
 
       setAuditLogs(data ?? []);
     } catch (error) {
-      console.error("Audit log loading error:", error);
+      console.error(
+        "Audit log loading error:",
+        error
+      );
     }
   };
 
@@ -370,41 +575,57 @@ export default function AdminDashboard() {
         );
 
       case "Job Post":
-        return <PlaceholderPage title="Job Post" />;
+        return (
+          <PlaceholderPage title="Job Post" />
+        );
 
       case "Employers":
-        return <PlaceholderPage title="Employers" />;
+        return (
+          <PlaceholderPage title="Employers" />
+        );
 
       case "Job Seekers":
-        return <PlaceholderPage title="Job Seekers" />;
+        return (
+          <PlaceholderPage title="Job Seekers" />
+        );
 
       case "Applications":
-        return <PlaceholderPage title="Applications" />;
+        return (
+          <PlaceholderPage title="Applications" />
+        );
 
       case "Announcement":
-        return <PlaceholderPage title="Announcement" />;
+        return (
+          <PlaceholderPage title="Announcement" />
+        );
 
       case "Analytics & Reports":
         return (
-          <PlaceholderPage title="Analytics & Reports" />
+          <PlaceholderPage
+            title="Analytics & Reports"
+          />
         );
 
       case "Admin Accounts":
-        if (!isSuperadmin) {
+        if (account?.role !== "superadmin") {
           return <AccessDenied />;
         }
 
         return <AdminAccounts />;
 
       case "Admin Audit Logs":
-        if (!isSuperadmin) {
+        if (account?.role !== "superadmin") {
           return <AccessDenied />;
         }
 
-        return <AuditLogs logs={auditLogs} />;
+        return (
+          <AuditLogs logs={auditLogs} />
+        );
 
       case "My Profile":
-        return <MyProfile account={account} />;
+        return (
+          <MyProfile account={account} />
+        );
 
       default:
         return <AccessDenied />;
@@ -435,30 +656,40 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-100">
+
       <AdminSidebar
         activePage={activePage}
         setActivePage={setActivePage}
         permissions={permissions}
-        isSuperadmin={isSuperadmin}
+        isSuperadmin={
+          account?.role === "superadmin"
+        }
       />
 
       <main className="ml-64 min-h-screen">
-        {/* Header */}
+
+        {/* HEADER */}
+
         <header className="sticky top-0 z-40 border-b border-slate-200 bg-white px-8 py-5 shadow-sm">
+
           <div className="flex items-center justify-between">
+
             <div>
+
               <h2 className="text-2xl font-bold text-slate-800">
                 {activePage}
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                {isSuperadmin
+                {account?.role === "superadmin"
                   ? "Superadmin"
                   : "PESO Staff"}
               </p>
+
             </div>
 
             <div className="text-right">
+
               <p className="font-semibold text-slate-700">
                 {account?.full_name}
               </p>
@@ -466,15 +697,21 @@ export default function AdminDashboard() {
               <p className="text-xs text-slate-500">
                 {account?.email}
               </p>
+
             </div>
+
           </div>
+
         </header>
 
-        {/* Content */}
+        {/* CONTENT */}
+
         <section className="p-8">
           {renderPage()}
         </section>
+
       </main>
+
     </div>
   );
 }
@@ -497,7 +734,9 @@ function DashboardOverview({
 }) {
   return (
     <div className="space-y-6">
+
       <div>
+
         <h3 className="text-xl font-bold text-slate-800">
           Dashboard Overview
         </h3>
@@ -505,9 +744,11 @@ function DashboardOverview({
         <p className="text-sm text-slate-500">
           Welcome back, {account?.full_name}.
         </p>
+
       </div>
 
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+
         <StatCard
           title="Job Posts"
           value={counts.jobs}
@@ -527,7 +768,9 @@ function DashboardOverview({
           title="Job Seekers"
           value={counts.jobSeekers}
         />
+
       </div>
+
     </div>
   );
 }
@@ -543,7 +786,9 @@ function AuditLogs({
 }) {
   return (
     <div className="space-y-6">
+
       <div>
+
         <h3 className="text-xl font-bold text-slate-800">
           Admin Audit Logs
         </h3>
@@ -551,13 +796,19 @@ function AuditLogs({
         <p className="text-sm text-slate-500">
           Records of administrative activities.
         </p>
+
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+
         <div className="overflow-x-auto">
+
           <table className="w-full">
+
             <thead className="bg-slate-50">
+
               <tr>
+
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-slate-500">
                   Action
                 </th>
@@ -569,29 +820,37 @@ function AuditLogs({
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-slate-500">
                   Date
                 </th>
+
               </tr>
+
             </thead>
 
             <tbody className="divide-y divide-slate-100">
+
               {logs.length === 0 ? (
                 <tr>
+
                   <td
                     colSpan={3}
                     className="px-6 py-10 text-center text-sm text-slate-500"
                   >
                     No audit logs found.
                   </td>
+
                 </tr>
               ) : (
                 logs.map((log) => (
                   <tr key={log.log_id}>
+
                     <td className="px-6 py-4 font-medium text-slate-700">
                       {log.action}
                     </td>
 
                     <td className="px-6 py-4 text-sm text-slate-500">
                       {log.details
-                        ? JSON.stringify(log.details)
+                        ? JSON.stringify(
+                            log.details
+                          )
                         : "-"}
                     </td>
 
@@ -600,13 +859,19 @@ function AuditLogs({
                         log.created_at
                       ).toLocaleString()}
                     </td>
+
                   </tr>
                 ))
               )}
+
             </tbody>
+
           </table>
+
         </div>
+
       </div>
+
     </div>
   );
 }
@@ -622,12 +887,15 @@ function MyProfile({
 }) {
   return (
     <div className="mx-auto max-w-3xl">
+
       <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
+
         <h3 className="mb-6 text-xl font-bold text-slate-800">
           My Profile
         </h3>
 
         <div className="grid gap-5 md:grid-cols-2">
+
           <ProfileField
             label="Full Name"
             value={account?.full_name}
@@ -660,8 +928,11 @@ function MyProfile({
                 : "Inactive"
             }
           />
+
         </div>
+
       </div>
+
     </div>
   );
 }
@@ -677,6 +948,7 @@ function PlaceholderPage({
 }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+
       <h3 className="text-xl font-bold text-slate-800">
         {title}
       </h3>
@@ -684,6 +956,7 @@ function PlaceholderPage({
       <p className="mt-2 text-sm text-slate-500">
         This module is ready for implementation.
       </p>
+
     </div>
   );
 }
@@ -695,6 +968,7 @@ function PlaceholderPage({
 function AccessDenied() {
   return (
     <div className="rounded-xl border border-red-200 bg-white p-10 text-center shadow-sm">
+
       <h3 className="text-xl font-bold text-red-600">
         Access Denied
       </h3>
@@ -702,6 +976,7 @@ function AccessDenied() {
       <p className="mt-2 text-sm text-slate-500">
         You do not have permission to access this module.
       </p>
+
     </div>
   );
 }
@@ -719,6 +994,7 @@ function StatCard({
 }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+
       <p className="text-sm font-medium text-slate-500">
         {title}
       </p>
@@ -726,6 +1002,7 @@ function StatCard({
       <p className="mt-3 text-3xl font-bold text-blue-900">
         {value}
       </p>
+
     </div>
   );
 }
@@ -743,6 +1020,7 @@ function ProfileField({
 }) {
   return (
     <div>
+
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
         {label}
       </p>
@@ -750,6 +1028,7 @@ function ProfileField({
       <p className="mt-1 rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-700">
         {value || "-"}
       </p>
+
     </div>
   );
 }
