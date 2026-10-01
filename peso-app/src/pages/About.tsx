@@ -7,6 +7,11 @@ const backgroundImage = new URL(
   import.meta.url,
 ).href;
 
+const aboutVideo = new URL(
+  "../assets/videos/pesoadvertisement.mp4",
+  import.meta.url,
+).href;
+
 const About: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
@@ -58,6 +63,21 @@ const About: React.FC = () => {
 
         {/* Bottom accent */}
         <div className="h-1 bg-gradient-to-r from-sky-400 via-yellow-400 to-red-500" />
+      </section>
+
+      {/* About video */}
+      <section className="bg-white px-5 py-12 lg:px-8">
+        <div className="mx-auto max-w-4xl">
+          <video
+            className="aspect-video w-full rounded-2xl border border-slate-200 bg-slate-900 object-cover shadow-sm"
+            controls
+            preload="metadata"
+            poster={backgroundImage}
+          >
+            <source src={aboutVideo} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
       </section>
 
       {/* Main Content */}
