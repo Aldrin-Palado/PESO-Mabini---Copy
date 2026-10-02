@@ -315,10 +315,11 @@ useEffect(() => {
           {!loading && filteredJobs.length > 0 && (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 
-              {filteredJobs.map((job) => (
+              {filteredJobs.map((job, index) => (
                 <JobCard
                   key={job.job_vacancy_id}
                   job={job}
+                  index={index}
                 />
               ))}
 
