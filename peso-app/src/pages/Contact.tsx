@@ -47,42 +47,42 @@ const Contact: React.FC = () => {
       <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-slate-950">
+      <section className="hero-shell-compact relative isolate overflow-hidden bg-slate-950">
 
         {/* Decorative background */}
         <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-sky-600/20 blur-3xl" />
 
         <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-yellow-400/10 blur-3xl" />
 
-        <div className="relative mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-24">
+        <div className="relative z-10 mx-auto flex min-h-[inherit] max-w-7xl flex-col justify-center px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-24">
 
           <div className="max-w-3xl">
 
             {/* Label */}
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 backdrop-blur-sm">
+            <div className="mb-6 inline-flex max-w-full items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur-sm sm:px-4 sm:py-2 sm:text-sm">
               <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
 
-              <span className="text-sm font-semibold text-white">
+              <span className="text-xs font-semibold text-white sm:text-sm">
                 Public Employment Service Office
               </span>
             </div>
 
             {/* Heading */}
-            <h1 className="text-4xl font-black tracking-tight text-white md:text-5xl lg:text-6xl">
+            <h1 className="hero-heading-compact font-black text-white">
               Contact{" "}
               <span className="text-sky-300">
                 PESO Mabini
               </span>
             </h1>
 
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300 md:text-xl">
+            <p className="hero-lead mt-6 max-w-2xl text-slate-300">
               We are here to support job seekers, employers, and community
               partners with responsive, people-focused employment services
               and livelihood assistance.
             </p>
 
             {/* Buttons */}
-            <div className="mt-8 flex flex-wrap gap-4">
+            <div className="mt-8 flex flex-col gap-3 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:gap-4">
 
               <a
                 href="mailto:peso.mabini@province.gov.ph"
@@ -110,7 +110,7 @@ const Contact: React.FC = () => {
       </section>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+      <main className="mx-auto max-w-7xl px-4 py-12 sm:px-5 sm:py-14 lg:px-8 lg:py-16">
 
         {/* Contact Methods */}
         <section>
@@ -167,14 +167,14 @@ const Contact: React.FC = () => {
         </section>
 
         {/* Message + Sidebar */}
-        <section className="mt-16 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+        <section className="mt-12 grid gap-6 lg:mt-16 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-8">
 
           {/* Contact Form */}
           <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
 
             <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
 
-            <div className="p-6 md:p-8">
+            <div className="p-5 sm:p-6 md:p-8">
 
               <div className="mb-7">
 
@@ -345,7 +345,7 @@ const Contact: React.FC = () => {
           <div className="grid gap-0 lg:grid-cols-2">
 
             {/* Text */}
-            <div className="p-8 md:p-10">
+            <div className="p-5 sm:p-8 md:p-10">
 
               <p className="text-sm font-bold uppercase tracking-widest text-sky-600">
                 Visit Our Office
@@ -380,7 +380,7 @@ const Contact: React.FC = () => {
             </div>
 
             {/* Map Placeholder */}
-            <div className="bg-slate-100 p-5 lg:p-8">
+            <div className="bg-slate-100 p-4 sm:p-5 lg:p-8">
 
               <div className="flex h-full min-h-[280px] items-center justify-center rounded-2xl border border-slate-200 bg-gradient-to-br from-sky-100 via-slate-50 to-yellow-50">
 

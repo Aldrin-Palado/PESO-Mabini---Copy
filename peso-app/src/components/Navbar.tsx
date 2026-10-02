@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-
-const pesoLogo = new URL("../assets/images/Peso-logo.png", import.meta.url).href;
+import PesoLogo from "./PesoLogo";
 
 export default function Navbar() {
   const location = useLocation();
@@ -17,20 +16,12 @@ export default function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
+      {/* pt/pb carry the notch inset so the bar clears the status bar on
+          devices with a cutout, while keeping the original spacing. */}
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3 sm:px-6 sm:pt-[calc(env(safe-area-inset-top)+1rem)] sm:pb-4">
 
         {/* Logo */}
-        <Link to="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
-          <img
-            src={pesoLogo}
-            alt="PESO-Hub logo"
-            className="h-9 w-9 shrink-0 object-contain sm:h-10 sm:w-10"
-          />
-
-          <span className="truncate text-lg font-black text-[#123B70] sm:text-xl">
-            PESO-Hub
-          </span>
-        </Link>
+        <PesoLogo size="sm" showName className="min-w-0" />
 
         {/* Navigation */}
         <div className="hidden items-center gap-8 md:flex">
@@ -81,7 +72,7 @@ export default function Navbar() {
           aria-controls="mobile-navigation"
           aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
           onClick={() => setIsMenuOpen((open) => !open)}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-[#123B70] transition hover:bg-slate-50 md:hidden"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-[#123B70] transition hover:bg-slate-50 md:hidden"
         >
           <svg
             className="h-6 w-6"
@@ -102,7 +93,10 @@ export default function Navbar() {
 
       {/* Mobile navigation */}
       {isMenuOpen && (
-        <div id="mobile-navigation" className="border-t border-slate-200 bg-white px-4 pb-4 pt-2 md:hidden">
+        <div
+          id="mobile-navigation"
+          className="max-h-[calc(100svh-4rem)] overflow-y-auto border-t border-slate-200 bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2 md:hidden overscroll-contain"
+        >
           <div className="flex flex-col gap-1">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import SidebarToggle from "../components/SidebarToggle";
 
 type MenuItem = {
   name: string;
@@ -36,6 +37,29 @@ const recentApplications = [
 function EmployerDashboard() {
   const [activeMenu, setActiveMenu] = useState("Dashboard");
 
+  // Off-canvas below `lg`: on small screens the sidebar used to disappear
+  // entirely, leaving no way to switch sections.
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isSidebarOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () =>
+      window.removeEventListener("keydown", onKeyDown);
+  }, [isSidebarOpen]);
+
+  const go = (name: string) => {
+    setActiveMenu(name);
+    setIsSidebarOpen(false);
+  };
+
   const renderContent = () => {
     switch (activeMenu) {
       case "My Job Posts":
@@ -56,16 +80,32 @@ function EmployerDashboard() {
     <div className="min-h-screen bg-[#F5F8FC]">
 
       {/* ================= SIDEBAR ================= */}
-      <aside className="fixed left-0 top-0 z-50 hidden h-screen w-72 flex-col bg-[#0446A7] text-white lg:flex">
+
+      {/* Tap-away backdrop, small screens only */}
+      {isSidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close navigation menu"
+          onClick={() => setIsSidebarOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-900/50 lg:hidden"
+        />
+      )}
+
+      <aside
+        id="employer-sidebar"
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[85vw] flex-col overflow-y-auto overscroll-contain bg-[#0446A7] text-white transition-transform duration-300 ease-out motion-reduce:transition-none lg:translate-x-0 lg:overflow-hidden ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
 
         {/* Logo */}
-        <div className="flex items-center gap-3 border-b border-white/10 px-6 py-5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-lg font-black text-[#0446A7]">
+        <div className="flex items-center gap-3 border-b border-white/10 px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-5 sm:px-6">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-lg font-black text-[#0446A7]">
             P
           </div>
 
-          <div>
-            <h1 className="text-lg font-black">
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-lg font-black">
               PESO-Hub
             </h1>
 
@@ -73,6 +113,28 @@ function EmployerDashboard() {
               Employer Portal
             </p>
           </div>
+
+          <button
+            type="button"
+            aria-label="Close navigation menu"
+            onClick={() => setIsSidebarOpen(false)}
+            className="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-blue-100 transition hover:bg-white/10 lg:hidden"
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
         </div>
 
         {/* Employer Profile */}
@@ -111,7 +173,7 @@ function EmployerDashboard() {
               return (
                 <button
                   key={item.name}
-                  onClick={() => setActiveMenu(item.name)}
+                  onClick={() => go(item.name)}
                   className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
                     isActive
                       ? "bg-white text-[#0446A7] shadow-sm"
@@ -139,7 +201,7 @@ function EmployerDashboard() {
         </div>
 
         {/* Logout */}
-        <div className="border-t border-white/10 p-4">
+        <div className="mt-auto border-t border-white/10 p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
 
           <button
             onClick={() => {
@@ -155,6 +217,13 @@ function EmployerDashboard() {
 
       </aside>
 
+      <SidebarToggle
+        open={isSidebarOpen}
+        onClick={() =>
+          setIsSidebarOpen((value) => !value)
+        }
+        label="Toggle employer navigation menu"
+      />
 
       {/* ================= MAIN AREA ================= */}
       <main className="min-h-screen lg:ml-72">
@@ -162,15 +231,15 @@ function EmployerDashboard() {
         {/* Top Bar */}
         <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
 
-          <div className="flex items-center justify-between px-6 py-4 lg:px-8">
+          <div className="flex items-center justify-between gap-3 px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-4 sm:px-6 sm:pt-[calc(env(safe-area-inset-top)+1rem)] lg:px-8">
 
-            <div>
+            <div className="min-w-0">
 
-              <p className="text-sm font-medium text-slate-500">
+              <p className="text-xs font-medium text-slate-500 sm:text-sm">
                 Employer Portal
               </p>
 
-              <h2 className="text-xl font-black text-[#123B70]">
+              <h2 className="truncate text-lg font-black text-[#123B70] sm:text-xl">
                 {activeMenu}
               </h2>
 
@@ -425,7 +494,7 @@ function Dashboard() {
         </div>
 
 
-        <div className="overflow-x-auto">
+        <div className="table-scroll">
 
           <table className="w-full text-left">
 
@@ -861,7 +930,7 @@ function Applications() {
         </div>
 
 
-        <div className="overflow-x-auto">
+        <div className="table-scroll">
 
           <table className="w-full text-left">
 

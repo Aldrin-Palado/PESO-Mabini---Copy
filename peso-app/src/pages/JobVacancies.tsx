@@ -143,31 +143,31 @@ useEffect(() => {
       <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-slate-950">
+      <section className="hero-shell-compact relative isolate overflow-hidden bg-slate-950">
 
         <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-sky-600/20 blur-3xl" />
 
         <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-yellow-400/10 blur-3xl" />
 
-        <div className="relative mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-24">
+        <div className="relative z-10 mx-auto flex min-h-[inherit] max-w-7xl flex-col justify-center px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-24">
           <div className="max-w-3xl">
 
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 backdrop-blur-sm">
+            <div className="mb-6 inline-flex max-w-full items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur-sm sm:px-4 sm:py-2 sm:text-sm">
               <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
 
-              <span className="text-sm font-semibold text-white">
+              <span className="text-xs font-semibold text-white sm:text-sm">
                 Public Employment Service Office
               </span>
             </div>
 
-            <h1 className="text-4xl font-black tracking-tight text-white md:text-5xl lg:text-6xl">
+            <h1 className="hero-heading-compact font-black text-white">
               Job{" "}
               <span className="text-sky-300">
                 Vacancies
               </span>
             </h1>
 
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300 md:text-xl">
+            <p className="hero-lead mt-6 max-w-2xl text-slate-300">
               Find available employment opportunities and connect with
               employers through PESO Mabini.
             </p>
@@ -179,7 +179,7 @@ useEffect(() => {
       </section>
 
       {/* Main */}
-      <main className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+      <main className="mx-auto max-w-7xl px-4 py-12 sm:px-5 sm:py-14 lg:px-8 lg:py-16">
 
         {/* Search */}
         <section className="mb-12">
@@ -257,7 +257,7 @@ useEffect(() => {
 
               <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
 
-              <div className="px-6 py-20 text-center">
+              <div className="px-4 py-14 text-center sm:px-6 sm:py-20">
 
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sky-50">
                   <div className="h-7 w-7 animate-spin rounded-full border-4 border-sky-200 border-t-sky-600" />
@@ -281,7 +281,7 @@ useEffect(() => {
 
               <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
 
-              <div className="px-6 py-20 text-center">
+              <div className="px-4 py-14 text-center sm:px-6 sm:py-20">
 
                 <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-sky-50">
                   <span className="text-3xl">

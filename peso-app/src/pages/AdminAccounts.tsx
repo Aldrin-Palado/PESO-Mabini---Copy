@@ -404,7 +404,7 @@ export default function AdminAccounts() {
       <div className="space-y-4">
 
         {staff.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center sm:p-10">
 
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-2xl">
               👤

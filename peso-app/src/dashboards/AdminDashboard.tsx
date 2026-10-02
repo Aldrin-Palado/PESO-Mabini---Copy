@@ -666,21 +666,21 @@ export default function AdminDashboard() {
         }
       />
 
-      <main className="ml-64 min-h-screen">
+      <main className="min-h-screen lg:ml-64">
 
         {/* HEADER */}
 
-        <header className="sticky top-0 z-40 border-b border-slate-200 bg-white px-8 py-5 shadow-sm">
+        <header className="sticky top-0 z-40 border-b border-slate-200 bg-white px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-4 shadow-sm sm:px-6 sm:pt-[calc(env(safe-area-inset-top)+1.25rem)] sm:pb-5 lg:px-8">
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
 
-            <div>
+            <div className="min-w-0">
 
-              <h2 className="text-2xl font-bold text-slate-800">
+              <h2 className="truncate text-xl font-bold text-slate-800 sm:text-2xl">
                 {activePage}
               </h2>
 
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-xs text-slate-500 sm:text-sm">
                 {account?.role === "superadmin"
                   ? "Superadmin"
                   : "PESO Staff"}
@@ -688,13 +688,13 @@ export default function AdminDashboard() {
 
             </div>
 
-            <div className="text-right">
+            <div className="min-w-0 text-right">
 
-              <p className="font-semibold text-slate-700">
+              <p className="truncate text-sm font-semibold text-slate-700 sm:text-base">
                 {account?.full_name}
               </p>
 
-              <p className="text-xs text-slate-500">
+              <p className="hidden truncate text-xs text-slate-500 sm:block">
                 {account?.email}
               </p>
 
@@ -706,7 +706,7 @@ export default function AdminDashboard() {
 
         {/* CONTENT */}
 
-        <section className="p-8">
+        <section className="px-4 pt-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] sm:px-6 sm:pt-8 sm:pb-10 lg:px-8">
           {renderPage()}
         </section>
 
@@ -801,7 +801,7 @@ function AuditLogs({
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
 
-        <div className="overflow-x-auto">
+        <div className="table-scroll">
 
           <table className="w-full">
 

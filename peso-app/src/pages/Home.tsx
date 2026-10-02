@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import Footer from "../components/Footer";
+import HeroBackground from "../components/HeroBackground";
 import Navbar from "../components/Navbar";
 
 const backgroundImage = new URL(
@@ -50,7 +51,7 @@ function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
+    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-800">
 
       <Navbar />
 
@@ -62,38 +63,37 @@ function Home() {
 
       <section
         id="home"
-        className="relative min-h-[620px] overflow-hidden bg-slate-950"
+        className="hero-shell relative isolate overflow-hidden bg-slate-950"
       >
 
-        {/* Background image */}
+        {/* Background image — scaled to any viewport, focal point shifts per
+            breakpoint so the photo survives tall, narrow phone screens. */}
 
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-          backgroundImage: `url(${backgroundImage})`,
-          }}
-      />
+        <HeroBackground src={backgroundImage} priority />
 
         {/* Overlay */}
 
-        <div className="absolute inset-0 bg-slate-950/65" />
+        {/* Mobile needs a stronger wash than desktop: on a small screen the
+            text sits on top of the busiest part of the photo. */}
 
-        <div className="absolute inset-0 bg-gradient-to-r from-sky-950/50 to-transparent" />
+        <div className="absolute inset-0 bg-slate-950/35 sm:bg-slate-950/50 lg:bg-slate-950/65" />
+
+        <div className="absolute inset-0 bg-gradient-to-r from-sky-950/70 via-sky-950/40 to-transparent" />
 
 
         {/* Hero content */}
 
-        <div className="relative mx-auto flex min-h-[620px] max-w-7xl items-center px-5 py-20 lg:px-8">
+        <div className="relative z-10 mx-auto flex min-h-[inherit] max-w-7xl flex-col justify-center px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
 
           <div className="max-w-3xl text-white">
 
             {/* Label */}
 
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 backdrop-blur-sm">
+            <div className="mb-6 inline-flex max-w-full items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur-sm sm:px-4 sm:py-2 sm:text-sm">
 
               <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
 
-              <span className="text-sm font-semibold">
+              <span className="text-xs font-semibold sm:text-sm">
                 Public Employment Service Office
               </span>
 
@@ -102,7 +102,7 @@ function Home() {
 
             {/* Heading */}
 
-            <h2 className="text-5xl font-black leading-tight tracking-tight md:text-6xl lg:text-7xl">
+            <h2 className="hero-heading font-black text-white">
 
               Connecting People
 
@@ -115,7 +115,7 @@ function Home() {
 
             {/* Description */}
 
-            <p className="mt-7 max-w-2xl text-lg leading-8 text-slate-200 md:text-xl">
+            <p className="hero-lead mt-6 max-w-2xl text-slate-200 sm:mt-7">
 
               PESO-Hub provides accessible employment services
               connecting job seekers, employers, and the
@@ -126,11 +126,11 @@ function Home() {
 
             {/* Hero buttons */}
 
-            <div className="mt-9 flex flex-wrap gap-4">
+            <div className="mt-8 flex flex-col gap-3 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:gap-4 sm:mt-9">
 
               <a
                 href="#jobs"
-                className="rounded-xl bg-yellow-400 px-7 py-3.5 font-bold text-slate-900 shadow-lg transition hover:-translate-y-1 hover:bg-yellow-300"
+                className="inline-flex items-center justify-center rounded-xl bg-yellow-400 px-6 py-3.5 text-center font-bold text-slate-900 shadow-lg transition hover:-translate-y-1 hover:bg-yellow-300 sm:px-7"
               >
                 Find a Job
                 <span className="ml-2">
@@ -139,18 +139,18 @@ function Home() {
               </a>
 
               <Link
-  to="/employers"
-  className="rounded-xl border border-white/50 bg-white/10 px-7 py-3.5 font-bold text-white backdrop-blur-sm transition hover:bg-white hover:text-sky-700"
+                to="/employers"
+                className="inline-flex items-center justify-center rounded-xl border border-white/50 bg-white/10 px-6 py-3.5 text-center font-bold text-white backdrop-blur-sm transition hover:bg-white hover:text-sky-700 sm:px-7 sm:hover:-translate-y-1"
 >
-  For Employers
-</Link>
+                For Employers
+              </Link>
 
             </div>
 
 
             {/* Small information */}
 
-            <div className="mt-10 flex flex-wrap gap-x-8 gap-y-3 text-sm text-slate-300">
+            <div className="mt-8 flex flex-col gap-y-3 text-xs text-slate-300 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-x-8 sm:text-sm">
 
               <div className="flex items-center gap-2">
                 <span className="text-yellow-400">
@@ -191,9 +191,9 @@ function Home() {
           EMPLOYMENT FEED + ANNOUNCEMENTS
       ===================================================== */}
 
-      <main className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+      <main className="mx-auto max-w-7xl px-4 py-12 sm:px-5 sm:py-14 lg:px-8 lg:py-16">
 
-        <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
 
 
           {/* =================================================
@@ -210,7 +210,7 @@ function Home() {
                 Employment Updates
               </p>
 
-              <h2 className="mt-2 text-3xl font-black text-slate-900">
+              <h2 className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">
                 Employment Postings
               </h2>
 
@@ -234,7 +234,7 @@ function Home() {
 
                 <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
 
-                <div className="px-6 py-20 text-center">
+                <div className="px-4 py-14 text-center sm:px-6 sm:py-20">
 
                   {/* Icon */}
 
@@ -361,7 +361,9 @@ function Home() {
                           <img
                             src={post.image}
                             alt="Employment posting"
-                            className="h-full w-full object-cover"
+                            loading="lazy"
+                            decoding="async"
+                            className="h-full max-h-[500px] w-full object-cover"
                           />
 
                         </div>
@@ -440,7 +442,7 @@ function Home() {
                   Important
                 </p>
 
-                <h2 className="mt-2 text-2xl font-black text-slate-900">
+                <h2 className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">
                   Announcements
                 </h2>
 
@@ -456,7 +458,7 @@ function Home() {
 
               {announcements.length === 0 ? (
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm sm:p-8">
 
                   <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
 

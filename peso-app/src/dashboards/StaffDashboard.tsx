@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import SidebarToggle from "../components/SidebarToggle";
 import { supabase } from "../services/supabase";
 
 type StaffPermission = {
@@ -42,6 +43,30 @@ export default function StaffDashboard() {
 
   const [loading, setLoading] =
     useState(true);
+
+  // Off-canvas below `lg`: a permanent 288px column leaves no room for
+  // content on a 320px phone.
+  const [isSidebarOpen, setIsSidebarOpen] =
+    useState(false);
+
+  useEffect(() => {
+    if (!isSidebarOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () =>
+      window.removeEventListener("keydown", onKeyDown);
+  }, [isSidebarOpen]);
+
+  const go = (page: ModuleName | "My Profile") => {
+    setActivePage(page);
+    setIsSidebarOpen(false);
+  };
 
   /* =====================================================
      LOAD STAFF
@@ -352,19 +377,58 @@ export default function StaffDashboard() {
           SIDEBAR
       ================================================= */}
 
-      <aside className="fixed left-0 top-0 z-40 flex h-screen w-72 flex-col bg-[#0446A7] text-white">
+      {/* Tap-away backdrop, small screens only */}
+      {isSidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close navigation menu"
+          onClick={() => setIsSidebarOpen(false)}
+          className="fixed inset-0 z-30 bg-slate-900/50 lg:hidden"
+        />
+      )}
+
+      <aside
+        id="staff-sidebar"
+        className={`fixed inset-y-0 left-0 z-40 flex h-dvh w-72 max-w-[85vw] flex-col overflow-y-auto overscroll-contain bg-[#0446A7] text-white transition-transform duration-300 ease-out motion-reduce:transition-none lg:translate-x-0 lg:overflow-hidden ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
 
         {/* LOGO */}
 
-        <div className="border-b border-blue-400/30 px-6 py-6">
+        <div className="flex items-start justify-between gap-2 border-b border-blue-400/30 px-5 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-5 sm:px-6 sm:pb-6">
 
-          <h1 className="text-2xl font-black">
-            PESO-Hub
-          </h1>
+          <div className="min-w-0">
+            <h1 className="text-xl font-black sm:text-2xl">
+              PESO-Hub
+            </h1>
 
-          <p className="mt-1 text-sm text-blue-100">
-            Staff Portal
-          </p>
+            <p className="mt-1 text-sm text-blue-100">
+              Staff Portal
+            </p>
+          </div>
+
+          <button
+            type="button"
+            aria-label="Close navigation menu"
+            onClick={() => setIsSidebarOpen(false)}
+            className="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-blue-100 transition hover:bg-blue-600 lg:hidden"
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
 
         </div>
 
@@ -389,9 +453,7 @@ export default function StaffDashboard() {
                     key={module.name}
                     type="button"
                     onClick={() =>
-                      setActivePage(
-                        module.name
-                      )
+                      go(module.name)
                     }
                     className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
                       active
@@ -424,7 +486,7 @@ export default function StaffDashboard() {
           <button
             type="button"
             onClick={() =>
-              setActivePage("My Profile")
+              go("My Profile")
             }
             className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
               activePage === "My Profile"
@@ -447,7 +509,7 @@ export default function StaffDashboard() {
 
         {/* LOGOUT */}
 
-        <div className="border-t border-blue-400/30 p-4">
+        <div className="mt-auto border-t border-blue-400/30 p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
 
           <button
             type="button"
@@ -469,15 +531,23 @@ export default function StaffDashboard() {
 
       </aside>
 
+      <SidebarToggle
+        open={isSidebarOpen}
+        onClick={() =>
+          setIsSidebarOpen((value) => !value)
+        }
+        label="Toggle staff navigation menu"
+      />
+
       {/* =================================================
           MAIN CONTENT
       ================================================= */}
 
-      <main className="ml-72 min-h-screen">
+      <main className="min-h-screen lg:ml-72">
 
         {/* HEADER */}
 
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white px-8 py-5">
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-4 sm:px-6 sm:pt-[calc(env(safe-area-inset-top)+1.25rem)] sm:pb-5 lg:px-8">
 
           <div>
 
@@ -485,7 +555,7 @@ export default function StaffDashboard() {
               PESO Staff
             </p>
 
-            <h1 className="text-2xl font-black text-[#123B70]">
+            <h1 className="truncate text-xl font-black text-[#123B70] sm:text-2xl">
               {activePage}
             </h1>
 
