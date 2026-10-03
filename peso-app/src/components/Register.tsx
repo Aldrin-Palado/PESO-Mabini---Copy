@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import PesoLogo from "./PesoLogo";
+import AuthBackground from "./AuthBackground";
+import { supabase } from "../services/supabase";
 
 function Register() {
   const navigate = useNavigate();
@@ -28,7 +30,9 @@ function Register() {
     });
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (
@@ -39,23 +43,94 @@ function Register() {
       return;
     }
 
-    // UI only for now
-    console.log("Registration:", {
-      ...formData,
-      accountType,
-    });
+    if (formData.password.length < 8) {
+      alert("Password must contain at least 8 characters.");
+      return;
+    }
 
-    // Temporary redirect to login
-    navigate("/login");
+    setLoading(true);
+
+    try {
+      const fullName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        options: {
+          data: {
+            first_name: formData.firstName.trim(),
+            last_name: formData.lastName.trim(),
+            full_name: fullName,
+            role: accountType,
+          },
+        },
+      });
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      const userId = data.user?.id;
+
+      if (userId) {
+        if (accountType === "jobseeker") {
+          const { error: profileError } = await supabase
+            .from("job_seeker")
+            .insert({
+              user_id: userId,
+              full_name: fullName,
+              email: formData.email.trim().toLowerCase(),
+              is_active: true,
+            });
+
+          if (profileError) {
+            console.error("Job seeker profile error:", profileError);
+            alert(
+              "Account created, but failed to create job seeker profile. Please contact admin."
+            );
+          }
+        } else if (accountType === "employer") {
+          const { error: profileError } = await supabase
+            .from("employer")
+            .insert({
+              user_id: userId,
+              full_name: fullName,
+              email: formData.email.trim().toLowerCase(),
+              contact_person: fullName,
+              is_active: true,
+            });
+
+          if (profileError) {
+            console.error("Employer profile error:", profileError);
+            alert(
+              "Account created, but failed to create employer profile. Please contact admin."
+            );
+          }
+        }
+      }
+
+      alert(
+        "Account created successfully! Please check your email to confirm your account, then log in."
+      );
+      navigate("/login");
+    } catch (error) {
+      console.error("Registration error:", error);
+      alert("Something went wrong while creating your account. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="relative isolate min-h-screen overflow-hidden bg-gradient-to-br from-[#073B73] via-[#087CB4] to-[#13AAB4]">
+
+      <AuthBackground />
 
       {/* Top Accent */}
-      <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
+      <div className="relative z-10 h-1 bg-gradient-to-r from-sky-300 via-yellow-300 to-red-400" />
 
-      <div className="px-4 py-8 sm:px-6 sm:py-10">
+      <div className="relative z-10 px-4 py-8 sm:px-6 sm:py-10">
         <div className="mx-auto w-full max-w-2xl">
 
           {/* Logo */}
@@ -63,6 +138,7 @@ function Register() {
             <PesoLogo
               size="md"
               showName
+              tone="light"
               subtitle="Public Employment Service"
             />
           </div>
@@ -296,9 +372,10 @@ function Register() {
               {/* Register Button */}
               <button
                 type="submit"
-                className="w-full rounded-xl bg-sky-600 px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-sky-700 hover:shadow-md"
+                disabled={loading}
+                className="w-full rounded-xl bg-sky-600 px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-sky-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Create Account
+                {loading ? "Creating Account..." : "Create Account"}
               </button>
 
             </form>
