@@ -1,22 +1,21 @@
 import React from "react";
+import PesoLogo from "./PesoLogo";
 
 const Footer: React.FC = () => {
   return (
     <footer id="contact" className="bg-slate-950 text-slate-400">
       <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
 
-      <div className="mx-auto max-w-7xl px-5 py-12 lg:px-8">
-        <div className="grid gap-10 md:grid-cols-3">
+      <div className="mx-auto max-w-7xl px-4 pt-10 pb-[calc(env(safe-area-inset-bottom)+2.5rem)] sm:px-5 lg:px-8">
+        <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3 md:gap-10">
           <div>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-600 font-black text-white">
-                P
-              </div>
-
-              <div>
-                <h3 className="font-bold text-white">PESO-Hub</h3>
-                <p className="text-xs">Public Employment Service Office</p>
-              </div>
+              <PesoLogo
+                size="sm"
+                showName
+                tone="light"
+                subtitle="Public Employment Service Office"
+              />
             </div>
 
             <p className="mt-4 max-w-md text-sm leading-6">

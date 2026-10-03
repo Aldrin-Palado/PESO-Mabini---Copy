@@ -1,5 +1,6 @@
 import React from "react";
 import Footer from "../components/Footer";
+import HeroBackground from "../components/HeroBackground";
 import Navbar from "../components/Navbar";
 
 const backgroundImage = new URL(
@@ -12,9 +13,37 @@ const aboutVideo = new URL(
   import.meta.url,
 ).href;
 
+/*
+ * Each service card borrows its colour from its number badge, so `01` is sky,
+ * `02` yellow, `03` red and the cycle repeats. Border, badge and title hover
+ * live in the same object on purpose — a nested ternary per element is what
+ * let them drift apart before.
+ *
+ * The borders are one shade lighter than the badge text so a 1px line stays
+ * subtle at rest. Yellow sits a step deeper (`yellow-300`) because
+ * `yellow-200` on a white card is effectively invisible.
+ */
+const serviceThemes = [
+  {
+    badge: "bg-sky-50 text-sky-600",
+    card: "border-sky-200 hover:border-sky-400 hover:shadow-sky-100",
+    title: "group-hover:text-sky-600",
+  },
+  {
+    badge: "bg-yellow-50 text-yellow-600",
+    card: "border-yellow-300 hover:border-yellow-500 hover:shadow-yellow-100",
+    title: "group-hover:text-yellow-600",
+  },
+  {
+    badge: "bg-red-50 text-red-500",
+    card: "border-red-200 hover:border-red-400 hover:shadow-red-100",
+    title: "group-hover:text-red-500",
+  },
+];
+
 const About: React.FC = () => {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
+    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-800">
 
       <Navbar />
 
@@ -22,37 +51,39 @@ const About: React.FC = () => {
       <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
 
       {/* Hero */}
-      <section className="relative min-h-[420px] overflow-hidden bg-slate-950">
+      <section className="hero-shell-compact relative isolate overflow-hidden bg-slate-950">
 
-        <div
-          className="absolute inset-0 z-0 bg-cover bg-center"
-          style={{
-            backgroundImage: `url(${backgroundImage})`,
-          }}
-        />
+        <HeroBackground src={backgroundImage} priority />
 
-        {/* Background decoration */}
+        {/* Overlay — white hero copy over a photo needs a guaranteed contrast
+            floor, and the wash is heavier on small screens where the text
+            covers a larger share of the image. */}
+
+        <div className="absolute inset-0 bg-slate-950/55 sm:bg-slate-950/45 lg:bg-slate-950/35" />
+        <div className="absolute inset-0 bg-gradient-to-r from-sky-950/70 via-sky-950/30 to-transparent" />
+
+        {/* Decorative background */}
         <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-sky-600/20 blur-3xl" />
         <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-yellow-400/10 blur-3xl" />
 
-        <div className="relative z-10 mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-24">
+        <div className="relative z-10 mx-auto flex min-h-[inherit] max-w-7xl flex-col justify-center px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-24">
           <div className="max-w-3xl">
 
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 backdrop-blur-sm">
-              <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
-              <span className="text-sm font-semibold text-white">
+            <div className="mb-6 inline-flex max-w-full items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur-sm sm:px-4 sm:py-2 sm:text-sm">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-yellow-400" />
+              <span className="text-xs font-semibold text-white sm:text-sm">
                 Public Employment Service Office
               </span>
             </div>
 
-            <h1 className="text-4xl font-black leading-tight text-white md:text-5xl lg:text-6xl">
+            <h1 className="hero-heading-compact font-black text-white">
               About{" "}
               <span className="text-sky-300">
                 PESO-Hub
               </span>
             </h1>
 
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
+            <p className="hero-lead mt-6 max-w-2xl text-slate-300">
               Learn more about PESO Mabini and our commitment to connecting
               job seekers, employers, and employment services through one
               accessible platform.
@@ -66,11 +97,12 @@ const About: React.FC = () => {
       </section>
 
       {/* About video */}
-      <section className="bg-white px-5 py-12 lg:px-8">
+      <section className="bg-white px-4 py-10 sm:px-5 sm:py-12 lg:px-8">
         <div className="mx-auto max-w-4xl">
           <video
             className="aspect-video w-full rounded-2xl border border-slate-200 bg-slate-900 object-cover shadow-sm"
             controls
+            playsInline
             preload="metadata"
             poster={backgroundImage}
           >
@@ -81,16 +113,16 @@ const About: React.FC = () => {
       </section>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+      <main className="mx-auto max-w-7xl px-4 py-12 sm:px-5 sm:py-14 lg:px-8 lg:py-16">
 
         {/* Mission and Vision */}
-        <section className="grid gap-8 md:grid-cols-2">
+        <section className="grid gap-6 md:grid-cols-2 md:gap-8">
 
           {/* Mission */}
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
             <div className="h-1 bg-gradient-to-r from-sky-500 to-sky-300" />
 
-            <div className="p-8">
+            <div className="p-6 sm:p-8">
               <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-sky-50">
                 <svg
                   className="h-7 w-7 text-sky-600"
@@ -123,7 +155,7 @@ const About: React.FC = () => {
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
             <div className="h-1 bg-gradient-to-r from-yellow-400 to-yellow-300" />
 
-            <div className="p-8">
+            <div className="p-6 sm:p-8">
               <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-yellow-50">
                 <svg
                   className="h-7 w-7 text-yellow-600"
@@ -162,14 +194,14 @@ const About: React.FC = () => {
         </section>
 
         {/* Services */}
-        <section className="mt-16">
+        <section className="mt-12 lg:mt-16">
 
           <div className="mb-8">
             <p className="text-sm font-bold uppercase tracking-widest text-sky-600">
               What We Offer
             </p>
 
-            <h2 className="mt-2 text-3xl font-black text-slate-900">
+            <h2 className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">
               Our Services
             </h2>
 
@@ -188,45 +220,45 @@ const About: React.FC = () => {
               "Livelihood Assistance and Support",
               "Employer-Employee Networking",
               "Job Referral Services",
-            ].map((service, index) => (
-              <div
-                key={service}
-                className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-sky-200 hover:shadow-md"
-              >
-                <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-xl ${
-                    index % 3 === 0
-                      ? "bg-sky-50 text-sky-600"
-                      : index % 3 === 1
-                      ? "bg-yellow-50 text-yellow-600"
-                      : "bg-red-50 text-red-500"
-                  }`}
-                >
-                  <span className="text-lg font-black">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                </div>
+            ].map((service, index) => {
+              const theme = serviceThemes[index % serviceThemes.length];
 
-                <h3 className="mt-5 font-bold leading-6 text-slate-900 transition group-hover:text-sky-600">
-                  {service}
-                </h3>
-              </div>
-            ))}
+              return (
+                <div
+                  key={service}
+                  className={`group rounded-2xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md ${theme.card}`}
+                >
+                  <div
+                    className={`flex h-12 w-12 items-center justify-center rounded-xl ${theme.badge}`}
+                  >
+                    <span className="text-lg font-black">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                  </div>
+
+                  <h3
+                    className={`mt-5 font-bold leading-6 text-slate-900 transition ${theme.title}`}
+                  >
+                    {service}
+                  </h3>
+                </div>
+              );
+            })}
 
           </div>
         </section>
 
         {/* Why Choose Us */}
-        <section className="mt-16 rounded-3xl bg-slate-900 p-8 md:p-12">
+        <section className="mt-12 rounded-3xl bg-slate-900 p-6 sm:p-8 md:p-12 lg:mt-16">
 
-          <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
+          <div className="grid gap-8 md:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:items-center">
 
             <div>
               <p className="text-sm font-bold uppercase tracking-widest text-yellow-400">
                 Our Commitment
               </p>
 
-              <h2 className="mt-3 text-3xl font-black text-white md:text-4xl">
+              <h2 className="mt-3 text-2xl font-black text-white sm:text-3xl md:text-4xl">
                 Why Choose PESO Mabini?
               </h2>
 
@@ -269,22 +301,22 @@ const About: React.FC = () => {
         </section>
 
         {/* Contact */}
-        <section className="mt-16">
+        <section className="mt-12 lg:mt-16">
 
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
             <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
 
-            <div className="p-8 md:p-10">
+            <div className="p-5 sm:p-8 md:p-10">
 
-              <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-center">
+              <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-8">
 
                 <div>
                   <p className="text-sm font-bold uppercase tracking-widest text-red-500">
                     Get In Touch
                   </p>
 
-                  <h2 className="mt-2 text-3xl font-black text-slate-900">
+                  <h2 className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">
                     Contact PESO Mabini
                   </h2>
 
@@ -295,7 +327,7 @@ const About: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="rounded-xl bg-slate-50 p-6">
+                <div className="rounded-xl bg-slate-50 p-5 sm:p-6">
 
                   <p className="font-bold text-slate-900">
                     PESO Mabini

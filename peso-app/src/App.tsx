@@ -12,6 +12,7 @@ import Register from "./components/Register";
 import AdminDashboard from "./dashboards/AdminDashboard";
 import StaffDashboard from "./dashboards/StaffDashboard";
 import EmployerDashboard from "./dashboards/EmployerDashboard";
+import JobSeekerDashboard from "./dashboards/JobSeekerDashboard";
 
 function App() {
   return (
@@ -44,6 +45,12 @@ function App() {
         <Route
           path="/employer"
           element={<EmployerDashboard />}
+        />
+
+        {/* Job Seeker */}
+        <Route
+          path="/jobseeker"
+          element={<JobSeekerDashboard />}
         />
       </Routes>
     </BrowserRouter>

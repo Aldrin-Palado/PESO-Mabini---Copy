@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import PesoLogo from "./PesoLogo";
 import { supabase } from "../services/supabase";
 
 function Login() {
@@ -136,40 +137,23 @@ function Login() {
       {/* Top Accent */}
       <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
 
-      <div className="flex min-h-[calc(100vh-4px)] items-center justify-center px-6 py-12">
+      <div className="flex min-h-[calc(100dvh-4px)] items-center justify-center px-4 py-8 sm:px-6 sm:py-12">
 
         <div className="w-full max-w-md">
 
           {/* Logo */}
           <div className="mb-8 text-center">
 
-            <Link
-              to="/"
-              className="inline-flex items-center gap-3"
-            >
-
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-600 text-xl font-black text-white shadow-sm">
-                P
-              </div>
-
-              <div className="text-left">
-
-                <h1 className="text-xl font-black text-slate-900">
-                  PESO-Hub
-                </h1>
-
-                <p className="text-xs text-slate-500">
-                  Public Employment Service
-                </p>
-
-              </div>
-
-            </Link>
+            <PesoLogo
+              size="md"
+              showName
+              subtitle="Public Employment Service"
+            />
 
           </div>
 
           {/* Login Card */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-lg sm:p-10">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-lg sm:p-8 lg:p-10">
 
             {/* Header */}
             <div className="mb-8 text-center">
