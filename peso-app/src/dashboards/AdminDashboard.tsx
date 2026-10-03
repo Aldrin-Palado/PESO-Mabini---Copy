@@ -1,9 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../services/supabase";
+
 import AdminSidebar, {
   AdminModule,
 } from "../components/AdminSidebar";
+
 import AdminAccounts from "../pages/AdminAccounts";
+
+import DashboardModule from "../adminmodules/DashboardModule";
+import JobPostsModule from "../adminmodules/JobPostsModule";
+import EmployersModule from "../adminmodules/EmployersModule";
+import JobSeekersModule from "../adminmodules/JobSeekersModule";
+import ApplicationsModule from "../adminmodules/ApplicationsModule";
+import AnnouncementModule from "../adminmodules/AnnouncementModule";
+import AnalyticsModule from "../adminmodules/AnalyticsModule";
+
+/* ============================================================
+   TYPES
+============================================================ */
 
 type Account = {
   id: string;
@@ -32,6 +46,76 @@ type AuditLog = {
   created_at: string;
 };
 
+/*
+ * These interfaces intentionally use common fields.
+ * The Supabase queries below use select("*") so the
+ * dashboard can display your existing records.
+ */
+
+type JobPost = {
+  id?: string;
+  job_vacancy_id?: string;
+  title?: string;
+  job_title?: string;
+  position?: string;
+  company_name?: string;
+  employer_name?: string;
+  location?: string;
+  employment_type?: string;
+  status?: string;
+  description?: string;
+  created_at?: string;
+  [key: string]: any;
+};
+
+type Employer = {
+  id?: string;
+  employer_id?: string;
+  company_name?: string;
+  business_name?: string;
+  full_name?: string;
+  email?: string;
+  contact_no?: string;
+  phone?: string;
+  address?: string;
+  is_active?: boolean;
+  status?: string;
+  created_at?: string;
+  [key: string]: any;
+};
+
+type JobSeeker = {
+  id?: string;
+  job_seeker_id?: string;
+  full_name?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  contact_no?: string;
+  phone?: string;
+  address?: string;
+  status?: string;
+  is_active?: boolean;
+  created_at?: string;
+  [key: string]: any;
+};
+
+type Application = {
+  id?: string;
+  application_id?: string;
+  job_seeker_id?: string;
+  employer_id?: string;
+  job_vacancy_id?: string;
+  status?: string;
+  application_status?: string;
+  created_at?: string;
+  [key: string]: any;
+};
+
+/* ============================================================
+   MAIN DASHBOARD
+============================================================ */
+
 export default function AdminDashboard() {
   const [account, setAccount] =
     useState<Account | null>(null);
@@ -57,17 +141,79 @@ export default function AdminDashboard() {
   const isSuperadmin =
     account?.role === "superadmin";
 
-  // ============================================================
-  // LOAD CURRENT ACCOUNT
-  // ============================================================
+  /* ============================================================
+     DATA FOR MODULES
+  ============================================================ */
+
+  const [jobPosts, setJobPosts] =
+    useState<JobPost[]>([]);
+
+  const [employers, setEmployers] =
+    useState<Employer[]>([]);
+
+  const [jobSeekers, setJobSeekers] =
+    useState<JobSeeker[]>([]);
+
+  const [applications, setApplications] =
+    useState<Application[]>([]);
+
+  const [moduleLoading, setModuleLoading] =
+    useState(false);
+
+  /* ============================================================
+     SEARCH
+  ============================================================ */
+
+  const [jobSearch, setJobSearch] = useState("");
+  const [employerSearch, setEmployerSearch] = useState("");
+  const [jobSeekerSearch, setJobSeekerSearch] = useState("");
+  const [applicationSearch, setApplicationSearch] =
+    useState("");
+
+  /* ============================================================
+     FILTERS
+  ============================================================ */
+
+  const [jobStatusFilter, setJobStatusFilter] =
+    useState("All");
+
+  const [employerStatusFilter, setEmployerStatusFilter] =
+    useState("All");
+
+  const [applicationStatusFilter, setApplicationStatusFilter] =
+    useState("All");
+
+  /* ============================================================
+     ANNOUNCEMENT
+  ============================================================ */
+
+  const [announcementTitle, setAnnouncementTitle] =
+    useState("");
+
+  const [announcementMessage, setAnnouncementMessage] =
+    useState("");
+
+  const [announcementList, setAnnouncementList] =
+    useState<
+      {
+        id: number;
+        title: string;
+        message: string;
+        created_at: string;
+      }[]
+    >([]);
+
+  /* ============================================================
+     LOAD ACCOUNT
+  ============================================================ */
 
   useEffect(() => {
     loadCurrentAccount();
   }, []);
 
-  // ============================================================
-  // LOAD DASHBOARD COUNTS
-  // ============================================================
+  /* ============================================================
+     LOAD COUNTS
+  ============================================================ */
 
   useEffect(() => {
     if (account) {
@@ -75,31 +221,42 @@ export default function AdminDashboard() {
     }
   }, [account]);
 
-  // ============================================================
-  // LOAD AUDIT LOGS
-  // ============================================================
+  /* ============================================================
+     LOAD MODULE DATA
+  ============================================================ */
 
   useEffect(() => {
-    if (
-      isSuperadmin &&
-      activePage === "Admin Audit Logs"
-    ) {
+    if (!account) return;
+
+    if (activePage === "Job Post") {
+      loadJobPosts();
+    }
+
+    if (activePage === "Employers") {
+      loadEmployers();
+    }
+
+    if (activePage === "Job Seekers") {
+      loadJobSeekers();
+    }
+
+    if (activePage === "Applications") {
+      loadApplications();
+    }
+
+    if (activePage === "Admin Audit Logs") {
       loadAuditLogs();
     }
-  }, [isSuperadmin, activePage]);
+  }, [activePage, account]);
 
-  // ============================================================
-  // LOAD CURRENT ACCOUNT
-  // ============================================================
+  /* ============================================================
+     LOAD CURRENT ACCOUNT
+  ============================================================ */
 
   const loadCurrentAccount = async () => {
     setLoading(true);
 
     try {
-      // --------------------------------------------------------
-      // 1. GET CURRENT AUTHENTICATED USER
-      // --------------------------------------------------------
-
       const {
         data: { user },
         error: authError,
@@ -120,19 +277,9 @@ export default function AdminDashboard() {
         return;
       }
 
-      console.log(
-        "AUTH USER ID:",
-        user.id
-      );
-
-      console.log(
-        "AUTH USER EMAIL:",
-        user.email
-      );
-
-      // --------------------------------------------------------
-      // 2. CHECK PESO ADMIN FIRST
-      // --------------------------------------------------------
+      /* --------------------------------------------------------
+         CHECK ADMIN
+      -------------------------------------------------------- */
 
       const {
         data: admin,
@@ -141,64 +288,45 @@ export default function AdminDashboard() {
         .from("peso_admin")
         .select(
           `
-            admin_id,
-            user_id,
-            full_name,
-            email,
-            contact_no,
-            is_active
+          admin_id,
+          user_id,
+          full_name,
+          email,
+          contact_no,
+          is_active
           `
         )
         .eq("user_id", user.id)
         .maybeSingle();
 
-      console.log(
-        "PESO ADMIN RECORD:",
-        admin
-      );
-
       if (adminError) {
         console.error(
-          "Superadmin query error:",
+          "Admin query error:",
           adminError
         );
 
-        /*
-         * IMPORTANT:
-         * Do NOT continue to peso_staff if the
-         * peso_admin query itself failed.
-         */
         alert(
-          "Unable to verify your Superadmin account."
+          "Unable to verify your Admin account."
         );
 
         return;
       }
 
-      // --------------------------------------------------------
-      // 3. USER IS SUPERADMIN
-      // --------------------------------------------------------
+      /* --------------------------------------------------------
+         ADMIN FOUND
+      -------------------------------------------------------- */
 
       if (admin) {
-        console.log(
-          "ROLE DETECTED: SUPERADMIN"
-        );
-
-        // Check active status
         if (!admin.is_active) {
           alert(
-            "Your Superadmin account is inactive."
+            "Your Admin account is inactive."
           );
 
           await supabase.auth.signOut();
-
           window.location.href = "/login";
+
           return;
         }
-
-        // ------------------------------------------------------
-        // SET SUPERADMIN ACCOUNT
-        // ------------------------------------------------------
 
         setAccount({
           id: admin.admin_id,
@@ -210,9 +338,9 @@ export default function AdminDashboard() {
           role: "superadmin",
         });
 
-        // ------------------------------------------------------
-        // SUPERADMIN GETS ALL ADMIN MODULES
-        // ------------------------------------------------------
+        /*
+         * Admin has access to all modules.
+         */
 
         setPermissions([
           "Dashboard",
@@ -226,25 +354,13 @@ export default function AdminDashboard() {
           "Admin Audit Logs",
         ]);
 
-        /*
-         * VERY IMPORTANT:
-         *
-         * Once peso_admin is found, we STOP.
-         *
-         * We DO NOT query peso_staff.
-         */
         setLoading(false);
         return;
       }
 
-      // --------------------------------------------------------
-      // 4. USER WAS NOT FOUND IN PESO_ADMIN
-      //    NOW CHECK PESO_STAFF
-      // --------------------------------------------------------
-
-      console.log(
-        "User is not registered as Superadmin."
-      );
+      /* --------------------------------------------------------
+         CHECK STAFF
+      -------------------------------------------------------- */
 
       const {
         data: staff,
@@ -253,22 +369,17 @@ export default function AdminDashboard() {
         .from("peso_staff")
         .select(
           `
-            peso_staff_id,
-            user_id,
-            admin_id,
-            full_name,
-            email,
-            contact_no,
-            is_active
+          peso_staff_id,
+          user_id,
+          admin_id,
+          full_name,
+          email,
+          contact_no,
+          is_active
           `
         )
         .eq("user_id", user.id)
         .maybeSingle();
-
-      console.log(
-        "PESO STAFF RECORD:",
-        staff
-      );
 
       if (staffError) {
         console.error(
@@ -277,35 +388,23 @@ export default function AdminDashboard() {
         );
 
         alert(
-          "Unable to verify your PESO Staff account."
+          "Unable to verify your Staff account."
         );
 
         return;
       }
 
-      // --------------------------------------------------------
-      // 5. USER IS STAFF
-      // --------------------------------------------------------
-
       if (staff) {
-        console.log(
-          "ROLE DETECTED: PESO STAFF"
-        );
-
         if (!staff.is_active) {
           alert(
-            "Your PESO Staff account is inactive."
+            "Your Staff account is inactive."
           );
 
           await supabase.auth.signOut();
-
           window.location.href = "/login";
+
           return;
         }
-
-        // ------------------------------------------------------
-        // SET STAFF ACCOUNT
-        // ------------------------------------------------------
 
         setAccount({
           id: staff.peso_staff_id,
@@ -317,9 +416,9 @@ export default function AdminDashboard() {
           role: "staff",
         });
 
-        // ------------------------------------------------------
-        // LOAD STAFF PERMISSIONS
-        // ------------------------------------------------------
+        /* ------------------------------------------------------
+           STAFF PERMISSIONS
+        ------------------------------------------------------ */
 
         const {
           data: permissionData,
@@ -328,13 +427,13 @@ export default function AdminDashboard() {
           .from("staff_permissions")
           .select(
             `
-              dashboard_overview,
-              analytics,
-              job_posts,
-              job_application,
-              employers,
-              job_seekers,
-              notifications
+            dashboard_overview,
+            analytics,
+            job_posts,
+            job_application,
+            employers,
+            job_seekers,
+            notifications
             `
           )
           .eq(
@@ -362,13 +461,9 @@ export default function AdminDashboard() {
         return;
       }
 
-      // --------------------------------------------------------
-      // 6. USER IS NOT ADMIN OR STAFF
-      // --------------------------------------------------------
-
-      console.error(
-        "No PESO Admin or PESO Staff record found."
-      );
+      /* --------------------------------------------------------
+         NO ACCOUNT
+      -------------------------------------------------------- */
 
       alert(
         "Your account does not have access to this system."
@@ -391,16 +486,14 @@ export default function AdminDashboard() {
     }
   };
 
-  // ============================================================
-  // CONVERT DATABASE PERMISSIONS
-  // ============================================================
+  /* ============================================================
+     CONVERT STAFF PERMISSIONS
+  ============================================================ */
 
   const convertPermissions = (
     permission: Permissions | null
   ): AdminModule[] => {
-    if (!permission) {
-      return [];
-    }
+    if (!permission) return [];
 
     const result: AdminModule[] = [];
 
@@ -435,24 +528,21 @@ export default function AdminDashboard() {
     return result;
   };
 
-  // ============================================================
-  // ACCESS CHECK
-  // ============================================================
+  /* ============================================================
+     ACCESS CHECK
+  ============================================================ */
 
   const canAccess = (
     page: AdminModule | "My Profile"
   ) => {
-    // Everyone can access their own profile
     if (page === "My Profile") {
       return true;
     }
 
-    // Superadmin can access EVERYTHING
     if (account?.role === "superadmin") {
       return true;
     }
 
-    // Staff can NEVER access these
     if (
       page === "Admin Accounts" ||
       page === "Admin Audit Logs"
@@ -460,13 +550,12 @@ export default function AdminDashboard() {
       return false;
     }
 
-    // Staff uses assigned permissions
     return permissions.includes(page);
   };
 
-  // ============================================================
-  // LOAD DASHBOARD COUNTS
-  // ============================================================
+  /* ============================================================
+     DASHBOARD COUNTS
+  ============================================================ */
 
   const loadDashboardCounts = async () => {
     try {
@@ -522,9 +611,129 @@ export default function AdminDashboard() {
     }
   };
 
-  // ============================================================
-  // AUDIT LOGS
-  // ============================================================
+  /* ============================================================
+     JOB POSTS
+  ============================================================ */
+
+  const loadJobPosts = async () => {
+    setModuleLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("job_vacancy")
+        .select("*")
+        .order("created_at", {
+          ascending: false,
+        });
+
+      if (error) {
+        console.error(
+          "Job posts error:",
+          error
+        );
+
+        return;
+      }
+
+      setJobPosts(data ?? []);
+    } finally {
+      setModuleLoading(false);
+    }
+  };
+
+  /* ============================================================
+     EMPLOYERS
+  ============================================================ */
+
+  const loadEmployers = async () => {
+    setModuleLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("employer")
+        .select("*")
+        .order("created_at", {
+          ascending: false,
+        });
+
+      if (error) {
+        console.error(
+          "Employers error:",
+          error
+        );
+
+        return;
+      }
+
+      setEmployers(data ?? []);
+    } finally {
+      setModuleLoading(false);
+    }
+  };
+
+  /* ============================================================
+     JOB SEEKERS
+  ============================================================ */
+
+  const loadJobSeekers = async () => {
+    setModuleLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("job_seeker")
+        .select("*")
+        .order("created_at", {
+          ascending: false,
+        });
+
+      if (error) {
+        console.error(
+          "Job seekers error:",
+          error
+        );
+
+        return;
+      }
+
+      setJobSeekers(data ?? []);
+    } finally {
+      setModuleLoading(false);
+    }
+  };
+
+  /* ============================================================
+     APPLICATIONS
+  ============================================================ */
+
+  const loadApplications = async () => {
+    setModuleLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("application")
+        .select("*")
+        .order("created_at", {
+          ascending: false,
+        });
+
+      if (error) {
+        console.error(
+          "Applications error:",
+          error
+        );
+
+        return;
+      }
+
+      setApplications(data ?? []);
+    } finally {
+      setModuleLoading(false);
+    }
+  };
+
+  /* ============================================================
+     AUDIT LOGS
+  ============================================================ */
 
   const loadAuditLogs = async () => {
     try {
@@ -544,6 +753,7 @@ export default function AdminDashboard() {
           "Audit log error:",
           error
         );
+
         return;
       }
 
@@ -556,9 +766,174 @@ export default function AdminDashboard() {
     }
   };
 
-  // ============================================================
-  // PAGE RENDERING
-  // ============================================================
+  /* ============================================================
+     FILTERED JOB POSTS
+  ============================================================ */
+
+  const filteredJobs = useMemo(() => {
+    return jobPosts.filter((job) => {
+      const title =
+        job.title ||
+        job.job_title ||
+        job.position ||
+        "";
+
+      const employer =
+        job.company_name ||
+        job.employer_name ||
+        "";
+
+      const searchMatch =
+        `${title} ${employer} ${job.location || ""}`
+          .toLowerCase()
+          .includes(jobSearch.toLowerCase());
+
+      const status =
+        job.status || "Unknown";
+
+      const statusMatch =
+        jobStatusFilter === "All" ||
+        status.toLowerCase() ===
+          jobStatusFilter.toLowerCase();
+
+      return searchMatch && statusMatch;
+    });
+  }, [
+    jobPosts,
+    jobSearch,
+    jobStatusFilter,
+  ]);
+
+  /* ============================================================
+     FILTERED EMPLOYERS
+  ============================================================ */
+
+  const filteredEmployers = useMemo(() => {
+    return employers.filter((employer) => {
+      const name =
+        employer.company_name ||
+        employer.business_name ||
+        employer.full_name ||
+        "";
+
+      return `${name} ${
+        employer.email || ""
+      } ${employer.address || ""}`
+        .toLowerCase()
+        .includes(
+          employerSearch.toLowerCase()
+        );
+    });
+  }, [employers, employerSearch]);
+
+  /* ============================================================
+     FILTERED JOB SEEKERS
+  ============================================================ */
+
+  const filteredJobSeekers = useMemo(() => {
+    return jobSeekers.filter((seeker) => {
+      const name =
+        seeker.full_name ||
+        `${seeker.first_name || ""} ${
+          seeker.last_name || ""
+        }`;
+
+      return `${name} ${
+        seeker.email || ""
+      } ${seeker.contact_no || seeker.phone || ""}`
+        .toLowerCase()
+        .includes(
+          jobSeekerSearch.toLowerCase()
+        );
+    });
+  }, [
+    jobSeekers,
+    jobSeekerSearch,
+  ]);
+
+  /* ============================================================
+     FILTERED APPLICATIONS
+  ============================================================ */
+
+  const filteredApplications = useMemo(() => {
+    return applications.filter((application) => {
+      const status =
+        application.status ||
+        application.application_status ||
+        "Unknown";
+
+      const statusMatch =
+        applicationStatusFilter === "All" ||
+        status.toLowerCase() ===
+          applicationStatusFilter.toLowerCase();
+
+      const searchableText =
+        JSON.stringify(application);
+
+      const searchMatch =
+        searchableText
+          .toLowerCase()
+          .includes(
+            applicationSearch.toLowerCase()
+          );
+
+      return statusMatch && searchMatch;
+    });
+  }, [
+    applications,
+    applicationSearch,
+    applicationStatusFilter,
+  ]);
+
+  /* ============================================================
+     ANNOUNCEMENT FUNCTION
+  ============================================================ */
+
+  const createAnnouncement = () => {
+    if (
+      !announcementTitle.trim() ||
+      !announcementMessage.trim()
+    ) {
+      alert(
+        "Please enter an announcement title and message."
+      );
+
+      return;
+    }
+
+    const newAnnouncement = {
+      id: Date.now(),
+      title: announcementTitle.trim(),
+      message: announcementMessage.trim(),
+      created_at:
+        new Date().toISOString(),
+    };
+
+    setAnnouncementList((previous) => [
+      newAnnouncement,
+      ...previous,
+    ]);
+
+    setAnnouncementTitle("");
+    setAnnouncementMessage("");
+
+    alert("Announcement created.");
+  };
+
+  const deleteAnnouncement = (
+    id: number
+  ) => {
+    setAnnouncementList((previous) =>
+      previous.filter(
+        (announcement) =>
+          announcement.id !== id
+      )
+    );
+  };
+
+  /* ============================================================
+     PAGE RENDERING
+  ============================================================ */
 
   const renderPage = () => {
     if (!canAccess(activePage)) {
@@ -566,65 +941,190 @@ export default function AdminDashboard() {
     }
 
     switch (activePage) {
+      /* ========================================================
+         DASHBOARD
+      ======================================================== */
+
       case "Dashboard":
         return (
-          <DashboardOverview
+          <DashboardModule
             counts={counts}
             account={account}
+            onRefresh={loadDashboardCounts}
+            StatCard={StatCard}
           />
         );
+
+      /* ========================================================
+         JOB POST
+      ======================================================== */
 
       case "Job Post":
         return (
-          <PlaceholderPage title="Job Post" />
-        );
-
-      case "Employers":
-        return (
-          <PlaceholderPage title="Employers" />
-        );
-
-      case "Job Seekers":
-        return (
-          <PlaceholderPage title="Job Seekers" />
-        );
-
-      case "Applications":
-        return (
-          <PlaceholderPage title="Applications" />
-        );
-
-      case "Announcement":
-        return (
-          <PlaceholderPage title="Announcement" />
-        );
-
-      case "Analytics & Reports":
-        return (
-          <PlaceholderPage
-            title="Analytics & Reports"
+          <JobPostsModule
+            jobs={filteredJobs}
+            search={jobSearch}
+            setSearch={setJobSearch}
+            statusFilter={jobStatusFilter}
+            setStatusFilter={setJobStatusFilter}
+            loading={moduleLoading}
+            onRefresh={loadJobPosts}
+            ModuleHeader={ModuleHeader}
+            TableHeader={TableHeader}
+            TableCell={TableCell}
+            StatusBadge={StatusBadge}
+            LoadingMessage={LoadingMessage}
+            EmptyMessage={EmptyMessage}
+            formatDate={formatDate}
           />
         );
 
+      /* ========================================================
+         EMPLOYERS
+      ======================================================== */
+
+      case "Employers":
+        return (
+          <EmployersModule
+            employers={filteredEmployers}
+            search={employerSearch}
+            setSearch={setEmployerSearch}
+            loading={moduleLoading}
+            onRefresh={loadEmployers}
+            ModuleHeader={ModuleHeader}
+            TableHeader={TableHeader}
+            TableCell={TableCell}
+            StatusBadge={StatusBadge}
+            LoadingMessage={LoadingMessage}
+            EmptyMessage={EmptyMessage}
+          />
+        );
+
+      /* ========================================================
+         JOB SEEKERS
+      ======================================================== */
+
+      case "Job Seekers":
+        return (
+          <JobSeekersModule
+            jobSeekers={filteredJobSeekers}
+            search={jobSeekerSearch}
+            setSearch={setJobSeekerSearch}
+            loading={moduleLoading}
+            onRefresh={loadJobSeekers}
+            ModuleHeader={ModuleHeader}
+            TableHeader={TableHeader}
+            TableCell={TableCell}
+            StatusBadge={StatusBadge}
+            LoadingMessage={LoadingMessage}
+            EmptyMessage={EmptyMessage}
+          />
+        );
+
+      /* ========================================================
+         APPLICATIONS
+      ======================================================== */
+
+      case "Applications":
+        return (
+          <ApplicationsModule
+            applications={filteredApplications}
+            search={applicationSearch}
+            setSearch={setApplicationSearch}
+            statusFilter={applicationStatusFilter}
+            setStatusFilter={setApplicationStatusFilter}
+            loading={moduleLoading}
+            onRefresh={loadApplications}
+            ModuleHeader={ModuleHeader}
+            TableHeader={TableHeader}
+            TableCell={TableCell}
+            StatusBadge={StatusBadge}
+            LoadingMessage={LoadingMessage}
+            EmptyMessage={EmptyMessage}
+            formatDate={formatDate}
+          />
+        );
+
+      /* ========================================================
+         ANNOUNCEMENT
+      ======================================================== */
+
+      case "Announcement":
+        return (
+          <AnnouncementModule
+            title={announcementTitle}
+            setTitle={setAnnouncementTitle}
+            message={announcementMessage}
+            setMessage={setAnnouncementMessage}
+            announcements={announcementList}
+            onCreate={createAnnouncement}
+            onDelete={deleteAnnouncement}
+            ModuleHeader={ModuleHeader}
+            EmptyMessage={EmptyMessage}
+            formatDate={formatDate}
+          />
+        );
+
+      /* ========================================================
+         ANALYTICS
+      ======================================================== */
+
+      case "Analytics & Reports":
+        return (
+          <AnalyticsModule
+            counts={counts}
+            applications={applications}
+            jobPosts={jobPosts}
+            employers={employers}
+            jobSeekers={jobSeekers}
+            ModuleHeader={ModuleHeader}
+            StatCard={StatCard}
+            AnalyticsCard={AnalyticsCard}
+            SummaryRow={SummaryRow}
+          />
+        );
+
+      /* ========================================================
+         ADMIN ACCOUNTS
+      ======================================================== */
+
       case "Admin Accounts":
-        if (account?.role !== "superadmin") {
+        if (
+          account?.role !==
+          "superadmin"
+        ) {
           return <AccessDenied />;
         }
 
         return <AdminAccounts />;
 
+      /* ========================================================
+         AUDIT LOGS
+      ======================================================== */
+
       case "Admin Audit Logs":
-        if (account?.role !== "superadmin") {
+        if (
+          account?.role !==
+          "superadmin"
+        ) {
           return <AccessDenied />;
         }
 
         return (
-          <AuditLogs logs={auditLogs} />
+          <AuditLogs
+            logs={auditLogs}
+          />
         );
+
+      /* ========================================================
+         PROFILE
+      ======================================================== */
 
       case "My Profile":
         return (
-          <MyProfile account={account} />
+          <MyProfile
+            account={account}
+          />
         );
 
       default:
@@ -632,27 +1132,29 @@ export default function AdminDashboard() {
     }
   };
 
-  // ============================================================
-  // LOADING
-  // ============================================================
+  /* ============================================================
+     LOADING
+  ============================================================ */
 
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-100">
         <div className="text-center">
+
           <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-blue-200 border-t-blue-700" />
 
           <p className="text-sm text-slate-600">
             Loading PESO-Hub...
           </p>
+
         </div>
       </div>
     );
   }
 
-  // ============================================================
-  // MAIN LAYOUT
-  // ============================================================
+  /* ============================================================
+     MAIN LAYOUT
+  ============================================================ */
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -662,14 +1164,14 @@ export default function AdminDashboard() {
         setActivePage={setActivePage}
         permissions={permissions}
         isSuperadmin={
-          account?.role === "superadmin"
+          account?.role ===
+          "superadmin"
         }
       />
 
       <main className="ml-64 min-h-screen">
 
         {/* HEADER */}
-
         <header className="sticky top-0 z-40 border-b border-slate-200 bg-white px-8 py-5 shadow-sm">
 
           <div className="flex items-center justify-between">
@@ -681,8 +1183,9 @@ export default function AdminDashboard() {
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                {account?.role === "superadmin"
-                  ? "Superadmin"
+                {account?.role ===
+                "superadmin"
+                  ? "Admin"
                   : "PESO Staff"}
               </p>
 
@@ -705,7 +1208,6 @@ export default function AdminDashboard() {
         </header>
 
         {/* CONTENT */}
-
         <section className="p-8">
           {renderPage()}
         </section>
@@ -716,68 +1218,9 @@ export default function AdminDashboard() {
   );
 }
 
-// ============================================================
-// DASHBOARD OVERVIEW
-// ============================================================
-
-function DashboardOverview({
-  counts,
-  account,
-}: {
-  counts: {
-    jobs: number;
-    applications: number;
-    employers: number;
-    jobSeekers: number;
-  };
-  account: Account | null;
-}) {
-  return (
-    <div className="space-y-6">
-
-      <div>
-
-        <h3 className="text-xl font-bold text-slate-800">
-          Dashboard Overview
-        </h3>
-
-        <p className="text-sm text-slate-500">
-          Welcome back, {account?.full_name}.
-        </p>
-
-      </div>
-
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-
-        <StatCard
-          title="Job Posts"
-          value={counts.jobs}
-        />
-
-        <StatCard
-          title="Applications"
-          value={counts.applications}
-        />
-
-        <StatCard
-          title="Employers"
-          value={counts.employers}
-        />
-
-        <StatCard
-          title="Job Seekers"
-          value={counts.jobSeekers}
-        />
-
-      </div>
-
-    </div>
-  );
-}
-
-// ============================================================
-// AUDIT LOGS
-// ============================================================
+/* ================================================================
+   AUDIT LOGS
+================================================================ */
 
 function AuditLogs({
   logs,
@@ -787,17 +1230,10 @@ function AuditLogs({
   return (
     <div className="space-y-6">
 
-      <div>
-
-        <h3 className="text-xl font-bold text-slate-800">
-          Admin Audit Logs
-        </h3>
-
-        <p className="text-sm text-slate-500">
-          Records of administrative activities.
-        </p>
-
-      </div>
+      <ModuleHeader
+        title="Admin Audit Logs"
+        description="Records of administrative activities."
+      />
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
 
@@ -809,17 +1245,17 @@ function AuditLogs({
 
               <tr>
 
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-slate-500">
+                <TableHeader>
                   Action
-                </th>
+                </TableHeader>
 
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-slate-500">
+                <TableHeader>
                   Details
-                </th>
+                </TableHeader>
 
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-slate-500">
+                <TableHeader>
                   Date
-                </th>
+                </TableHeader>
 
               </tr>
 
@@ -840,25 +1276,27 @@ function AuditLogs({
                 </tr>
               ) : (
                 logs.map((log) => (
-                  <tr key={log.log_id}>
+                  <tr
+                    key={log.log_id}
+                  >
 
-                    <td className="px-6 py-4 font-medium text-slate-700">
+                    <TableCell bold>
                       {log.action}
-                    </td>
+                    </TableCell>
 
-                    <td className="px-6 py-4 text-sm text-slate-500">
+                    <TableCell>
                       {log.details
                         ? JSON.stringify(
                             log.details
                           )
                         : "-"}
-                    </td>
+                    </TableCell>
 
-                    <td className="px-6 py-4 text-sm text-slate-500">
-                      {new Date(
+                    <TableCell>
+                      {formatDate(
                         log.created_at
-                      ).toLocaleString()}
-                    </td>
+                      )}
+                    </TableCell>
 
                   </tr>
                 ))
@@ -876,9 +1314,9 @@ function AuditLogs({
   );
 }
 
-// ============================================================
-// MY PROFILE
-// ============================================================
+/* ================================================================
+   MY PROFILE
+================================================================ */
 
 function MyProfile({
   account,
@@ -898,24 +1336,31 @@ function MyProfile({
 
           <ProfileField
             label="Full Name"
-            value={account?.full_name}
+            value={
+              account?.full_name
+            }
           />
 
           <ProfileField
             label="Email"
-            value={account?.email}
+            value={
+              account?.email
+            }
           />
 
           <ProfileField
             label="Contact Number"
-            value={account?.contact_no}
+            value={
+              account?.contact_no
+            }
           />
 
           <ProfileField
             label="Role"
             value={
-              account?.role === "superadmin"
-                ? "Superadmin"
+              account?.role ===
+              "superadmin"
+                ? "Admin"
                 : "PESO Staff"
             }
           />
@@ -937,53 +1382,46 @@ function MyProfile({
   );
 }
 
-// ============================================================
-// PLACEHOLDER
-// ============================================================
+/* ================================================================
+   REUSABLE COMPONENTS
+================================================================ */
 
-function PlaceholderPage({
+function ModuleHeader({
   title,
+  description,
+  onRefresh,
 }: {
   title: string;
+  description: string;
+  onRefresh?: () => void;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+    <div className="flex items-center justify-between">
 
-      <h3 className="text-xl font-bold text-slate-800">
-        {title}
-      </h3>
+      <div>
 
-      <p className="mt-2 text-sm text-slate-500">
-        This module is ready for implementation.
-      </p>
+        <h3 className="text-xl font-bold text-slate-800">
+          {title}
+        </h3>
 
-    </div>
-  );
-}
+        <p className="mt-1 text-sm text-slate-500">
+          {description}
+        </p>
 
-// ============================================================
-// ACCESS DENIED
-// ============================================================
+      </div>
 
-function AccessDenied() {
-  return (
-    <div className="rounded-xl border border-red-200 bg-white p-10 text-center shadow-sm">
-
-      <h3 className="text-xl font-bold text-red-600">
-        Access Denied
-      </h3>
-
-      <p className="mt-2 text-sm text-slate-500">
-        You do not have permission to access this module.
-      </p>
+      {onRefresh && (
+        <button
+          onClick={onRefresh}
+          className="rounded-lg bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+        >
+          Refresh
+        </button>
+      )}
 
     </div>
   );
 }
-
-// ============================================================
-// STAT CARD
-// ============================================================
 
 function StatCard({
   title,
@@ -1007,9 +1445,49 @@ function StatCard({
   );
 }
 
-// ============================================================
-// PROFILE FIELD
-// ============================================================
+function AnalyticsCard({
+  title,
+  value,
+}: {
+  title: string;
+  value: number;
+}) {
+  return (
+    <div className="rounded-lg bg-slate-50 p-5">
+
+      <p className="text-sm text-slate-500">
+        {title}
+      </p>
+
+      <p className="mt-2 text-2xl font-bold text-blue-900">
+        {value}
+      </p>
+
+    </div>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+
+      <span className="text-sm text-slate-600">
+        {label}
+      </span>
+
+      <span className="font-bold text-slate-800">
+        {value}
+      </span>
+
+    </div>
+  );
+}
 
 function ProfileField({
   label,
@@ -1027,6 +1505,137 @@ function ProfileField({
 
       <p className="mt-1 rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-700">
         {value || "-"}
+      </p>
+
+    </div>
+  );
+}
+
+function TableHeader({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+      {children}
+    </th>
+  );
+}
+
+function TableCell({
+  children,
+  bold = false,
+}: {
+  children: React.ReactNode;
+  bold?: boolean;
+}) {
+  return (
+    <td
+      className={`px-6 py-4 text-sm ${
+        bold
+          ? "font-semibold text-slate-700"
+          : "text-slate-600"
+      }`}
+    >
+      {children}
+    </td>
+  );
+}
+
+function StatusBadge({
+  status,
+}: {
+  status: string;
+}) {
+  const normalized =
+    status.toLowerCase();
+
+  let classes =
+    "bg-slate-100 text-slate-600";
+
+  if (
+    normalized === "active" ||
+    normalized === "approved" ||
+    normalized === "hired"
+  ) {
+    classes =
+      "bg-green-100 text-green-700";
+  }
+
+  if (
+    normalized === "pending"
+  ) {
+    classes =
+      "bg-yellow-100 text-yellow-700";
+  }
+
+  if (
+    normalized === "inactive" ||
+    normalized === "rejected" ||
+    normalized === "closed"
+  ) {
+    classes =
+      "bg-red-100 text-red-700";
+  }
+
+  return (
+    <span
+      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${classes}`}
+    >
+      {status}
+    </span>
+  );
+}
+
+function LoadingMessage() {
+  return (
+    <div className="p-10 text-center text-sm text-slate-500">
+      Loading data...
+    </div>
+  );
+}
+
+function EmptyMessage({
+  message,
+}: {
+  message: string;
+}) {
+  return (
+    <div className="p-10 text-center">
+
+      <p className="text-sm text-slate-500">
+        {message}
+      </p>
+
+    </div>
+  );
+}
+
+function formatDate(
+  value?: string
+) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString();
+}
+
+function AccessDenied() {
+  return (
+    <div className="rounded-xl border border-red-200 bg-white p-10 text-center shadow-sm">
+
+      <h3 className="text-xl font-bold text-red-600">
+        Access Denied
+      </h3>
+
+      <p className="mt-2 text-sm text-slate-500">
+        You do not have permission to access this module.
       </p>
 
     </div>
