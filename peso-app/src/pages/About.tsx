@@ -13,6 +13,34 @@ const aboutVideo = new URL(
   import.meta.url,
 ).href;
 
+/*
+ * Each service card borrows its colour from its number badge, so `01` is sky,
+ * `02` yellow, `03` red and the cycle repeats. Border, badge and title hover
+ * live in the same object on purpose — a nested ternary per element is what
+ * let them drift apart before.
+ *
+ * The borders are one shade lighter than the badge text so a 1px line stays
+ * subtle at rest. Yellow sits a step deeper (`yellow-300`) because
+ * `yellow-200` on a white card is effectively invisible.
+ */
+const serviceThemes = [
+  {
+    badge: "bg-sky-50 text-sky-600",
+    card: "border-sky-200 hover:border-sky-400 hover:shadow-sky-100",
+    title: "group-hover:text-sky-600",
+  },
+  {
+    badge: "bg-yellow-50 text-yellow-600",
+    card: "border-yellow-300 hover:border-yellow-500 hover:shadow-yellow-100",
+    title: "group-hover:text-yellow-600",
+  },
+  {
+    badge: "bg-red-50 text-red-500",
+    card: "border-red-200 hover:border-red-400 hover:shadow-red-100",
+    title: "group-hover:text-red-500",
+  },
+];
+
 const About: React.FC = () => {
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 text-slate-800">
@@ -192,30 +220,30 @@ const About: React.FC = () => {
               "Livelihood Assistance and Support",
               "Employer-Employee Networking",
               "Job Referral Services",
-            ].map((service, index) => (
-              <div
-                key={service}
-                className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-sky-200 hover:shadow-md"
-              >
-                <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-xl ${
-                    index % 3 === 0
-                      ? "bg-sky-50 text-sky-600"
-                      : index % 3 === 1
-                      ? "bg-yellow-50 text-yellow-600"
-                      : "bg-red-50 text-red-500"
-                  }`}
-                >
-                  <span className="text-lg font-black">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                </div>
+            ].map((service, index) => {
+              const theme = serviceThemes[index % serviceThemes.length];
 
-                <h3 className="mt-5 font-bold leading-6 text-slate-900 transition group-hover:text-sky-600">
-                  {service}
-                </h3>
-              </div>
-            ))}
+              return (
+                <div
+                  key={service}
+                  className={`group rounded-2xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md ${theme.card}`}
+                >
+                  <div
+                    className={`flex h-12 w-12 items-center justify-center rounded-xl ${theme.badge}`}
+                  >
+                    <span className="text-lg font-black">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                  </div>
+
+                  <h3
+                    className={`mt-5 font-bold leading-6 text-slate-900 transition ${theme.title}`}
+                  >
+                    {service}
+                  </h3>
+                </div>
+              );
+            })}
 
           </div>
         </section>
