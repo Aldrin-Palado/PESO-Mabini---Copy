@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import PesoLogo from "./PesoLogo";
+import AuthBackground from "./AuthBackground";
 import { supabase } from "../services/supabase";
 
 function Login() {
@@ -110,13 +111,73 @@ function Login() {
       }
 
       /* =========================================
-         6. NOT SUPERADMIN OR STAFF
+         6. CHECK JOB SEEKER
+      ========================================= */
+
+      const {
+        data: jobseeker,
+        error: jobseekerError,
+      } = await supabase
+        .from("job_seeker")
+        .select(
+          "job_seeker_id, user_id, full_name, email, is_active"
+        )
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (jobseekerError) {
+        console.error(
+          "Jobseeker check error:",
+          jobseekerError
+        );
+      }
+
+      if (jobseeker) {
+        console.log("Job Seeker detected:", jobseeker);
+
+        navigate("/jobseeker");
+        return;
+      }
+
+      /* =========================================
+         7. CHECK EMPLOYER
+      ========================================= */
+
+      const {
+        data: employer,
+        error: employerError,
+      } = await supabase
+        .from("employer")
+        .select(
+          "employer_id, user_id, full_name, email, is_active"
+        )
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (employerError) {
+        console.error(
+          "Employer check error:",
+          employerError
+        );
+      }
+
+      if (employer) {
+        console.log("Employer detected:", employer);
+
+        navigate("/employer");
+        return;
+      }
+
+      /* =========================================
+         8. NOT AUTHORIZED
       ========================================= */
 
       await supabase.auth.signOut();
 
       alert(
-        "Your account is not registered as a PESO Superadmin or Staff account."
+        "Your account is not registered as a PESO Superadmin, Staff, Job Seeker, or Employer."
       );
 
       navigate("/");
@@ -132,12 +193,14 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="relative isolate min-h-screen overflow-hidden bg-gradient-to-br from-[#073B73] via-[#087CB4] to-[#13AAB4]">
+
+      <AuthBackground />
 
       {/* Top Accent */}
-      <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
+      <div className="relative z-10 h-1 bg-gradient-to-r from-sky-300 via-yellow-300 to-red-400" />
 
-      <div className="flex min-h-[calc(100dvh-4px)] items-center justify-center px-4 py-8 sm:px-6 sm:py-12">
+      <div className="relative z-10 flex min-h-[calc(100dvh-4px)] items-center justify-center px-4 py-8 sm:px-6 sm:py-12">
 
         <div className="w-full max-w-md">
 
@@ -147,6 +210,7 @@ function Login() {
             <PesoLogo
               size="md"
               showName
+              tone="light"
               subtitle="Public Employment Service"
             />
 

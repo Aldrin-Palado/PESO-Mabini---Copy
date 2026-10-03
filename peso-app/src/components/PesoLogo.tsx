@@ -55,7 +55,7 @@ export default function PesoLogo({
   const nameColor =
     tone === "light" ? "text-white" : "text-[#123B70]";
   const subtitleColor =
-    tone === "light" ? "text-slate-300" : "text-slate-500";
+    tone === "light" ? "text-white" : "text-slate-500";
 
   /*
    * The logo is a full-colour seal: ~48% of its visible pixels are dark and
