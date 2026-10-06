@@ -15,6 +15,7 @@ const pesoLogo = new URL(
 const sizes = {
   sm: "h-10 w-10",
   md: "h-12 w-12",
+  auth: "h-16 w-16",
   lg: "h-16 w-16",
 } as const;
 
@@ -93,7 +94,11 @@ export default function PesoLogo({
       <span className="min-w-0">
         <span
           className={`block truncate font-black leading-tight ${
-            size === "lg" ? "text-2xl" : "text-xl"
+            size === "lg"
+              ? "text-2xl"
+              : size === "auth"
+                ? "text-2xl"
+                : "text-xl"
           } ${nameColor}`}
         >
           PESO-Hub
@@ -101,7 +106,9 @@ export default function PesoLogo({
 
         {subtitle && (
           <span
-            className={`mt-0.5 block truncate text-xs ${subtitleColor}`}
+            className={`mt-0.5 block truncate ${
+              size === "auth" ? "text-sm" : "text-xs"
+            } ${subtitleColor}`}
           >
             {subtitle}
           </span>

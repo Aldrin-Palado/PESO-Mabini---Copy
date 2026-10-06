@@ -208,7 +208,7 @@ function Login() {
           <div className="mb-8 text-center">
 
             <PesoLogo
-              size="md"
+              size="auth"
               showName
               tone="light"
               subtitle="Public Employment Service"
