@@ -52,6 +52,10 @@ function App() {
           path="/jobseeker"
           element={<JobSeekerDashboard />}
         />
+
+        {/* Unknown URL */}
+        <Route path="*" element={<Home />} />
+
       </Routes>
     </BrowserRouter>
   );
