@@ -33,20 +33,96 @@ function Register() {
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (
-      formData.password !==
-      formData.confirmPassword
-    ) {
-      alert("Passwords do not match.");
+  if (formData.password !== formData.confirmPassword) {
+    alert("Passwords do not match.");
+    return;
+  }
+
+  if (formData.password.length < 8) {
+    alert("Password must contain at least 8 characters.");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const email = formData.email.trim().toLowerCase();
+
+    const fullName =
+      `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+
+    // ============================================================
+    // CREATE SUPABASE AUTH ACCOUNT
+    // ============================================================
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password: formData.password,
+
+      options: {
+        data: {
+          first_name: formData.firstName.trim(),
+          last_name: formData.lastName.trim(),
+          full_name: fullName,
+          role: accountType,
+        },
+      },
+    });
+
+    // ============================================================
+    // CHECK AUTH ERROR
+    // ============================================================
+
+    if (error) {
+      console.error("Supabase Auth registration error:", error);
+      alert(error.message);
       return;
     }
 
-    if (formData.password.length < 8) {
-      alert("Password must contain at least 8 characters.");
+    // ============================================================
+    // CHECK USER
+    // ============================================================
+
+    if (!data.user) {
+      console.error(
+        "Registration succeeded but no user ID was returned."
+      );
+
+      alert(
+        "The account was created, but Supabase did not return a user ID. Please try again."
+      );
+
       return;
     }
+
+    // ============================================================
+    // PROFILE CREATION IS HANDLED AUTOMATICALLY BY
+    // THE SUPABASE DATABASE TRIGGER
+    // ============================================================
+
+    alert(
+      "Account created successfully! Please check your email to confirm your account, then log in."
+    );
+
+    navigate("/login");
+
+  } catch (error) {
+    console.error("Registration error:", error);
+
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Unknown error occurred.";
+
+    alert(
+      `Something went wrong while creating your account.\n\nReason: ${errorMessage}`
+    );
+
+  } finally {
+    setLoading(false);
+  }
 
     setLoading(true);
 
