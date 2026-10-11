@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import PesoLogo from "./PesoLogo";
-import AuthBackground from "./AuthBackground";
+import AuthSideImage from "./AuthSideImage";
+import AuthPageHeader from "./AuthPageHeader";
 import { supabase } from "../services/supabase";
 
 function Login() {
@@ -193,54 +193,38 @@ function Login() {
   };
 
   return (
-    <div className="relative isolate min-h-screen overflow-hidden bg-gradient-to-br from-[#073B73] via-[#087CB4] to-[#13AAB4]">
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_rgba(22,138,155,0.08),_transparent_38%),#f4f6f9]">
+      <AuthPageHeader />
 
-      <AuthBackground />
+      <main className="flex min-h-[calc(100dvh-5.5rem)] items-center px-4 py-10 sm:px-6 xl:px-0 xl:py-0">
+        <div className="mx-auto grid w-full items-center gap-10 xl:min-h-[calc(100dvh-5.5rem)] xl:grid-cols-[minmax(0,1fr)_minmax(25rem,34rem)] xl:items-stretch xl:gap-0">
+          <AuthSideImage />
 
-      {/* Top Accent */}
-      <div className="relative z-10 h-1 bg-gradient-to-r from-sky-300 via-yellow-300 to-red-400" />
-
-      <div className="relative z-10 flex min-h-[calc(100dvh-4px)] items-center justify-center px-4 py-8 sm:px-6 sm:py-12">
-
-        <div className="w-full max-w-md">
-
-          {/* Logo */}
-          <div className="mb-8 text-center">
-
-            <PesoLogo
-              size="auth"
-              showName
-              tone="light"
-              subtitle="Public Employment Service"
-            />
-
-          </div>
-
-          {/* Login Card */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-lg sm:p-8 lg:p-10">
+          <div className="w-full max-w-md justify-self-center px-0 sm:px-2 xl:max-w-none xl:justify-self-stretch xl:self-center xl:px-12 xl:py-10 2xl:px-20">
+          <div className="rounded-[1.75rem] border border-white bg-white p-6 shadow-[0_24px_70px_-28px_rgba(18,59,112,0.25)] ring-1 ring-slate-900/[0.04] sm:p-9">
 
             {/* Header */}
-            <div className="mb-8 text-center">
-
-              <h2 className="text-3xl font-black text-slate-900">
+            <div className="mb-8">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#168A9B]">
+                Secure account access
+              </p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#102A4C]">
                 Welcome Back
               </h2>
-
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="mt-2 text-sm leading-6 text-slate-500">
                 Sign in to your PESO-Hub account
               </p>
-
             </div>
 
             <form
               onSubmit={handleLogin}
-              className="space-y-5"
+              className="space-y-6"
             >
 
               {/* Email */}
               <div>
 
-                <label className="mb-2 block text-sm font-bold text-slate-700">
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
                   Email Address
                 </label>
 
@@ -253,7 +237,7 @@ function Login() {
                   placeholder="Enter your email"
                   required
                   disabled={loading}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 disabled:bg-slate-100"
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50/60 px-4 py-3.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#168A9B] focus:bg-white focus:ring-4 focus:ring-[#168A9B]/10 disabled:bg-slate-100"
                 />
 
               </div>
@@ -263,13 +247,13 @@ function Login() {
 
                 <div className="mb-2 flex items-center justify-between">
 
-                  <label className="block text-sm font-bold text-slate-700">
+                  <label className="block text-sm font-semibold text-slate-700">
                     Password
                   </label>
 
                   <button
                     type="button"
-                    className="text-sm font-semibold text-sky-600 transition hover:text-sky-700"
+                    className="text-sm font-semibold text-[#147D8A] transition hover:text-[#123B70]"
                   >
                     Forgot Password?
                   </button>
@@ -291,7 +275,7 @@ function Login() {
                     placeholder="Enter your password"
                     required
                     disabled={loading}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-20 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 disabled:bg-slate-100"
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50/60 px-4 py-3.5 pr-20 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#168A9B] focus:bg-white focus:ring-4 focus:ring-[#168A9B]/10 disabled:bg-slate-100"
                   />
 
                   <button
@@ -302,7 +286,7 @@ function Login() {
                       )
                     }
                     disabled={loading}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500 transition hover:text-sky-600"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500 transition hover:text-[#147D8A]"
                   >
                     {showPassword
                       ? "Hide"
@@ -335,7 +319,7 @@ function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-sky-600 px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-sky-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-xl bg-[#123B70] px-5 py-3.5 font-bold text-white shadow-lg shadow-[#123B70]/15 transition hover:bg-[#0D315F] hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#168A9B] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading
                   ? "Signing In..."
@@ -344,42 +328,32 @@ function Login() {
 
             </form>
 
-            {/* Register */}
-            <div className="mt-8 text-center">
-
+            <div className="mt-7 border-t border-slate-100 pt-6 text-center">
               <p className="text-sm text-slate-500">
-
-                Don't have an account?{" "}
-
+                Don’t have an account?{" "}
                 <Link
                   to="/register"
-                  className="font-bold text-sky-600 transition hover:text-sky-700"
+                  className="font-bold text-[#147D8A] transition hover:text-[#123B70]"
                 >
                   Create an account
                 </Link>
-
               </p>
-
             </div>
-
           </div>
-
-          {/* Back Button */}
-          <div className="mt-6 text-center">
-           <button
-           type="button"
-           onClick={() => navigate("/")}
-           className="mx-auto flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-600 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600"
-    >
-          <span>←</span>
-           Back
-          </button>
-         </div>
-
+          <p className="mt-5 text-center text-xs leading-5 text-slate-500">
+            Your information is protected and used only to provide employment
+            services.
+          </p>
+          <Link
+            to="/"
+            className="mx-auto mt-5 inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-[#123B70]/30 hover:bg-slate-50 hover:text-[#123B70] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123B70]"
+          >
+            <span aria-hidden="true">←</span>
+            Return to Home
+          </Link>
+          </div>
         </div>
-
-      </div>
-
+      </main>
     </div>
   );
 }

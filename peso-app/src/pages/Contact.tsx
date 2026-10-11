@@ -8,18 +8,21 @@ const contactMethods = [
     detail:
       "PESO Mabini, Public Employment Service Office\nMabini, Batangas, Philippines",
     accent: "bg-sky-50 text-sky-600",
+    borderAccent: "bg-sky-600",
     label: "Visit Us",
   },
   {
     title: "Email Us",
     detail: "peso.mabini@province.gov.ph",
     accent: "bg-yellow-50 text-yellow-600",
+    borderAccent: "bg-yellow-500",
     label: "Send Email",
   },
   {
     title: "Call Us",
     detail: "(043) 754-XXXX\nMon to Fri • 8:00 AM – 5:00 PM",
     accent: "bg-red-50 text-red-500",
+    borderAccent: "bg-red-500",
     label: "Call Office",
   },
 ];
@@ -44,7 +47,7 @@ const Contact: React.FC = () => {
       <Navbar />
 
       {/* Top Philippine-inspired accent */}
-      <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
+      <div className="h-1 bg-[#123B70]" />
 
       {/* Hero */}
       <section className="hero-shell-compact relative isolate overflow-hidden bg-slate-950">
@@ -105,7 +108,7 @@ const Contact: React.FC = () => {
         </div>
 
         {/* Bottom accent */}
-        <div className="h-1 bg-gradient-to-r from-sky-400 via-yellow-400 to-red-500" />
+        <div className="h-1 bg-[#123B70]" />
 
       </section>
 
@@ -139,7 +142,7 @@ const Contact: React.FC = () => {
               >
 
                 {/* Card accent */}
-                <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
+                <div className={`h-1 ${item.borderAccent}`} />
 
                 <div className="p-6">
 
@@ -172,7 +175,7 @@ const Contact: React.FC = () => {
           {/* Contact Form */}
           <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
 
-            <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
+            <div className="h-1 bg-sky-600" />
 
             <div className="p-5 sm:p-6 md:p-8">
 
@@ -300,7 +303,7 @@ const Contact: React.FC = () => {
             {/* Quick Services */}
             <div className="overflow-hidden rounded-3xl bg-slate-900 text-white shadow-sm">
 
-              <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
+              <div className="h-1 bg-sky-600" />
 
               <div className="p-6">
 
@@ -340,7 +343,7 @@ const Contact: React.FC = () => {
         {/* Visit Office */}
         <section className="mt-16 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
 
-          <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
+          <div className="h-1 bg-sky-600" />
 
           <div className="grid gap-0 lg:grid-cols-2">
 
