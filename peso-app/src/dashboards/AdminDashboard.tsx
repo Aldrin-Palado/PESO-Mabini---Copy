@@ -247,6 +247,9 @@ export default function AdminDashboard() {
     if (activePage === "Admin Audit Logs") {
       loadAuditLogs();
     }
+    if (activePage === "Dashboard" && account.role === "superadmin") {
+      loadAuditLogs();
+    }
   }, [activePage, account]);
 
   /* ============================================================
@@ -286,16 +289,7 @@ export default function AdminDashboard() {
         error: adminError,
       } = await supabase
         .from("peso_admin")
-        .select(
-          `
-          admin_id,
-          user_id,
-          full_name,
-          email,
-          contact_no,
-          is_active
-          `
-        )
+        .select("admin_id, user_id, full_name, email, is_active")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -306,7 +300,7 @@ export default function AdminDashboard() {
         );
 
         alert(
-          "Unable to verify your Admin account."
+          `Unable to verify your Admin account: ${adminError.message}`
         );
 
         return;
@@ -333,7 +327,6 @@ export default function AdminDashboard() {
           user_id: admin.user_id,
           full_name: admin.full_name,
           email: admin.email,
-          contact_no: admin.contact_no,
           is_active: admin.is_active,
           role: "superadmin",
         });
@@ -950,8 +943,14 @@ export default function AdminDashboard() {
           <DashboardModule
             counts={counts}
             account={account}
-            onRefresh={loadDashboardCounts}
-            StatCard={StatCard}
+            logs={auditLogs}
+            onRefresh={() => {
+              loadDashboardCounts();
+              if (account?.role === "superadmin") {
+                loadAuditLogs();
+              }
+            }}
+            onNavigate={setActivePage}
           />
         );
 
@@ -1157,7 +1156,7 @@ export default function AdminDashboard() {
   ============================================================ */
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-[#F5F7FA]">
 
       <AdminSidebar
         activePage={activePage}
@@ -1169,36 +1168,40 @@ export default function AdminDashboard() {
         }
       />
 
-      <main className="min-h-screen lg:ml-64">
+      <main className="min-h-screen lg:ml-56">
 
         {/* HEADER */}
-        <header className="sticky top-0 z-40 border-b border-slate-200 bg-white px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-4 shadow-sm sm:px-6 sm:pt-[calc(env(safe-area-inset-top)+1.25rem)] sm:pb-5 lg:px-8">
+        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3 sm:px-6 sm:pt-[calc(env(safe-area-inset-top)+1rem)] sm:pb-4 lg:px-8">
 
           <div className="flex items-center justify-between gap-3">
 
             <div className="min-w-0">
 
-              <h2 className="truncate text-xl font-bold text-slate-800 sm:text-2xl">
+              <h2 className="truncate text-lg font-bold text-slate-900 sm:text-xl">
                 {activePage}
               </h2>
 
-              <p className="mt-1 text-xs text-slate-500 sm:text-sm">
-                {account?.role === "superadmin"
-                  ? "Admin"
-                  : "PESO Staff"}
+              <p className="mt-0.5 text-xs text-slate-500">
+                Admin <span className="px-1 text-slate-300">/</span> {activePage}
               </p>
 
             </div>
 
-            <div className="min-w-0 text-right">
-
-              <p className="truncate text-sm font-semibold text-slate-700 sm:text-base">
-                {account?.full_name}
-              </p>
-
-              <p className="hidden truncate text-xs text-slate-500 sm:block">
-                {account?.email}
-              </p>
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="hidden rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-800 sm:inline-flex">
+                {account?.role === "superadmin" ? "PESO Head" : "PESO Staff"}
+              </span>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-sm font-bold text-[#203F8B]">
+                {account?.role === "superadmin" ? "PH" : "PS"}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-800">
+                  {account?.full_name}
+                </p>
+                <p className="hidden truncate text-xs text-slate-500 sm:block">
+                  {account?.role === "superadmin" ? "Super Administrator" : "PESO Staff"}
+                </p>
+              </div>
 
             </div>
 
@@ -1207,7 +1210,7 @@ export default function AdminDashboard() {
         </header>
 
         {/* CONTENT */}
-        <section className="px-4 pt-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] sm:px-6 sm:pt-8 sm:pb-10 lg:px-8">
+        <section className="px-4 pt-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] sm:px-6 sm:pt-7 sm:pb-10 lg:px-8">
           {renderPage()}
         </section>
 
@@ -1399,7 +1402,7 @@ function ModuleHeader({
 
       <div>
 
-        <h3 className="text-xl font-bold text-slate-800">
+        <h3 className="text-lg font-bold text-slate-900">
           {title}
         </h3>
 
@@ -1412,7 +1415,7 @@ function ModuleHeader({
       {onRefresh && (
         <button
           onClick={onRefresh}
-          className="rounded-lg bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+          className="rounded-md bg-[#203F8B] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#193474]"
         >
           Refresh
         </button>
@@ -1516,7 +1519,7 @@ function TableHeader({
   children: React.ReactNode;
 }) {
   return (
-    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+    <th className="whitespace-nowrap border-b border-slate-200 px-4 py-3 text-left text-[0.65rem] font-bold uppercase tracking-[0.08em] text-slate-500">
       {children}
     </th>
   );
@@ -1531,7 +1534,7 @@ function TableCell({
 }) {
   return (
     <td
-      className={`px-6 py-4 text-sm ${
+      className={`px-4 py-3 text-sm ${
         bold
           ? "font-semibold text-slate-700"
           : "text-slate-600"

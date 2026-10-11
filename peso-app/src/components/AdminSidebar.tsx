@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PesoLogo from "./PesoLogo";
 import SidebarToggle from "./SidebarToggle";
 import { supabase } from "../services/supabase";
 
@@ -97,28 +98,27 @@ export default function AdminSidebar({
 
       <aside
         id="admin-sidebar"
-        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-64 max-w-[85vw] flex-col overflow-y-auto overscroll-contain bg-blue-900 text-white shadow-xl transition-transform duration-300 ease-out motion-reduce:transition-none lg:w-64 lg:translate-x-0 lg:overflow-hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-56 max-w-[85vw] flex-col overflow-y-auto overscroll-contain bg-[#203F8B] text-white shadow-xl shadow-slate-950/10 transition-transform duration-300 ease-out motion-reduce:transition-none lg:w-56 lg:translate-x-0 lg:overflow-hidden ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
 
         {/* Logo / Title */}
-        <div className="flex items-start justify-between gap-2 border-b border-blue-800 px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-5 sm:px-6">
-          <div className="min-w-0">
-            <h1 className="truncate text-xl font-bold">
-              Admin Portal
-            </h1>
-
-            <p className="mt-1 text-xs text-blue-200">
-              PESO-Hub
-            </p>
-          </div>
+        <div className="flex items-start justify-between gap-2 border-b border-white/10 px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-5 sm:px-6">
+          <PesoLogo
+            size="sm"
+            showName
+            subtitle={isSuperadmin ? "Super Admin Portal" : "Admin Portal"}
+            tone="light"
+            linkTo={null}
+            className="min-w-0"
+          />
 
           <button
             type="button"
             aria-label="Close navigation menu"
             onClick={() => setIsOpen(false)}
-            className="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-blue-100 transition hover:bg-blue-800 lg:hidden"
+            className="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-blue-100 transition hover:bg-white/10 lg:hidden"
           >
             <svg
               className="h-5 w-5"
@@ -138,7 +138,7 @@ export default function AdminSidebar({
           {/* =========================
               MAIN MENU
           ========================= */}
-          <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-blue-300">
+          <p className="mb-3 px-3 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-blue-200/75">
             Main Menu
           </p>
 
@@ -152,10 +152,10 @@ export default function AdminSidebar({
                 <button
                   key={module}
                   onClick={() => go(module)}
-                  className={`w-full rounded-lg px-4 py-3 text-left text-sm font-medium transition ${
+                  className={`w-full rounded-md px-3 py-2 text-left text-sm font-medium transition ${
                     isActive
-                      ? "bg-red-600 text-white shadow"
-                      : "text-blue-100 hover:bg-blue-800 hover:text-white"
+                      ? "bg-[#E3262E] text-white shadow-sm"
+                      : "text-blue-50/90 hover:bg-white/10 hover:text-white"
                   }`}
                 >
                   {module}
@@ -171,9 +171,9 @@ export default function AdminSidebar({
             <div className="mt-7">
 
               {/* Separator */}
-              <div className="mb-5 border-t border-blue-800" />
+              <div className="mb-5 border-t border-white/10" />
 
-              <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-blue-300">
+              <p className="mb-3 px-3 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-blue-200/75">
                 Administration
               </p>
 
@@ -187,10 +187,10 @@ export default function AdminSidebar({
                   <button
                     key={module}
                     onClick={() => go(module)}
-                    className={`w-full rounded-lg px-4 py-3 text-left text-sm font-medium transition ${
+                    className={`w-full rounded-md px-3 py-2 text-left text-sm font-medium transition ${
                       isActive
-                        ? "bg-red-600 text-white shadow"
-                        : "text-blue-100 hover:bg-blue-800 hover:text-white"
+                        ? "bg-[#E3262E] text-white shadow-sm"
+                        : "text-blue-50/90 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     {module}
@@ -206,15 +206,15 @@ export default function AdminSidebar({
         {/* =========================
             BOTTOM MENU
         ========================= */}
-        <div className="border-t border-blue-800 p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+        <div className="border-t border-white/10 p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
 
           {/* My Profile */}
           <button
             onClick={() => go("My Profile")}
-            className={`mb-1 w-full rounded-lg px-4 py-3 text-left text-sm font-medium transition ${
+            className={`mb-1 w-full rounded-md px-3 py-2 text-left text-sm font-medium transition ${
               activePage === "My Profile"
-                ? "bg-red-600 text-white"
-                : "text-blue-100 hover:bg-blue-800 hover:text-white"
+                ? "bg-[#E3262E] text-white"
+                : "text-blue-50/90 hover:bg-white/10 hover:text-white"
             }`}
           >
             My Profile
@@ -223,7 +223,7 @@ export default function AdminSidebar({
           {/* Logout */}
           <button
             onClick={handleLogout}
-            className="w-full rounded-lg px-4 py-3 text-left text-sm font-medium text-red-200 transition hover:bg-red-700 hover:text-white"
+            className="w-full rounded-md px-3 py-2 text-left text-sm font-medium text-red-100 transition hover:bg-red-600/90 hover:text-white"
           >
             Logout
           </button>

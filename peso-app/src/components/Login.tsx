@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthSideImage from "./AuthSideImage";
-import AuthPageHeader from "./AuthPageHeader";
+import PesoLogo from "./PesoLogo";
 import { supabase } from "../services/supabase";
 
 function Login() {
@@ -193,39 +193,39 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_rgba(22,138,155,0.08),_transparent_38%),#f4f6f9]">
-      <AuthPageHeader />
+    <div className="min-h-screen bg-[#F3F6FB]">
+      <main className="grid min-h-screen lg:grid-cols-2">
+        <AuthSideImage />
 
-      <main className="flex min-h-[calc(100dvh-5.5rem)] items-center px-4 py-10 sm:px-6 xl:px-0 xl:py-0">
-        <div className="mx-auto grid w-full items-center gap-10 xl:min-h-[calc(100dvh-5.5rem)] xl:grid-cols-[minmax(0,1fr)_minmax(25rem,34rem)] xl:items-stretch xl:gap-0">
-          <AuthSideImage />
-
-          <div className="w-full max-w-md justify-self-center px-0 sm:px-2 xl:max-w-none xl:justify-self-stretch xl:self-center xl:px-12 xl:py-10 2xl:px-20">
-          <div className="rounded-[1.75rem] border border-white bg-white p-6 shadow-[0_24px_70px_-28px_rgba(18,59,112,0.25)] ring-1 ring-slate-900/[0.04] sm:p-9">
+        <section className="flex min-h-[calc(100dvh-19rem)] flex-col justify-center bg-[#F3F6FB] px-5 py-10 sm:px-10 lg:min-h-screen lg:px-12 xl:px-20">
+          <div className="mx-auto w-full max-w-[33rem]">
+            <PesoLogo
+              size="auth"
+              showName
+              subtitle="Municipality of Mabini, Batangas"
+              className="mb-8"
+            />
 
             {/* Header */}
             <div className="mb-8">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#168A9B]">
+              <p className="text-sm font-semibold text-[#3156A2]">
                 Secure account access
               </p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#102A4C]">
-                Welcome Back
+              <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[#102A4C] sm:text-4xl">
+                Sign in
               </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                Sign in to your PESO-Hub account
+              <p className="mt-3 text-sm leading-6 text-slate-500 sm:text-base">
+                Access your PESO-Hub account to continue.
               </p>
             </div>
 
-            <form
-              onSubmit={handleLogin}
-              className="space-y-6"
-            >
+            <form onSubmit={handleLogin} className="space-y-5">
 
               {/* Email */}
               <div>
 
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Email Address
+                <label className="mb-2 block text-sm font-medium text-slate-800">
+                  Email address
                 </label>
 
                 <input
@@ -237,7 +237,7 @@ function Login() {
                   placeholder="Enter your email"
                   required
                   disabled={loading}
-                  className="w-full rounded-xl border border-slate-300 bg-slate-50/60 px-4 py-3.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#168A9B] focus:bg-white focus:ring-4 focus:ring-[#168A9B]/10 disabled:bg-slate-100"
+                  className="w-full rounded-2xl border border-[#D5DEEB] bg-white px-5 py-4 text-base text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#315FEA] focus:ring-4 focus:ring-[#315FEA]/10 disabled:bg-slate-100"
                 />
 
               </div>
@@ -247,13 +247,13 @@ function Login() {
 
                 <div className="mb-2 flex items-center justify-between">
 
-                  <label className="block text-sm font-semibold text-slate-700">
+                  <label className="block text-sm font-medium text-slate-800">
                     Password
                   </label>
 
                   <button
                     type="button"
-                    className="text-sm font-semibold text-[#147D8A] transition hover:text-[#123B70]"
+                    className="text-sm font-medium text-[#315FEA] transition hover:text-[#123B70]"
                   >
                     Forgot Password?
                   </button>
@@ -275,7 +275,7 @@ function Login() {
                     placeholder="Enter your password"
                     required
                     disabled={loading}
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50/60 px-4 py-3.5 pr-20 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#168A9B] focus:bg-white focus:ring-4 focus:ring-[#168A9B]/10 disabled:bg-slate-100"
+                    className="w-full rounded-2xl border border-[#D5DEEB] bg-white px-5 py-4 pr-20 text-base text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#315FEA] focus:ring-4 focus:ring-[#315FEA]/10 disabled:bg-slate-100"
                   />
 
                   <button
@@ -286,7 +286,7 @@ function Login() {
                       )
                     }
                     disabled={loading}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500 transition hover:text-[#147D8A]"
+                    className="absolute right-5 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500 transition hover:text-[#315FEA]"
                   >
                     {showPassword
                       ? "Hide"
@@ -303,14 +303,14 @@ function Login() {
                 <input
                   type="checkbox"
                   id="remember"
-                  className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                  className="h-4 w-4 rounded border-slate-300 accent-[#315FEA] focus:ring-[#315FEA]"
                 />
 
                 <label
                   htmlFor="remember"
                   className="text-sm text-slate-600"
                 >
-                  Remember me
+                  Keep me signed in
                 </label>
 
               </div>
@@ -319,7 +319,7 @@ function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-[#123B70] px-5 py-3.5 font-bold text-white shadow-lg shadow-[#123B70]/15 transition hover:bg-[#0D315F] hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#168A9B] disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-2xl bg-[#315FEA] px-5 py-4 text-base font-semibold text-white shadow-[0_12px_24px_-12px_rgba(49,95,234,0.75)] transition hover:bg-[#244FD4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#315FEA] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading
                   ? "Signing In..."
@@ -328,31 +328,30 @@ function Login() {
 
             </form>
 
-            <div className="mt-7 border-t border-slate-100 pt-6 text-center">
+            <div className="mt-8 pt-2 text-center">
               <p className="text-sm text-slate-500">
                 Don’t have an account?{" "}
                 <Link
                   to="/register"
-                  className="font-bold text-[#147D8A] transition hover:text-[#123B70]"
+                  className="font-semibold text-[#315FEA] underline decoration-[#315FEA]/40 underline-offset-4 transition hover:text-[#123B70]"
                 >
                   Create an account
                 </Link>
               </p>
             </div>
-          </div>
-          <p className="mt-5 text-center text-xs leading-5 text-slate-500">
+          <p className="mt-4 text-center text-xs leading-5 text-slate-500">
             Your information is protected and used only to provide employment
             services.
           </p>
           <Link
             to="/"
-            className="mx-auto mt-5 inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-[#123B70]/30 hover:bg-slate-50 hover:text-[#123B70] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123B70]"
+            className="mx-auto mt-5 inline-flex items-center justify-center gap-2 rounded-full border border-[#D5DEEB] bg-white px-6 py-3 text-sm font-semibold text-[#3156A2] shadow-sm transition hover:border-[#315FEA]/40 hover:text-[#244FD4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#315FEA]"
           >
             <span aria-hidden="true">←</span>
             Return to Home
           </Link>
           </div>
-        </div>
+        </section>
       </main>
     </div>
   );

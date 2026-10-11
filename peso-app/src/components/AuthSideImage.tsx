@@ -8,24 +8,33 @@ type AuthSideImageProps = {
 };
 
 function AuthSideImage({ variant = "login" }: AuthSideImageProps) {
-  const panelSize =
-    variant === "register"
-      ? "xl:aspect-[0.92] xl:min-h-[36rem] xl:max-h-[46rem] xl:self-center"
-      : "xl:min-h-[calc(100dvh-5.5rem)]";
-
   return (
-    <section
-      aria-label="Mabini Public Employment Service Office"
-      className={`relative hidden min-h-[34rem] w-full overflow-hidden rounded-[0_18%_18%_0] bg-[#123B70] xl:block ${panelSize}`}
-    >
+    <section className="relative flex min-h-[19rem] flex-col justify-end overflow-hidden bg-[#123B70] px-6 py-7 text-white sm:min-h-[23rem] sm:px-10 sm:py-9 lg:sticky lg:top-0 lg:h-screen lg:min-h-0 lg:px-12 lg:py-11 xl:px-16 xl:py-14">
       <img
         src={backgroundImage}
-        alt=""
-        className={`absolute inset-0 h-full w-full object-cover ${
-          variant === "register" ? "object-[52%_center]" : "object-center"
-        }`}
+        alt="Public Employment Service Office in Mabini, Batangas"
+        className="absolute inset-0 h-full w-full object-cover object-center"
       />
-      <div className="absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-[#123B70]/10 to-transparent" />
+      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-[#09244A]/55 via-[#09244A]/10 to-[#071A33]/90" />
+
+      <div className="relative z-10 max-w-xl pb-2 sm:pb-6">
+        <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#F1D58A] sm:text-sm">
+          Public Employment Service Office
+        </p>
+        <h1 className="mt-4 max-w-lg text-3xl font-semibold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
+          {variant === "register"
+            ? "Your next opportunity starts here."
+            : "Welcome back to your PESO community."}
+        </h1>
+        <p className="mt-4 max-w-md text-sm leading-6 text-white/85 sm:text-base sm:leading-7">
+          Find meaningful work, connect with local employers, and access
+          employment services in Mabini.
+        </p>
+        <div className="mt-7 flex items-center gap-3 text-xs font-medium tracking-wide text-white/75 sm:text-sm">
+          <span className="h-px w-9 bg-[#F1D58A]" />
+          Connecting Mabini to opportunity
+        </div>
+      </div>
     </section>
   );
 }
