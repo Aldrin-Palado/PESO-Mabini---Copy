@@ -33,28 +33,111 @@ function Register() {
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (
-      formData.password !==
-      formData.confirmPassword
-    ) {
-      alert("Passwords do not match.");
+  if (formData.password !== formData.confirmPassword) {
+    alert("Passwords do not match.");
+    return;
+  }
+
+  if (formData.password.length < 8) {
+    alert("Password must contain at least 8 characters.");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const email = formData.email.trim().toLowerCase();
+
+    const fullName =
+      `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+
+    // ============================================================
+    // CREATE SUPABASE AUTH ACCOUNT
+    // ============================================================
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password: formData.password,
+
+      options: {
+        data: {
+          first_name: formData.firstName.trim(),
+          last_name: formData.lastName.trim(),
+          full_name: fullName,
+          role: accountType,
+        },
+      },
+    });
+
+    // ============================================================
+    // CHECK AUTH ERROR
+    // ============================================================
+
+    if (error) {
+      console.error("Supabase Auth registration error:", error);
+      alert(error.message);
       return;
     }
 
-    if (formData.password.length < 8) {
-      alert("Password must contain at least 8 characters.");
+    // ============================================================
+    // CHECK USER
+    // ============================================================
+
+    if (!data.user) {
+      console.error(
+        "Registration succeeded but no user ID was returned."
+      );
+
+      alert(
+        "The account was created, but Supabase did not return a user ID. Please try again."
+      );
+
       return;
     }
+
+    // ============================================================
+    // PROFILE CREATION IS HANDLED AUTOMATICALLY BY
+    // THE SUPABASE DATABASE TRIGGER
+    // ============================================================
+
+    alert(
+      "Account created successfully! Please check your email to confirm your account, then log in."
+    );
+
+    navigate("/login");
+
+  } catch (error) {
+    console.error("Registration error:", error);
+
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Unknown error occurred.";
+
+    alert(
+      `Something went wrong while creating your account.\n\nReason: ${errorMessage}`
+    );
+
+  } finally {
+    setLoading(false);
+  }
 
     setLoading(true);
 
     try {
-      const fullName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+      const email = formData.email.trim().toLowerCase();
 
+      const fullName =
+        `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+
+      /*
+       * STEP 1
+       * Create the Supabase Auth account
+       */
       const { data, error } = await supabase.auth.signUp({
-        email: formData.email.trim().toLowerCase(),
+        email,
         password: formData.password,
         options: {
           data: {
@@ -67,56 +150,96 @@ function Register() {
       });
 
       if (error) {
+        console.error("Supabase Auth registration error:", error);
         alert(error.message);
         return;
       }
 
       const userId = data.user?.id;
 
-      if (userId) {
-        if (accountType === "jobseeker") {
-          const { error: profileError } = await supabase
-            .from("job_seeker")
-            .insert({
-              user_id: userId,
-              full_name: fullName,
-              email: formData.email.trim().toLowerCase(),
-              is_active: true,
-            });
+      if (!userId) {
+        console.error("Registration succeeded but no user ID was returned.");
 
-          if (profileError) {
-            console.error("Job seeker profile error:", profileError);
-            alert(
-              "Account created, but failed to create job seeker profile. Please contact admin."
-            );
-          }
-        } else if (accountType === "employer") {
-          const { error: profileError } = await supabase
-            .from("employer")
-            .insert({
-              user_id: userId,
-              full_name: fullName,
-              email: formData.email.trim().toLowerCase(),
-              contact_person: fullName,
-              is_active: true,
-            });
+        alert(
+          "The account was created, but Supabase did not return a user ID. Please try again."
+        );
 
-          if (profileError) {
-            console.error("Employer profile error:", profileError);
-            alert(
-              "Account created, but failed to create employer profile. Please contact admin."
-            );
-          }
+        return;
+      }
+
+      /*
+       * STEP 2
+       * Create the corresponding profile
+       */
+      if (accountType === "jobseeker") {
+        const { error: profileError } = await supabase
+          .from("job_seeker")
+          .insert({
+            user_id: userId,
+            full_name: fullName,
+            email,
+            is_active: true,
+          });
+
+        if (profileError) {
+          console.error(
+            "Job seeker profile error:",
+            profileError
+          );
+
+          alert(
+            `Account created, but failed to create job seeker profile.\n\nReason: ${profileError.message}`
+          );
+
+          return;
         }
       }
 
+      if (accountType === "employer") {
+        const { error: profileError } = await supabase
+          .from("employer")
+          .insert({
+            user_id: userId,
+            full_name: fullName,
+            email,
+            contact_person: fullName,
+            is_active: true,
+          });
+
+        if (profileError) {
+          console.error(
+            "Employer profile error:",
+            profileError
+          );
+
+          alert(
+            `Account created, but failed to create employer profile.\n\nReason: ${profileError.message}`
+          );
+
+          return;
+        }
+      }
+
+      /*
+       * STEP 3
+       * Everything succeeded
+       */
       alert(
         "Account created successfully! Please check your email to confirm your account, then log in."
       );
+
       navigate("/login");
     } catch (error) {
       console.error("Registration error:", error);
-      alert("Something went wrong while creating your account. Please try again.");
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Unknown error occurred.";
+
+      alert(
+        `Something went wrong while creating your account.\n\nReason: ${errorMessage}`
+      );
     } finally {
       setLoading(false);
     }
@@ -375,7 +498,9 @@ function Register() {
                 disabled={loading}
                 className="w-full rounded-xl bg-sky-600 px-5 py-3.5 font-bold text-white shadow-sm transition hover:bg-sky-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loading ? "Creating Account..." : "Create Account"}
+                {loading
+                  ? "Creating Account..."
+                  : "Create Account"}
               </button>
 
             </form>
