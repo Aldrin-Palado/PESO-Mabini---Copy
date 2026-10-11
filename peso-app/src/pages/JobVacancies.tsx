@@ -9,6 +9,7 @@ function JobVacancies() {
   const [jobs, setJobs] = useState<JobVacancy[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   // Temporary local data
   // Replace this with Supabase later.
@@ -54,74 +55,82 @@ function JobVacancies() {
     },
   ];
 
-useEffect(() => {
-  const loadJobs = async () => {
-    setLoading(true);
+  useEffect(() => {
+    const loadJobs = async () => {
+      setLoading(true);
+      setLoadError("");
 
-    const { data, error } = await supabase
-      .from("job_vacancy")
-      .select(`
-        job_vacancy_id,
-        position_title,
-        location,
-        employment_type,
-        salary_min,
-        salary_max,
-        description,
-        date_posted,
-        employer (
-          name
-        )
-      `)
-      .eq("status", "open")
-      .order("date_posted", { ascending: false });
+      const { data, error } = await supabase
+        .from("job_vacancy")
+        .select(`
+          job_vacancy_id,
+          position_title,
+          location,
+          employment_type,
+          salary_min,
+          salary_max,
+          description,
+          requirements,
+          vacancies_available,
+          deadline,
+          date_posted,
+          employer (
+            name
+          )
+        `)
+        .eq("status", "open")
+        .order("date_posted", { ascending: false });
 
-    if (error) {
-      console.error("Error loading job vacancies:", error);
-      setJobs([]);
-      setLoading(false);
-      return;
-    }
-
-    const formattedJobs: JobVacancy[] = (data ?? []).map((job) => {
-      let salary = "Salary not specified";
-
-      if (job.salary_min != null && job.salary_max != null) {
-        salary = `₱${Number(job.salary_min).toLocaleString()} - ₱${Number(
-          job.salary_max
-        ).toLocaleString()}`;
-      } else if (job.salary_min != null) {
-        salary = `From ₱${Number(job.salary_min).toLocaleString()}`;
-      } else if (job.salary_max != null) {
-        salary = `Up to ₱${Number(job.salary_max).toLocaleString()}`;
+      if (error) {
+        console.error("Error loading job vacancies:", error);
+        setJobs([]);
+        setLoadError(`Unable to load job vacancies: ${error.message}`);
+        setLoading(false);
+        return;
       }
 
-      const employer = Array.isArray(job.employer)
-  ? job.employer[0]
-  : job.employer;
+      const formattedJobs: JobVacancy[] = (data ?? []).map((job) => {
+        let salary = "Salary not specified";
 
-      return {
-        job_vacancy_id: job.job_vacancy_id,
-        position_title: job.position_title,
-        location: job.location ?? undefined,
-        employment_type: job.employment_type ?? undefined,
-        salary,
-        description: job.description ?? undefined,
-        date_posted: job.date_posted ?? undefined,
-        employer: employer
-          ? {
-              name: employer.name ?? undefined,
-            }
-          : undefined,
-      };
-    });
+        if (job.salary_min != null && job.salary_max != null) {
+          salary = `₱${Number(job.salary_min).toLocaleString()} - ₱${Number(
+            job.salary_max
+          ).toLocaleString()}`;
+        } else if (job.salary_min != null) {
+          salary = `From ₱${Number(job.salary_min).toLocaleString()}`;
+        } else if (job.salary_max != null) {
+          salary = `Up to ₱${Number(job.salary_max).toLocaleString()}`;
+        }
 
-    setJobs(formattedJobs);
-    setLoading(false);
-  };
+        const employer = Array.isArray(job.employer)
+          ? job.employer[0]
+          : job.employer;
 
-  loadJobs();
-}, []);
+        return {
+          job_vacancy_id: job.job_vacancy_id,
+          position_title: job.position_title,
+          location: job.location ?? undefined,
+          employment_type: job.employment_type ?? undefined,
+          salary,
+          description: job.description ?? undefined,
+          requirements: job.requirements ?? undefined,
+          vacancies_available: job.vacancies_available ?? undefined,
+          deadline: job.deadline ?? undefined,
+          date_posted: job.date_posted ?? undefined,
+          employer: employer
+            ? {
+                name: employer.name ?? undefined,
+              }
+            : undefined,
+        };
+      });
+
+      setJobs(formattedJobs);
+      setLoading(false);
+    };
+
+    void loadJobs();
+  }, []);
 
   const filteredJobs = jobs.filter((job) => {
     const searchText = search.toLowerCase();
@@ -276,7 +285,16 @@ useEffect(() => {
           )}
 
           {/* No Jobs */}
-          {!loading && filteredJobs.length === 0 && (
+          {!loading && loadError && (
+            <div
+              role="alert"
+              className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-800"
+            >
+              {loadError}
+            </div>
+          )}
+
+          {!loading && !loadError && filteredJobs.length === 0 && (
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
               <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
@@ -312,7 +330,7 @@ useEffect(() => {
           )}
 
           {/* Job Cards */}
-          {!loading && filteredJobs.length > 0 && (
+          {!loading && !loadError && filteredJobs.length > 0 && (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 
               {filteredJobs.map((job, index) => (

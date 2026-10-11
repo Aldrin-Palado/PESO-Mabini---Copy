@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import SidebarToggle from "../components/SidebarToggle";
+import ProfileAvatar from "../components/ProfileAvatar";
 import { supabase } from "../services/supabase";
 
 type StaffPermission = {
@@ -1002,13 +1003,10 @@ function MyProfile({
 
       <div className="max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
 
-        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#0446A7] text-3xl font-black text-white">
-
-          {staff.full_name
-            .charAt(0)
-            .toUpperCase()}
-
-        </div>
+        <ProfileAvatar
+          userId={staff.user_id}
+          fullName={staff.full_name}
+        />
 
         <div className="space-y-4">
 

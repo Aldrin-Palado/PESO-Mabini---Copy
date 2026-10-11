@@ -5,6 +5,9 @@ export interface JobVacancy {
   employment_type?: string;
   salary?: string;
   description?: string;
+  requirements?: string;
+  vacancies_available?: number;
+  deadline?: string;
   date_posted?: string;
 
   employer?: {

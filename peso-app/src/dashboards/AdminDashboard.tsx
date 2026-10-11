@@ -4,6 +4,7 @@ import { supabase } from "../services/supabase";
 import AdminSidebar, {
   AdminModule,
 } from "../components/AdminSidebar";
+import ProfileAvatar from "../components/ProfileAvatar";
 
 import AdminAccounts from "../pages/AdminAccounts";
 
@@ -1333,6 +1334,13 @@ function MyProfile({
         <h3 className="mb-6 text-xl font-bold text-slate-800">
           My Profile
         </h3>
+
+        {account?.user_id && (
+          <ProfileAvatar
+            userId={account.user_id}
+            fullName={account.full_name}
+          />
+        )}
 
         <div className="grid gap-5 md:grid-cols-2">
 
