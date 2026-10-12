@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Footer from "../components/Footer";
 import HeroBackground from "../components/HeroBackground";
 import Navbar from "../components/Navbar";
+import AIChatbotModule from "../jobseekersmodules/AIChatbotModule";
 
 const backgroundImage = new URL(
   "../assets/images/bg-image.png",
@@ -550,6 +551,8 @@ function Home() {
       </main>
 
       <Footer />
+
+      <AIChatbotModule floating />
 
     </div>
   );

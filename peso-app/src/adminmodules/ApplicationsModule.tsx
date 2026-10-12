@@ -1,4 +1,5 @@
 import React from "react";
+import ResumeScreeningPanel from "./ResumeScreeningPanel";
 
 type Application = {
   id?: string;
@@ -14,6 +15,7 @@ type Application = {
 
 type Props = {
   applications: Application[];
+  canScreenResumes: boolean;
 
   search: string;
   setSearch: (value: string) => void;
@@ -54,6 +56,7 @@ type Props = {
 
 export default function ApplicationsModule({
   applications,
+  canScreenResumes,
   search,
   setSearch,
   statusFilter,
@@ -76,6 +79,8 @@ export default function ApplicationsModule({
         description="View and monitor submitted job applications."
         onRefresh={onRefresh}
       />
+
+      {canScreenResumes && <ResumeScreeningPanel />}
 
       {/* SEARCH AND FILTER */}
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">

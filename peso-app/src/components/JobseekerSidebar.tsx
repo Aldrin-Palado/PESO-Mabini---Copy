@@ -5,6 +5,8 @@ export type JobSeekerPage =
   | "Jobs"
   | "Application"
   | "Messages"
+  | "AI Job Matches"
+  | "AI Assistant"
   | "Profile";
 
 type Props = {
@@ -32,6 +34,14 @@ const menuItems: {
   {
     label: "Messages",
     icon: "▣",
+  },
+  {
+    label: "AI Job Matches",
+    icon: "✦",
+  },
+  {
+    label: "AI Assistant",
+    icon: "✧",
   },
 ];
 

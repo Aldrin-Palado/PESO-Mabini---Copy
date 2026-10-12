@@ -11,6 +11,8 @@ import HomeModule from "../jobseekersmodules/HomeModule";
 import JobsModule from "../jobseekersmodules/JobsModule";
 import ApplicationsModule from "../jobseekersmodules/ApplicationsModule";
 import MessagesModule from "../jobseekersmodules/MessagesModule";
+import AIChatbotModule from "../jobseekersmodules/AIChatbotModule";
+import JobMatchesModule from "../jobseekersmodules/JobMatchesModule";
 
 // =====================================================
 // TYPES
@@ -416,6 +418,12 @@ export default function JobSeekerDashboard() {
             }
           />
         );
+
+      case "AI Job Matches":
+        return <JobMatchesModule />;
+
+      case "AI Assistant":
+        return <AIChatbotModule />;
 
       // -------------------------------------------------
       // PROFILE

@@ -1029,6 +1029,11 @@ export default function AdminDashboard() {
         return (
           <ApplicationsModule
             applications={filteredApplications}
+            canScreenResumes={
+              isSuperadmin ||
+              (permissions.includes("Applications") &&
+                permissions.includes("Job Seekers"))
+            }
             search={applicationSearch}
             setSearch={setApplicationSearch}
             statusFilter={applicationStatusFilter}
