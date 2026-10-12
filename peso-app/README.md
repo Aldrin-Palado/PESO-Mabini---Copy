@@ -26,7 +26,7 @@ supabase functions deploy peso-ai
 ```
 
 Optionally set `GEMINI_MODEL` as a Supabase Function secret to use a different supported
-Gemini model. The default is `gemini-2.5-flash`.
+Gemini model. The default is `gemini-3.8-flash`.
 
 Resume screening accepts PDF files up to 1 MB and analyzes them without saving them to
 Supabase Storage. Resume files, job-seeker messages, and profile summaries submitted to

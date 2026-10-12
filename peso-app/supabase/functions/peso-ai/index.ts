@@ -10,7 +10,7 @@ const corsHeaders = {
 
 const maxPdfBytes = 1_000_000;
 const maxProfileTextLength = 6_000;
-const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.8-flash";
 
 type ChatMessage = {
   role: "user" | "model";
