@@ -1,5 +1,12 @@
-import mabiniSeal from "../assets/images/mabini logo.jpg";
-import pesoSeal from "../assets/images/peso-logo-mark.png";
+const mabiniSeal = new URL(
+  "../assets/images/mabini logo.jpg",
+  import.meta.url,
+).href;
+
+const pesoSeal = new URL(
+  "../assets/images/peso-logo-mark.png",
+  import.meta.url,
+).href;
 
 export default function AuthBackground() {
   return (

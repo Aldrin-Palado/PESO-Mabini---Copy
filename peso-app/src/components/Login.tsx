@@ -108,7 +108,7 @@ function Login() {
 
       const { data: employer, error: employerError } = await supabase
         .from("employer")
-        .select("employer_id, user_id, full_name, email, is_active")
+        .select("employer_id, user_id, name, email, is_verified")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -118,12 +118,6 @@ function Login() {
       }
 
       if (employer) {
-        if (!employer.is_active) {
-          await supabase.auth.signOut();
-          alert("This Employer account is inactive.");
-          navigate("/", { replace: true });
-          return;
-        }
         navigate("/employer", { replace: true });
         return;
       }

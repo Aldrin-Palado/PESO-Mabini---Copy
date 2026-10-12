@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthSideImage from "./AuthSideImage";
+import EmployerRegistration from "./EmployerRegistration";
 import { supabase } from "../services/supabase";
 
 function Register() {
@@ -30,6 +31,14 @@ function Register() {
   };
 
   const [loading, setLoading] = useState(false);
+
+  if (accountType === "employer") {
+    return (
+      <EmployerRegistration
+        onBack={() => setAccountType("jobseeker")}
+      />
+    );
+  }
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,31 +118,6 @@ function Register() {
 
           alert(
             `Account created, but failed to create job seeker profile.\n\nReason: ${profileError.message}`
-          );
-
-          return;
-        }
-      }
-
-      if (accountType === "employer") {
-        const { error: profileError } = await supabase
-          .from("employer")
-          .insert({
-            user_id: userId,
-            full_name: fullName,
-            email,
-            contact_person: fullName,
-            is_active: true,
-          });
-
-        if (profileError) {
-          console.error(
-            "Employer profile error:",
-            profileError
-          );
-
-          alert(
-            `Account created, but failed to create employer profile.\n\nReason: ${profileError.message}`
           );
 
           return;
