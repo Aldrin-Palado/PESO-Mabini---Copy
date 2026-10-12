@@ -12,8 +12,40 @@ export async function invokePesoAI<T>(
 
   if (error) {
     console.error(`PESO AI ${action} request failed:`, error);
+    let detail = "";
+    let status = "";
+    if (error.context instanceof Response) {
+      status = `HTTP ${error.context.status}${error.context.statusText ? ` ${error.context.statusText}` : ""}`;
+      try {
+        const responseText = await error.context.clone().text();
+        if (responseText) {
+          try {
+            const responseBody: unknown = JSON.parse(responseText);
+            if (responseBody && typeof responseBody === "object") {
+              if ("error" in responseBody && typeof responseBody.error === "string") {
+                detail = responseBody.error;
+              } else if (
+                "message" in responseBody &&
+                typeof responseBody.message === "string"
+              ) {
+                detail = responseBody.message;
+              } else {
+                detail = JSON.stringify(responseBody);
+              }
+            } else {
+              detail = String(responseBody);
+            }
+          } catch {
+            detail = responseText.slice(0, 500);
+          }
+        }
+      } catch {
+        // Keep the HTTP status and SDK message when the response body is unavailable.
+      }
+    }
+    const diagnostic = [status, detail || error.message].filter(Boolean).join(": ");
     throw new Error(
-      `AI request failed: ${error.message}. Confirm the Supabase Edge Function is deployed and GEMINI_API_KEY is configured.`,
+      `AI request failed${diagnostic ? ` (${diagnostic})` : ""}. Check the Supabase Edge Function logs for additional details.`,
     );
   }
 
