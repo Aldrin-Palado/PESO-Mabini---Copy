@@ -38,7 +38,7 @@ function App() {
         {/* Staff */}
         <Route
           path="/staff"
-          element={<StaffDashboard />}
+          element={<AdminDashboard />}
         />
 
         {/* Employer */}

@@ -80,7 +80,7 @@ function Login() {
           navigate("/", { replace: true });
           return;
         }
-        navigate("/staff", { replace: true });
+        navigate("/superadmin", { replace: true });
         return;
       }
 
