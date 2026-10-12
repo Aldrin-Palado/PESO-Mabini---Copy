@@ -31,6 +31,7 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [jobTypes, setJobTypes] = useState<string[]>([]);
+  const [otherJobTypes, setOtherJobTypes] = useState("");
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({
@@ -60,6 +61,16 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
     );
   };
 
+  const getSelectedJobTypes = () => [
+    ...jobTypes.filter((jobType) => jobType !== "Other"),
+    ...(jobTypes.includes("Other")
+      ? otherJobTypes
+          .split(/[,\n]/)
+          .map((jobType) => jobType.trim())
+          .filter(Boolean)
+      : []),
+  ];
+
   const continueToNextStep = () => {
     const formElement = document.getElementById(
       "employer-registration-form",
@@ -80,6 +91,10 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
 
     if (step === 1 && jobTypes.length === 0) {
       alert("Select at least one type of job your company may post.");
+      return;
+    }
+    if (step === 1 && jobTypes.includes("Other") && !otherJobTypes.trim()) {
+      alert("List the other job types your company needs.");
       return;
     }
 
@@ -112,7 +127,7 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
             role: "employer",
             company_name: form.companyName.trim(),
             contact_person: contactPerson,
-            job_posting_categories: jobTypes,
+            job_posting_categories: getSelectedJobTypes(),
           },
         },
       });
@@ -417,6 +432,26 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
                     </label>
                   ))}
                 </div>
+                {jobTypes.includes("Other") && (
+                  <label className="mt-4 block max-w-2xl text-sm font-semibold text-slate-700">
+                    List the other positions your company needs{" "}
+                    <span className="text-red-600">*</span>
+                    <textarea
+                      value={otherJobTypes}
+                      onChange={(event) =>
+                        setOtherJobTypes(event.target.value)
+                      }
+                      required
+                      rows={3}
+                      className={fieldClassName}
+                      placeholder="For example: delivery drivers, welders, machine operators. Separate multiple positions with commas or new lines."
+                    />
+                    <span className="mt-1 block text-xs font-normal text-slate-500">
+                      Add one or more job positions, separated by commas or new
+                      lines.
+                    </span>
+                  </label>
+                )}
               </section>
             )}
 
@@ -540,7 +575,7 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
                       Job categories
                     </dt>
                     <dd className="mt-1 text-sm text-slate-900">
-                      {jobTypes.join(", ")}
+                      {getSelectedJobTypes().join(", ")}
                     </dd>
                   </div>
                 </dl>
