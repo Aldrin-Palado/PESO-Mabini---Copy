@@ -123,7 +123,7 @@ export default function Employers() {
                   <button
                     key={employer.id}
                     onClick={() => setSelectedEmployer(employer)}
-                    className={`w-full rounded-xl border p-4 text-left transition ${
+                    className={`w-full rounded-full border p-4 text-left transition ${
                       selectedEmployer?.id === employer.id
                         ? "border-sky-500 bg-sky-50"
                         : "border-slate-200 hover:border-sky-300 hover:bg-slate-50"
@@ -319,7 +319,7 @@ export default function Employers() {
                           </p>
 
                           <button
-                            className="mt-5 rounded-lg bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700"
+                            className="mt-5 rounded-full bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700"
                           >
                             View Job
                           </button>

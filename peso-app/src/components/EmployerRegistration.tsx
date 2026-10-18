@@ -1,16 +1,29 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../services/supabase";
+import AuthSideImage from "./AuthSideImage";
 
 type EmployerRegistrationProps = {
   onBack: () => void;
 };
 
 const registrationSteps = [
-  { title: "Company & Account", detail: "Business and login details" },
-  { title: "Job Posting Info", detail: "Types of jobs you post" },
-  { title: "Privacy & Preferences", detail: "Data privacy and contact" },
-  { title: "Review & Submit", detail: "Final confirmation" },
+  {
+    title: "Company & Account",
+    detail: "Enter company, representative, and sign-in details.",
+  },
+  {
+    title: "Job Posting Info",
+    detail: "Choose the kinds of positions your company expects to post.",
+  },
+  {
+    title: "Privacy & Preferences",
+    detail: "Add a contact number and review the data privacy notice.",
+  },
+  {
+    title: "Review & Submit",
+    detail: "Check your details, confirm the notice, and submit.",
+  },
 ];
 
 const jobCategories = [
@@ -24,7 +37,7 @@ const jobCategories = [
 ];
 
 const fieldClassName =
-  "mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0759AE] focus:ring-2 focus:ring-[#0759AE]/15";
+  "mt-1.5 w-full rounded-xl border border-[#D5DEEB] bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#315FEA] focus:ring-2 focus:ring-[#315FEA]/10";
 
 function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
   const navigate = useNavigate();
@@ -99,6 +112,66 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
     }
 
     setStep((current) => Math.min(current + 1, registrationSteps.length - 1));
+  };
+
+  const navigateToStep = (targetStep: number) => {
+    if (targetStep <= step) {
+      setStep(targetStep);
+      return;
+    }
+
+    for (let index = step; index < targetStep; index += 1) {
+      if (index === 0) {
+        const requiredAccountDetails = [
+          form.companyName,
+          form.businessAddress,
+          form.contactPerson,
+          form.email,
+          form.password,
+          form.confirmPassword,
+        ];
+        const emailInput = document.createElement("input");
+        emailInput.type = "email";
+        emailInput.value = form.email.trim();
+
+        if (
+          requiredAccountDetails.some((value) => !value.trim()) ||
+          !emailInput.checkValidity()
+        ) {
+          alert("Complete the required company, representative, and account details before continuing.");
+          setStep(0);
+          return;
+        }
+        if (form.password.length < 8) {
+          alert("Password must contain at least 8 characters.");
+          setStep(0);
+          return;
+        }
+        if (form.password !== form.confirmPassword) {
+          alert("Passwords do not match.");
+          setStep(0);
+          return;
+        }
+      }
+
+      if (index === 1 && jobTypes.length === 0) {
+        alert("Select at least one type of job your company may post.");
+        setStep(1);
+        return;
+      }
+      if (index === 1 && jobTypes.includes("Other") && !otherJobTypes.trim()) {
+        alert("List the other job types your company needs.");
+        setStep(1);
+        return;
+      }
+      if (index === 2 && !form.contactNumber.trim()) {
+        alert("Enter a company contact number before continuing.");
+        setStep(2);
+        return;
+      }
+    }
+
+    setStep(targetStep);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -178,83 +251,41 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
   const progress = ((step + 1) / registrationSteps.length) * 100;
 
   return (
-    <div className="min-h-screen bg-[#F1F3F5] text-slate-800 lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
-      <aside className="flex flex-col bg-[#0759AE] px-5 py-5 text-white lg:sticky lg:top-0 lg:h-screen lg:px-6 lg:py-7">
-        <Link
-          to="/"
-          className="mb-6 text-sm text-blue-100 transition hover:text-white"
-        >
-          <span aria-hidden="true">←</span> Back to Home
-        </Link>
+    <div className="min-h-screen bg-[#F3F6FB] text-slate-800">
+      <main className="grid min-h-screen lg:grid-cols-2">
+        <AuthSideImage variant="register" />
 
-        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-blue-100">
-          Registration Steps
-        </p>
-        <nav aria-label="Employer registration progress" className="mt-3">
-          <ol className="grid grid-cols-2 gap-2 lg:block lg:space-y-1">
-            {registrationSteps.map((registrationStep, index) => {
-              const isCurrent = index === step;
-              const isComplete = index < step;
+        <section className="min-w-0 bg-[#F3F6FB] px-5 py-7 sm:px-10 sm:py-9 lg:px-12 xl:px-16 2xl:px-20">
+          <div className="mx-auto w-full max-w-[38rem]">
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <button
+                type="button"
+                onClick={onBack}
+                disabled={loading}
+                className="inline-flex items-center rounded-full border border-[#D5DEEB] bg-white px-4 py-2 text-sm font-semibold text-[#3156A2] transition hover:border-[#315FEA] hover:bg-[#EEF3FF] hover:text-[#102A4C] disabled:opacity-60"
+              >
+                ← Change account type
+              </button>
+              <Link
+                to="/"
+                className="inline-flex items-center rounded-full border border-[#D5DEEB] bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-[#315FEA] hover:bg-[#EEF3FF] hover:text-[#3156A2]"
+              >
+                Back to home
+              </Link>
+            </div>
 
-              return (
-                <li key={registrationStep.title}>
-                  <button
-                    type="button"
-                    disabled={index > step || loading}
-                    onClick={() => setStep(index)}
-                    aria-current={isCurrent ? "step" : undefined}
-                    className={`flex w-full items-start gap-3 rounded-lg p-2 text-left transition lg:px-0 lg:py-3 ${
-                      isCurrent
-                        ? "bg-white/10"
-                        : "disabled:cursor-default"
-                    }`}
-                  >
-                    <span
-                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${
-                        isCurrent || isComplete
-                          ? "border-white bg-white text-[#0759AE]"
-                          : "border-blue-200/70 text-blue-100"
-                      }`}
-                    >
-                      {isComplete ? "✓" : index + 1}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-xs font-bold sm:text-sm">
-                        {registrationStep.title}
-                      </span>
-                      <span className="mt-0.5 hidden text-[0.68rem] leading-4 text-blue-100 sm:block">
-                        {registrationStep.detail}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
-
-        <p className="mt-auto hidden pt-8 text-xs leading-5 text-blue-100 lg:block">
-          Already have an employer account?{" "}
-          <Link to="/login" className="font-semibold text-white underline">
-            Sign in
-          </Link>
-        </p>
-      </aside>
-
-      <main className="min-w-0 px-4 py-6 sm:px-7 sm:py-8 lg:px-10 xl:px-14">
-        <div className="mx-auto max-w-4xl">
-          <header className="border-b border-slate-200 pb-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              PESO Mabini Employer Portal
-            </p>
-            <h1 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">
-              Employer / Company Registration
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Please provide your company details. Your account will be reviewed
-              by PESO Mabini.
-            </p>
-          </header>
+            <header className="mb-6">
+              <p className="text-sm font-semibold text-[#3156A2]">
+                PESO Mabini Employer Portal
+              </p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#102A4C] sm:text-4xl">
+                Employer registration
+              </h1>
+              <p className="mt-3 text-sm leading-6 text-slate-500 sm:text-base">
+                Provide your company details to connect with local job seekers.
+                PESO Mabini will review your account.
+              </p>
+            </header>
 
           <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-950">
             <p className="font-bold">Employer verification requirements</p>
@@ -271,29 +302,82 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
             </ul>
           </div>
 
-          <div className="mt-5 flex items-center justify-between text-xs text-slate-500">
-            <span>Step {step + 1} of 4</span>
-            <span>{registrationSteps[step].title}</span>
-          </div>
-          <div
-            className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200"
-            role="progressbar"
-            aria-label="Registration progress"
-            aria-valuemin={1}
-            aria-valuemax={4}
-            aria-valuenow={step + 1}
-          >
+            <div className="mt-6 flex items-center justify-between text-xs text-slate-500">
+              <span>Step {step + 1} of 4</span>
+              <span>{registrationSteps[step].title}</span>
+            </div>
             <div
-              className="h-full rounded-full bg-[#0759AE] transition-[width]"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
+              className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200"
+              role="progressbar"
+              aria-label="Registration progress"
+              aria-valuemin={1}
+              aria-valuemax={4}
+              aria-valuenow={step + 1}
+            >
+              <div
+                className="h-full rounded-full bg-[#315FEA] transition-[width]"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <nav aria-label="Employer registration steps" className="mt-4">
+              <ol className="grid w-full grid-cols-4 justify-items-center">
+                {registrationSteps.map((registrationStep, index) => {
+                  const isCurrent = index === step;
+                  const isComplete = index < step;
 
-          <form
-            id="employer-registration-form"
-            onSubmit={handleSubmit}
-            className="mt-6"
-          >
+                  return (
+                    <li key={registrationStep.title} className="w-full">
+                      <button
+                        type="button"
+                        onClick={() => navigateToStep(index)}
+                        disabled={loading}
+                        aria-current={isCurrent ? "step" : undefined}
+                        title={`${registrationStep.title}: ${registrationStep.detail}`}
+                        aria-label={`Step ${index + 1}: ${registrationStep.title}. ${registrationStep.detail}. ${
+                          isCurrent
+                            ? "Current step."
+                            : isComplete
+                              ? "Completed. Select to go back."
+                              : "Not started. Select to go to this step; required earlier steps will be checked."
+                        }`}
+                        className={`flex w-full flex-col items-center gap-2 rounded-xl p-2 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#315FEA] focus-visible:ring-offset-2 ${
+                          isCurrent
+                            ? "bg-[#EEF3FF] ring-1 ring-[#315FEA]/20"
+                            : isComplete
+                              ? "hover:bg-[#EEF3FF]"
+                              : "cursor-pointer hover:bg-slate-100"
+                        }`}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold transition ${
+                            isCurrent
+                              ? "border-[#315FEA] bg-[#315FEA] text-white"
+                              : isComplete
+                                ? "border-[#315FEA] bg-white text-[#315FEA]"
+                                : "border-slate-200 bg-white text-slate-600"
+                          }`}
+                        >
+                          {isComplete ? "✓" : index + 1}
+                        </span>
+                        <span className="block text-[0.65rem] font-bold leading-4 text-[#102A4C] sm:text-xs">
+                          {registrationStep.title}
+                        </span>
+                        <span className="block text-[0.6rem] leading-4 text-slate-500 sm:text-[0.7rem]">
+                          {registrationStep.detail}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            </nav>
+
+            <form
+              id="employer-registration-form"
+              onSubmit={handleSubmit}
+              className="mt-6"
+            >
             {step === 0 && (
               <section aria-labelledby="company-account-heading">
                 <h2
@@ -617,7 +701,7 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
                   type="button"
                   onClick={continueToNextStep}
                   disabled={loading}
-                  className="rounded-full bg-[#0759AE] px-6 py-2.5 text-sm font-bold text-white transition hover:bg-[#064A91] disabled:opacity-60"
+                  className="rounded-full bg-[#315FEA] px-6 py-2.5 text-sm font-bold text-white transition hover:bg-[#244BCC] disabled:opacity-60"
                 >
                   Continue →
                 </button>
@@ -625,7 +709,7 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
                 <button
                   type="submit"
                   disabled={loading || !privacyAccepted}
-                  className="rounded-full bg-emerald-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-full bg-[#315FEA] px-6 py-2.5 text-sm font-bold text-white transition hover:bg-[#244BCC] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {loading ? "Submitting..." : "Submit Registration"}
                 </button>
@@ -633,13 +717,14 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
             </div>
           </form>
 
-          <p className="mt-6 text-center text-sm text-slate-500 lg:hidden">
+          <p className="mt-6 text-center text-sm text-slate-500">
             Already have an employer account?{" "}
-            <Link to="/login" className="font-semibold text-[#0759AE] underline">
+            <Link to="/login" className="font-semibold text-[#3156A2] underline">
               Sign in
             </Link>
           </p>
         </div>
+        </section>
       </main>
     </div>
   );
