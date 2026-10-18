@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthSideImage from "./AuthSideImage";
 import EmployerRegistration from "./EmployerRegistration";
+import PesoLogo from "./PesoLogo";
 import { supabase } from "../services/supabase";
 
 function Register() {
@@ -123,6 +124,13 @@ const handleRegister = async (e: React.FormEvent) => {
 
             {/* Header */}
             <div className="mb-8">
+              <PesoLogo
+                size="sm"
+                showName
+                subtitle="Registration"
+                linkTo={null}
+                className="mb-6"
+              />
               <p className="text-sm font-semibold text-[#3156A2]">
                 Join your local employment network
               </p>

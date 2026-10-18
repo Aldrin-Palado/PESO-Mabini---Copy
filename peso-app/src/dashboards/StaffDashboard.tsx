@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import SidebarToggle from "../components/SidebarToggle";
 import ProfileAvatar from "../components/ProfileAvatar";
 import { supabase } from "../services/supabase";
@@ -18,7 +18,7 @@ type StaffAccount = {
   user_id: string;
   full_name: string;
   email: string;
-  contact_no: string;
+  contact_no: string | null;
 };
 
 type ModuleName =
@@ -67,6 +67,22 @@ export default function StaffDashboard() {
   const go = (page: ModuleName | "My Profile") => {
     setActivePage(page);
     setIsSidebarOpen(false);
+  };
+
+  const saveStaffProfile = async (values: Pick<StaffAccount, "full_name" | "contact_no">) => {
+    if (!staff) throw new Error("Your staff profile is not loaded.");
+    const { data, error } = await supabase
+      .from("peso_staff")
+      .update({
+        full_name: values.full_name.trim(),
+        contact_no: values.contact_no.trim() || null,
+      })
+      .eq("peso_staff_id", staff.peso_staff_id)
+      .select("full_name, contact_no")
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("Your profile was not updated. Please sign in again and try once more.");
+    setStaff({ ...staff, ...data });
   };
 
   /* =====================================================
@@ -357,12 +373,12 @@ export default function StaffDashboard() {
 
       case "My Profile":
         return (
-          <MyProfile staff={staff} />
+          <MyProfile staff={staff} onSave={saveStaffProfile} />
         );
 
       default:
         return (
-          <MyProfile staff={staff} />
+          <MyProfile staff={staff} onSave={saveStaffProfile} />
         );
     }
   };
@@ -982,9 +998,33 @@ function Notifications() {
 
 function MyProfile({
   staff,
+  onSave,
 }: {
   staff: StaffAccount;
+  onSave: (values: Pick<StaffAccount, "full_name" | "contact_no">) => Promise<void>;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    full_name: staff.full_name,
+    contact_no: staff.contact_no ?? "",
+  });
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      await onSave(form);
+      setEditing(false);
+    } catch (saveError) {
+      console.error("Staff profile update error:", saveError);
+      setError(saveError instanceof Error ? saveError.message : "Unable to save your profile.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -1008,32 +1048,60 @@ function MyProfile({
           fullName={staff.full_name}
         />
 
-        <div className="space-y-4">
+        {error && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+        <form onSubmit={handleSubmit} className="space-y-4">
 
-          <ProfileField
-            label="Full Name"
-            value={staff.full_name}
-          />
+          {editing ? (
+            <label className="block text-xs font-bold uppercase tracking-wide text-slate-400">
+              Full Name
+              <input
+                value={form.full_name}
+                onChange={(event) => setForm({ ...form, full_name: event.target.value })}
+                required
+                maxLength={120}
+                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-800"
+              />
+            </label>
+          ) : (
+            <ProfileField label="Full Name" value={staff.full_name} />
+          )}
 
           <ProfileField
             label="Email"
             value={staff.email}
           />
 
-          <ProfileField
-            label="Contact Number"
-            value={
-              staff.contact_no ||
-              "Not provided"
-            }
-          />
+          {editing ? (
+            <label className="block text-xs font-bold uppercase tracking-wide text-slate-400">
+              Contact Number
+              <input
+                type="tel"
+                value={form.contact_no}
+                onChange={(event) => setForm({ ...form, contact_no: event.target.value })}
+                maxLength={30}
+                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-800"
+              />
+            </label>
+          ) : (
+            <ProfileField label="Contact Number" value={staff.contact_no || "Not provided"} />
+          )}
 
           <ProfileField
             label="Role"
             value="PESO Staff"
           />
 
-        </div>
+          <div className="flex justify-end gap-3 pt-2">
+            {editing ? (
+              <>
+                <button type="button" onClick={() => { setForm({ full_name: staff.full_name, contact_no: staff.contact_no ?? "" }); setEditing(false); }} disabled={saving} className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Cancel</button>
+                <button type="submit" disabled={saving} className="rounded-full bg-[#203F8B] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{saving ? "Saving..." : "Save Changes"}</button>
+              </>
+            ) : (
+              <button type="button" onClick={() => { setError(""); setEditing(true); }} className="rounded-full bg-[#203F8B] px-4 py-2 text-sm font-semibold text-white">Edit Profile</button>
+            )}
+          </div>
+        </form>
 
       </div>
 

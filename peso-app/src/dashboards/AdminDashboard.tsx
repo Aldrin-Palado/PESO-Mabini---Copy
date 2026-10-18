@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { supabase } from "../services/supabase";
 
 import AdminSidebar, {
@@ -25,7 +25,7 @@ type Account = {
   user_id: string;
   full_name: string;
   email: string;
-  contact_no?: string;
+  contact_no?: string | null;
   is_active: boolean;
   role: "superadmin" | "staff";
 };
@@ -141,6 +141,37 @@ export default function AdminDashboard() {
 
   const isSuperadmin =
     account?.role === "superadmin";
+
+  const saveAccountProfile = async (
+    values: Pick<Account, "full_name" | "contact_no">,
+  ) => {
+    if (!account) throw new Error("Your account profile is not loaded.");
+    if (account.role === "superadmin") {
+      const { data, error } = await supabase
+        .from("peso_admin")
+        .update({ full_name: values.full_name.trim() })
+        .eq("admin_id", account.id)
+        .select("full_name")
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error("Your profile was not updated. Please sign in again and try once more.");
+      setAccount({ ...account, full_name: data.full_name });
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("peso_staff")
+      .update({
+        full_name: values.full_name.trim(),
+        contact_no: values.contact_no?.trim() || null,
+      })
+      .eq("peso_staff_id", account.id)
+      .select("full_name, contact_no")
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("Your profile was not updated. Please sign in again and try once more.");
+    setAccount({ ...account, ...data });
+  };
 
   /* ============================================================
      DATA FOR MODULES
@@ -1029,11 +1060,6 @@ export default function AdminDashboard() {
         return (
           <ApplicationsModule
             applications={filteredApplications}
-            canScreenResumes={
-              isSuperadmin ||
-              (permissions.includes("Applications") &&
-                permissions.includes("Job Seekers"))
-            }
             search={applicationSearch}
             setSearch={setApplicationSearch}
             statusFilter={applicationStatusFilter}
@@ -1129,6 +1155,7 @@ export default function AdminDashboard() {
         return (
           <MyProfile
             account={account}
+            onSave={saveAccountProfile}
           />
         );
 
@@ -1328,9 +1355,34 @@ function AuditLogs({
 
 function MyProfile({
   account,
+  onSave,
 }: {
   account: Account | null;
+  onSave: (values: Pick<Account, "full_name" | "contact_no">) => Promise<void>;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    full_name: account?.full_name ?? "",
+    contact_no: account?.contact_no ?? "",
+  });
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      await onSave(form);
+      setEditing(false);
+    } catch (saveError) {
+      console.error("Admin profile update error:", saveError);
+      setError(saveError instanceof Error ? saveError.message : "Unable to save your profile.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-3xl">
 
@@ -1347,49 +1399,67 @@ function MyProfile({
           />
         )}
 
-        <div className="grid gap-5 md:grid-cols-2">
+        {error && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+        <form onSubmit={handleSubmit} className="grid gap-5 md:grid-cols-2">
 
-          <ProfileField
-            label="Full Name"
-            value={
-              account?.full_name
-            }
-          />
+          {editing ? (
+            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Full Name
+              <input
+                value={form.full_name}
+                onChange={(event) => setForm({ ...form, full_name: event.target.value })}
+                required
+                maxLength={120}
+                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm font-normal normal-case tracking-normal text-slate-800"
+              />
+            </label>
+          ) : (
+            <ProfileField label="Full Name" value={account?.full_name} />
+          )}
 
           <ProfileField
             label="Email"
-            value={
-              account?.email
-            }
+            value={account?.email}
           />
 
-          <ProfileField
-            label="Contact Number"
-            value={
-              account?.contact_no
-            }
-          />
+          {account?.role === "staff" && (
+            editing ? (
+              <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Contact Number
+                <input
+                  type="tel"
+                  value={form.contact_no}
+                  onChange={(event) => setForm({ ...form, contact_no: event.target.value })}
+                  maxLength={30}
+                  className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm font-normal normal-case tracking-normal text-slate-800"
+                />
+              </label>
+            ) : (
+              <ProfileField label="Contact Number" value={account.contact_no || "Not provided"} />
+            )
+          )}
 
           <ProfileField
             label="Role"
-            value={
-              account?.role ===
-              "superadmin"
-                ? "Admin"
-                : "PESO Staff"
-            }
+            value={account?.role === "superadmin" ? "Admin" : "PESO Staff"}
           />
 
           <ProfileField
             label="Account Status"
-            value={
-              account?.is_active
-                ? "Active"
-                : "Inactive"
-            }
+            value={account?.is_active ? "Active" : "Inactive"}
           />
 
-        </div>
+          <div className="flex justify-end gap-3 md:col-span-2">
+            {editing ? (
+              <>
+                <button type="button" onClick={() => { setForm({ full_name: account?.full_name ?? "", contact_no: account?.contact_no ?? "" }); setEditing(false); }} disabled={saving} className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Cancel</button>
+                <button type="submit" disabled={saving} className="rounded-full bg-[#203F8B] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{saving ? "Saving..." : "Save Changes"}</button>
+              </>
+            ) : (
+              <button type="button" onClick={() => { setError(""); setEditing(true); }} className="rounded-full bg-[#203F8B] px-4 py-2 text-sm font-semibold text-white">Edit Profile</button>
+            )}
+          </div>
+        </form>
 
       </div>
 

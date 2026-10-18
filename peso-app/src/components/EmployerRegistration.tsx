@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../services/supabase";
 import AuthSideImage from "./AuthSideImage";
+import PesoLogo from "./PesoLogo";
 
 type EmployerRegistrationProps = {
   onBack: () => void;
@@ -257,6 +258,14 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
 
         <section className="min-w-0 bg-[#F3F6FB] px-5 py-7 sm:px-10 sm:py-9 lg:px-12 xl:px-16 2xl:px-20">
           <div className="mx-auto w-full max-w-[38rem]">
+            <div className="mb-6">
+              <PesoLogo
+                size="sm"
+                showName
+                subtitle="Employer Portal"
+                linkTo={null}
+              />
+            </div>
             <div className="mb-6 flex items-center justify-between gap-4">
               <button
                 type="button"

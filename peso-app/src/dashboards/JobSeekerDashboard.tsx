@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { supabase } from "../services/supabase";
@@ -43,6 +43,15 @@ export default function JobSeekerDashboard() {
   const [loading, setLoading] = useState(true);
 
   const [error, setError] = useState<string | null>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [profileSuccess, setProfileSuccess] = useState("");
+  const [profileForm, setProfileForm] = useState({
+    full_name: "",
+    contact_no: "",
+    address: "",
+  });
 
   // =====================================================
   // LOAD CURRENT JOB SEEKER
@@ -131,6 +140,55 @@ export default function JobSeekerDashboard() {
     setActivePage(page);
   };
 
+  const startProfileEdit = () => {
+    if (!seeker) return;
+    setProfileForm({
+      full_name: seeker.full_name,
+      contact_no: seeker.contact_no ?? "",
+      address: seeker.address ?? "",
+    });
+    setProfileError("");
+    setProfileSuccess("");
+    setEditingProfile(true);
+  };
+
+  const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!seeker || savingProfile) return;
+
+    setSavingProfile(true);
+    setProfileError("");
+    setProfileSuccess("");
+    try {
+      const { data, error: updateError } = await supabase
+        .from("job_seeker")
+        .update({
+          full_name: profileForm.full_name.trim(),
+          contact_no: profileForm.contact_no.trim() || null,
+          address: profileForm.address.trim() || null,
+        })
+        .eq("job_seeker_id", seeker.job_seeker_id)
+        .select("full_name, contact_no, address")
+        .maybeSingle();
+
+      if (updateError) throw updateError;
+      if (!data) throw new Error("Your profile was not updated. Please sign in again and try once more.");
+
+      setSeeker({ ...seeker, ...data });
+      setEditingProfile(false);
+      setProfileSuccess("Your profile has been updated.");
+    } catch (saveError) {
+      console.error("Job seeker profile update error:", saveError);
+      setProfileError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Unable to update your profile. Please try again.",
+      );
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   // =====================================================
   // LOGOUT
   // =====================================================
@@ -210,6 +268,17 @@ export default function JobSeekerDashboard() {
           </p>
         </div>
 
+        {profileSuccess && (
+          <p role="status" className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+            {profileSuccess}
+          </p>
+        )}
+        {profileError && (
+          <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            {profileError}
+          </p>
+        )}
+
         {/* PROFILE CARD */}
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
 
@@ -246,24 +315,107 @@ export default function JobSeekerDashboard() {
           </div>
 
           {/* INFORMATION */}
-          <div className="grid gap-4 p-6 sm:grid-cols-2">
+          <form onSubmit={saveProfile}>
+            <div className="grid gap-4 p-6 sm:grid-cols-2">
+              {editingProfile ? (
+                <>
+                  <label className="rounded-2xl bg-slate-50 p-4 text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Full Name
+                    <input
+                      value={profileForm.full_name}
+                      onChange={(event) => setProfileForm({ ...profileForm, full_name: event.target.value })}
+                      required
+                      maxLength={120}
+                      className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </label>
+                  <div className="rounded-2xl bg-slate-50 p-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                      Email Address
+                    </p>
+                    <p className="mt-2 break-words text-sm font-bold text-slate-800">
+                      {seeker.email || "Not provided"}
+                    </p>
+                    <p className="mt-1 text-xs font-normal text-slate-500">
+                      Contact support to change your sign-in email.
+                    </p>
+                  </div>
+                  <label className="rounded-2xl bg-slate-50 p-4 text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Contact Number
+                    <input
+                      type="tel"
+                      value={profileForm.contact_no}
+                      onChange={(event) => setProfileForm({ ...profileForm, contact_no: event.target.value })}
+                      maxLength={30}
+                      className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </label>
+                  <label className="rounded-2xl bg-slate-50 p-4 text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Address
+                    <textarea
+                      value={profileForm.address}
+                      onChange={(event) => setProfileForm({ ...profileForm, address: event.target.value })}
+                      maxLength={300}
+                      rows={2}
+                      className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </label>
+                  <div className="rounded-2xl bg-slate-50 p-4 sm:col-span-2">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                      Resume / CV
+                    </p>
+                    <p className="mt-2 text-sm font-bold text-slate-800">
+                      {seeker.resume_url ? "Resume uploaded" : "No resume uploaded"}
+                    </p>
+                    <p className="mt-1 text-xs font-normal text-slate-500">
+                      Manage your resume from AI Job Matches.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                profileFields.map((field) => (
+                  <div key={field.label} className="rounded-2xl bg-slate-50 p-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                      {field.label}
+                    </p>
+                    <p className="mt-2 break-words text-sm font-bold text-slate-800">
+                      {field.value}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
 
-            {profileFields.map((field) => (
-              <div
-                key={field.label}
-                className="rounded-2xl bg-slate-50 p-4"
-              >
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                  {field.label}
-                </p>
-
-                <p className="mt-2 break-words text-sm font-bold text-slate-800">
-                  {field.value}
-                </p>
-              </div>
-            ))}
-
-          </div>
+            <div className="flex justify-end gap-3 px-6 pb-6">
+              {editingProfile ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setEditingProfile(false)}
+                    disabled={savingProfile}
+                    className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingProfile}
+                    className="rounded-full bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#064A91] disabled:cursor-wait disabled:opacity-60"
+                  >
+                    {savingProfile ? "Saving..." : "Save Changes"}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={startProfileEdit}
+                  className="rounded-full bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#064A91]"
+                >
+                  Edit Profile
+                </button>
+              )}
+            </div>
+          </form>
 
         </div>
 

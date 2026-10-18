@@ -84,25 +84,6 @@ const Contact: React.FC = () => {
               and livelihood assistance.
             </p>
 
-            {/* Buttons */}
-            <div className="mt-8 flex flex-col gap-3 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:gap-4">
-
-              <a
-                href="mailto:peso.mabini@province.gov.ph"
-                className="rounded-xl bg-sky-600 px-6 py-3.5 font-bold text-white shadow-lg transition hover:-translate-y-1 hover:bg-sky-500"
-              >
-                Email the Office
-              </a>
-
-              <a
-                href="tel:+6343754XXXX"
-                className="rounded-xl border border-white/30 bg-white/10 px-6 py-3.5 font-bold text-white backdrop-blur-sm transition hover:bg-white hover:text-sky-700"
-              >
-                Call Now
-              </a>
-
-            </div>
-
           </div>
 
         </div>

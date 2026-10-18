@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 
-type AIAction = "chat" | "job-matches" | "resume-screening";
+type AIAction = "chat" | "job-matches";
 
 export async function invokePesoAI<T>(
   action: AIAction,

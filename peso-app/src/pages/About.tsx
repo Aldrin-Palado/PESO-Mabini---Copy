@@ -120,12 +120,12 @@ const About: React.FC = () => {
 
           {/* Mission */}
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-            <div className="h-1 bg-gradient-to-r from-sky-500 to-sky-300" />
+            <div className="h-1 bg-gradient-to-r from-red-600 to-red-400" />
 
             <div className="p-6 sm:p-8">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-sky-50">
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-red-50">
                 <svg
-                  className="h-7 w-7 text-sky-600"
+                  className="h-7 w-7 text-red-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -139,11 +139,11 @@ const About: React.FC = () => {
                 </svg>
               </div>
 
-              <h2 className="mt-6 text-2xl font-black text-slate-900">
+              <h2 className="mt-6 text-2xl font-black text-black">
                 Our Mission
               </h2>
 
-              <p className="mt-4 leading-7 text-slate-600">
+              <p className="mt-4 leading-7 text-black">
                 To provide quality employment services and livelihood
                 assistance to job seekers and employers, promoting productive
                 employment and national development.

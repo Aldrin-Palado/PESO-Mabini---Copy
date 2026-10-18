@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import SidebarToggle from "../components/SidebarToggle";
+import { supabase } from "../services/supabase";
 
 type MenuItem = {
   name: string;
@@ -1017,153 +1018,188 @@ function Applications() {
    COMPANY PROFILE
 ===================================================== */
 
+type EmployerProfile = {
+  employer_id: string;
+  name: string;
+  address: string | null;
+  contact_person: string | null;
+  contact_no: string | null;
+  email: string | null;
+};
+
 function CompanyProfile() {
+  const [profile, setProfile] = useState<EmployerProfile | null>(null);
+  const [form, setForm] = useState({
+    name: "",
+    address: "",
+    contact_person: "",
+    contact_no: "",
+  });
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadProfile = async () => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        if (!cancelled) setError(`Unable to verify your account: ${authError.message}`);
+        if (!cancelled) setLoading(false);
+        return;
+      }
+      if (!user) {
+        if (!cancelled) {
+          setError("Please sign in to view your company profile.");
+          setLoading(false);
+        }
+        return;
+      }
+
+      const { data, error: queryError } = await supabase
+        .from("employer")
+        .select("employer_id, name, address, contact_person, contact_no, email")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (queryError) {
+        console.error("Employer profile load error:", queryError);
+        setError(`Unable to load your company profile: ${queryError.message}`);
+      } else if (!data) {
+        setError("Your company profile could not be found.");
+      } else {
+        const loaded = data as EmployerProfile;
+        setProfile(loaded);
+        setForm({
+          name: loaded.name,
+          address: loaded.address ?? "",
+          contact_person: loaded.contact_person ?? "",
+          contact_no: loaded.contact_no ?? "",
+        });
+      }
+      setLoading(false);
+    };
+    void loadProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleSave = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!profile || saving) return;
+    setSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const changes = {
+        name: form.name.trim(),
+        address: form.address.trim() || null,
+        contact_person: form.contact_person.trim() || null,
+        contact_no: form.contact_no.trim() || null,
+      };
+      const { data, error: updateError } = await supabase
+        .from("employer")
+        .update(changes)
+        .eq("employer_id", profile.employer_id)
+        .select("employer_id, name, address, contact_person, contact_no, email")
+        .maybeSingle();
+      if (updateError) throw updateError;
+      if (!data) throw new Error("Your company profile was not updated. Please sign in again and try once more.");
+      const updated = data as EmployerProfile;
+      setProfile(updated);
+      setForm({
+        name: updated.name,
+        address: updated.address ?? "",
+        contact_person: updated.contact_person ?? "",
+        contact_no: updated.contact_no ?? "",
+      });
+      setEditing(false);
+      setSuccess("Company profile updated.");
+    } catch (saveError) {
+      console.error("Employer profile update error:", saveError);
+      setError(saveError instanceof Error ? saveError.message : "Unable to save your company profile.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    if (!profile) return;
+    setForm({
+      name: profile.name,
+      address: profile.address ?? "",
+      contact_person: profile.contact_person ?? "",
+      contact_no: profile.contact_no ?? "",
+    });
+    setEditing(false);
+    setError("");
+  };
 
   return (
     <div className="space-y-6">
-
       <div>
-
-        <h1 className="text-3xl font-black text-[#123B70]">
-          Company Profile
-        </h1>
-
+        <h1 className="text-3xl font-black text-[#123B70]">Company Profile</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Manage your company's information and profile.
+          Manage your company and representative information.
         </p>
-
       </div>
 
+      {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {success && <p role="status" className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">{success}</p>}
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-
-        {/* Company Header */}
-        <div className="flex flex-col gap-5 border-b border-slate-100 pb-6 sm:flex-row sm:items-center">
-
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#0446A7] text-3xl font-black text-white">
-            A
+      {loading ? (
+        <div className="rounded-3xl border border-slate-200 bg-white p-8 text-sm text-slate-500">Loading company profile...</div>
+      ) : profile ? (
+        <form onSubmit={handleSave} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-5 border-b border-slate-100 pb-6 sm:flex-row sm:items-center">
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#0446A7] text-3xl font-black text-white">
+              {profile.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-[#123B70]">{profile.name}</h2>
+              <p className="mt-1 text-sm text-slate-500">{profile.address || "Company address not provided"}</p>
+            </div>
           </div>
 
-          <div>
-
-            <h2 className="text-2xl font-black text-[#123B70]">
-              ABC Manufacturing
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Manufacturing • Mabini, Batangas
-            </p>
-
-          </div>
-
-        </div>
-
-
-        {/* Form */}
-        <div className="mt-6 grid gap-5 md:grid-cols-2">
-
-          <div>
-
-            <label className="mb-2 block text-sm font-bold text-slate-700">
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <label className="block text-sm font-bold text-slate-700">
               Company Name
+              <input value={editing ? form.name : profile.name} onChange={(event) => setForm({ ...form, name: event.target.value })} disabled={!editing} required maxLength={160} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50" />
             </label>
-
-            <input
-              type="text"
-              defaultValue="ABC Manufacturing"
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100"
-            />
-
-          </div>
-
-
-          <div>
-
-            <label className="mb-2 block text-sm font-bold text-slate-700">
-              Industry
+            <label className="block text-sm font-bold text-slate-700">
+              Authorized Representative
+              <input value={editing ? form.contact_person : profile.contact_person ?? ""} onChange={(event) => setForm({ ...form, contact_person: event.target.value })} disabled={!editing} maxLength={120} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50" />
             </label>
-
-            <input
-              type="text"
-              defaultValue="Manufacturing"
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100"
-            />
-
-          </div>
-
-
-          <div>
-
-            <label className="mb-2 block text-sm font-bold text-slate-700">
+            <label className="block text-sm font-bold text-slate-700">
               Email Address
+              <input value={profile.email ?? ""} disabled className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-normal text-slate-500" />
+              <span className="mt-1 block text-xs font-normal text-slate-500">Contact support to change your sign-in email.</span>
             </label>
-
-            <input
-              type="email"
-              defaultValue="contact@abcmanufacturing.com"
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100"
-            />
-
-          </div>
-
-
-          <div>
-
-            <label className="mb-2 block text-sm font-bold text-slate-700">
+            <label className="block text-sm font-bold text-slate-700">
               Contact Number
+              <input type="tel" value={editing ? form.contact_no : profile.contact_no ?? ""} onChange={(event) => setForm({ ...form, contact_no: event.target.value })} disabled={!editing} maxLength={30} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50" />
             </label>
-
-            <input
-              type="text"
-              defaultValue="0912 345 6789"
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100"
-            />
-
-          </div>
-
-
-          <div className="md:col-span-2">
-
-            <label className="mb-2 block text-sm font-bold text-slate-700">
+            <label className="block text-sm font-bold text-slate-700 md:col-span-2">
               Company Address
+              <textarea value={editing ? form.address : profile.address ?? ""} onChange={(event) => setForm({ ...form, address: event.target.value })} disabled={!editing} maxLength={300} rows={3} className="mt-2 w-full resize-y rounded-xl border border-slate-200 px-4 py-3 font-normal outline-none focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50" />
             </label>
-
-            <input
-              type="text"
-              defaultValue="Mabini, Batangas"
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100"
-            />
-
           </div>
 
-
-          <div className="md:col-span-2">
-
-            <label className="mb-2 block text-sm font-bold text-slate-700">
-              Company Description
-            </label>
-
-            <textarea
-              rows={5}
-              defaultValue="ABC Manufacturing provides manufacturing and employment opportunities in Mabini, Batangas."
-              className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100"
-            />
-
+          <div className="mt-6 flex justify-end gap-3">
+            {editing ? (
+              <>
+                <button type="button" onClick={cancelEdit} disabled={saving} className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700">Cancel</button>
+                <button type="submit" disabled={saving} className="rounded-full bg-[#0446A7] px-6 py-2.5 text-sm font-bold text-white transition hover:bg-[#123B70] disabled:opacity-60">{saving ? "Saving..." : "Save Changes"}</button>
+              </>
+            ) : (
+              <button type="button" onClick={() => { setError(""); setSuccess(""); setEditing(true); }} className="rounded-full bg-[#0446A7] px-6 py-2.5 text-sm font-bold text-white transition hover:bg-[#123B70]">Edit Profile</button>
+            )}
           </div>
-
-        </div>
-
-
-        <div className="mt-6 flex justify-end">
-
-          <button className="rounded-xl bg-[#0446A7] px-6 py-3 font-bold text-white transition hover:bg-[#123B70]">
-            Save Changes
-          </button>
-
-        </div>
-
-      </div>
-
+        </form>
+      ) : null}
     </div>
   );
 }

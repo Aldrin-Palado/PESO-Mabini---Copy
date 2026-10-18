@@ -3,7 +3,7 @@ import PesoLogo from "./PesoLogo";
 
 const Footer: React.FC = () => {
   return (
-    <footer id="contact" className="bg-slate-950 text-slate-400">
+    <footer id="contact" className="bg-[#062B4F] text-white">
       <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
 
       <div className="mx-auto max-w-7xl px-4 pt-10 pb-[calc(env(safe-area-inset-bottom)+2.5rem)] sm:px-5 lg:px-8">
@@ -26,16 +26,16 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="font-bold text-white">Quick Links</h3>
             <div className="mt-4 space-y-2 text-sm">
-              <a href="#home" className="block transition hover:text-sky-400">
+              <a href="#home" className="block transition hover:text-yellow-300">
                 Home
               </a>
-              <a href="#about" className="block transition hover:text-sky-400">
+              <a href="#about" className="block transition hover:text-yellow-300">
                 About Us
               </a>
-              <a href="#jobs" className="block transition hover:text-sky-400">
+              <a href="#jobs" className="block transition hover:text-yellow-300">
                 Job Vacancies
               </a>
-              <a href="#employers" className="block transition hover:text-sky-400">
+              <a href="#employers" className="block transition hover:text-yellow-300">
                 Employers
               </a>
             </div>
@@ -52,7 +52,7 @@ const Footer: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-10 border-t border-slate-800 pt-6 text-xs">
+        <div className="mt-10 border-t border-white/20 pt-6 text-xs">
           © 2026 PESO-Hub. All rights reserved.
         </div>
       </div>
