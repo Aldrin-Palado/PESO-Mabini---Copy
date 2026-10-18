@@ -66,6 +66,7 @@ export default function AdminAccounts() {
     useState<Permissions | null>(null);
 
   const [saving, setSaving] = useState(false);
+  const [adminId, setAdminId] = useState<string | null>(null);
 
   // CREATE STAFF STATES
   const [showCreateModal, setShowCreateModal] =
@@ -111,7 +112,26 @@ export default function AdminAccounts() {
 
   useEffect(() => {
     loadStaff();
+    loadCurrentAdmin();
   }, []);
+
+  const loadCurrentAdmin = async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: admin } = await supabase
+        .from("peso_admin")
+        .select("admin_id")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (admin) setAdminId(admin.admin_id);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   /* =====================================================
      CREATE STAFF ACCOUNT
@@ -322,6 +342,28 @@ export default function AdminAccounts() {
 
       setSaving(false);
       return;
+    }
+
+    // Log to admin activity log
+    if (adminId) {
+      try {
+        await supabase
+          .from("admin_activity_log")
+          .insert({
+            admin_id: adminId,
+            peso_staff_id: selectedStaff.peso_staff_id,
+            action: "Updated staff permissions",
+            details: {
+              staff: {
+                full_name: selectedStaff.full_name,
+                email: selectedStaff.email,
+              },
+              permissions,
+            },
+          });
+      } catch (logError) {
+        console.error("Audit log error:", logError);
+      }
     }
 
     alert(
