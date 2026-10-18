@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Home from "./pages/Home";
@@ -7,7 +8,7 @@ import Employers from "./pages/Employers";
 import Contact from "./pages/Contact";
 
 import Login from "./components/Login";
-import Register from "./components/Register";
+import JobSeekerRegistration from "./components/JobSeekerRegistration";
 
 import AdminDashboard from "./dashboards/AdminDashboard";
 import StaffDashboard from "./dashboards/StaffDashboard";
@@ -27,9 +28,14 @@ function App() {
 
         {/* Authentication */}
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
 
-        {/* Admin */}
+        {/* Shared Registration Page */}
+        <Route
+          path="/jobseekerregistration"
+          element={<JobSeekerRegistration />}
+        />
+
+        {/* Superadmin */}
         <Route
           path="/superadmin"
           element={<AdminDashboard />}
@@ -38,7 +44,7 @@ function App() {
         {/* Staff */}
         <Route
           path="/staff"
-          element={<AdminDashboard />}
+          element={<StaffDashboard />}
         />
 
         {/* Employer */}
@@ -55,7 +61,6 @@ function App() {
 
         {/* Unknown URL */}
         <Route path="*" element={<Home />} />
-
       </Routes>
     </BrowserRouter>
   );
