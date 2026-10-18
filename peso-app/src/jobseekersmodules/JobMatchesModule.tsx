@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { invokePesoAI } from "../services/pesoAi";
 
+const maxResumeBytes = 1_000_000;
+
 type JobMatch = {
   job: {
     id: string;
@@ -18,6 +20,8 @@ type JobMatch = {
 
 export default function JobMatchesModule() {
   const [profileText, setProfileText] = useState("");
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeAuthorized, setResumeAuthorized] = useState(false);
   const [matches, setMatches] = useState<JobMatch[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -30,9 +34,33 @@ export default function JobMatchesModule() {
     setHasSearched(false);
 
     try {
+      if (!resumeFile && profileText.trim().length < 10) {
+        throw new Error("Enter at least 10 characters about your skills or upload a PDF resume.");
+      }
+
+      let resumeBase64: string | undefined;
+      if (resumeFile) {
+        if (!resumeAuthorized) {
+          throw new Error("Please authorize sending your resume for AI analysis.");
+        }
+        if (resumeFile.size > maxResumeBytes) {
+          throw new Error("Resume PDF must be 1 MB or smaller.");
+        }
+        const bytes = new Uint8Array(await resumeFile.arrayBuffer());
+        if (new TextDecoder().decode(bytes.subarray(0, 5)) !== "%PDF-") {
+          throw new Error("The selected file is not a valid PDF document.");
+        }
+        let binary = "";
+        const chunkSize = 0x8000;
+        for (let index = 0; index < bytes.length; index += chunkSize) {
+          binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+        }
+        resumeBase64 = btoa(binary);
+      }
+
       const result = await invokePesoAI<{ matches: JobMatch[] }>(
         "job-matches",
-        { profileText },
+        resumeBase64 ? { resumeBase64 } : { profileText },
       );
       setMatches(result.matches);
       setHasSearched(true);
@@ -55,13 +83,50 @@ export default function JobMatchesModule() {
         </p>
         <h2 className="mt-1 text-2xl font-black text-[#123B70]">AI Job Matching</h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-          Share your skills and experience to compare your profile with currently open
-          vacancies. The information you enter is sent to Google Gemini to generate
-          suggestions; matches are not hiring decisions.
+          Upload a PDF resume or describe your skills to compare your profile with open
+          vacancies and the requirements employers submitted. Resume files are sent to
+          Google Gemini for this analysis and are not stored. Recommendations are not hiring
+          decisions.
         </p>
       </header>
 
       <form onSubmit={findMatches} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <label htmlFor="job-match-resume" className="text-sm font-bold text-slate-800">
+          Upload resume (PDF, up to 1 MB)
+        </label>
+        <input
+          id="job-match-resume"
+          type="file"
+          accept="application/pdf,.pdf"
+          disabled={loading}
+          onChange={(event) => {
+            setResumeFile(event.target.files?.[0] ?? null);
+            setResumeAuthorized(false);
+          }}
+          className="mt-2 block w-full rounded-xl border border-slate-300 bg-white text-sm file:mr-3 file:border-0 file:bg-slate-100 file:px-3 file:py-2.5 file:font-semibold file:text-slate-700"
+        />
+        {resumeFile && (
+          <label className="mt-3 flex items-start gap-2.5 text-xs leading-5 text-slate-600">
+            <input
+              type="checkbox"
+              checked={resumeAuthorized}
+              onChange={(event) => setResumeAuthorized(event.target.checked)}
+              disabled={loading}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[#0759AE]"
+            />
+            <span>
+              I authorize sending this resume to Google Gemini for AI-assisted job matching.
+              I understand it will not be stored and the recommendations are advisory only.
+            </span>
+          </label>
+        )}
+
+        <div className="my-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <span className="h-px flex-1 bg-slate-200" />
+          Or enter your details
+          <span className="h-px flex-1 bg-slate-200" />
+        </div>
+
         <label htmlFor="job-match-profile" className="text-sm font-bold text-slate-800">
           Skills, experience, qualifications, and preferred work
         </label>
@@ -69,20 +134,24 @@ export default function JobMatchesModule() {
           id="job-match-profile"
           value={profileText}
           onChange={(event) => setProfileText(event.target.value)}
-          minLength={10}
           maxLength={6000}
-          required
           rows={6}
+          disabled={loading || Boolean(resumeFile)}
           placeholder="For example: Two years of customer service experience, Microsoft Office, bookkeeping NC II, looking for full-time work near Mabini..."
           className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm leading-6 outline-none transition focus:border-[#0759AE] focus:ring-2 focus:ring-[#0759AE]/15"
         />
         <div className="mt-3 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <p className="text-xs text-slate-500">
-            Do not include your name, address, contact information, or other sensitive details.
+            Upload a PDF resume or enter at least 10 characters. For manual entry, do not include
+            your name, address, contact information, or other sensitive details.
           </p>
           <button
             type="submit"
-            disabled={loading || profileText.trim().length < 10}
+            disabled={
+              loading ||
+              (!resumeFile && profileText.trim().length < 10) ||
+              (Boolean(resumeFile) && !resumeAuthorized)
+            }
             className="shrink-0 rounded-xl bg-[#0759AE] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#064A91] disabled:cursor-wait disabled:opacity-50"
           >
             {loading ? "Finding matches..." : "Find my matches"}
