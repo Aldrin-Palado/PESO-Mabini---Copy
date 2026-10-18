@@ -30,6 +30,7 @@ function App() {
         <Route path="/login" element={<Login />} />
 
         {/* Shared Registration Page */}
+        <Route path="/register" element={<JobSeekerRegistration />} />
         <Route
           path="/jobseekerregistration"
           element={<JobSeekerRegistration />}
