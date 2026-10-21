@@ -109,7 +109,6 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
       setStep(0);
       return;
     }
-
     if (!privacyAccepted) {
       alert("Please accept the data privacy notice to continue.");
       return;
@@ -119,21 +118,17 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
 
     try {
       const email = form.email.trim().toLowerCase();
-      const companyName = form.companyName.trim();
-      const businessAddress = form.businessAddress.trim();
       const contactPerson = form.contactPerson.trim();
-      const contactNumber = form.contactNumber.trim();
-
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password: form.password,
         options: {
           data: {
             role: "employer",
-            company_name: companyName,
-            business_address: businessAddress,
+            company_name: form.companyName.trim(),
+            business_address: form.businessAddress.trim(),
             contact_person: contactPerson,
-            contact_no: contactNumber,
+            contact_no: form.contactNumber.trim(),
             full_name: contactPerson,
             job_posting_categories: getSelectedJobTypes(),
           },
@@ -141,15 +136,6 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
       });
 
       if (error) throw error;
-
-      if (!data.user?.id) {
-        throw new Error(
-          "Supabase did not return a user ID. Please check your email confirmation settings and try again.",
-        );
-      }
-
-      // The handle_new_user() database trigger creates the employer profile.
-      // Do not insert into public.employer here, or the profile will be duplicated.
 
       alert(
         "Employer registration submitted. Please check your email to confirm your account. PESO Mabini will review your company details before verification.",
