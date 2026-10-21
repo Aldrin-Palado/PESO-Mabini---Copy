@@ -130,11 +130,11 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
         options: {
           data: {
             role: "employer",
-            full_name: contactPerson,
             company_name: companyName,
             business_address: businessAddress,
             contact_person: contactPerson,
             contact_no: contactNumber,
+            full_name: contactPerson,
             job_posting_categories: getSelectedJobTypes(),
           },
         },
@@ -148,8 +148,9 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
         );
       }
 
-      // The Supabase handle_new_user() trigger creates the employer profile.
-      // Do not insert into public.employer again here, or it will duplicate the row.
+      // The handle_new_user() database trigger creates the employer profile.
+      // Do not insert into public.employer here, or the profile will be duplicated.
+
       alert(
         "Employer registration submitted. Please check your email to confirm your account. PESO Mabini will review your company details before verification.",
       );
