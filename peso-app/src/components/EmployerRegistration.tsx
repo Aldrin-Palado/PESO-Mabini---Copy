@@ -162,6 +162,7 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
   const progress = ((step + 1) / registrationSteps.length) * 100;
 
   return (
+<<<<<<< Updated upstream
     <div className="min-h-screen bg-[#F1F3F5] text-slate-800 lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
       <aside className="flex flex-col bg-[#0759AE] px-5 py-5 text-white lg:sticky lg:top-0 lg:h-screen lg:px-6 lg:py-7">
         <Link
@@ -176,6 +177,40 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
         </p>
         <nav aria-label="Employer registration progress" className="mt-3">
           <ol className="grid grid-cols-2 gap-2 lg:block lg:space-y-1">
+=======
+    <div className="whirl-page-background min-h-screen text-slate-800">
+      <main className="grid min-h-screen lg:grid-cols-2">
+        <AuthSideImage variant="register" />
+
+        <section className="min-w-0 bg-white/85 px-5 py-7 backdrop-blur-sm sm:px-10 sm:py-9 lg:px-12 xl:px-16 2xl:px-20">
+          <div className="mx-auto w-full max-w-[38rem]">
+            <div className="mb-6">
+              <PesoLogo
+                size="sm"
+                showName
+                subtitle="Employer Portal"
+                linkTo={null}
+              />
+            </div>
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <button
+                type="button"
+                onClick={onBack}
+                disabled={loading}
+                className="inline-flex items-center rounded-full border border-[#D5DEEB] bg-white px-4 py-2 text-sm font-semibold text-[#3156A2] transition hover:border-[#315FEA] hover:bg-[#EEF3FF] hover:text-[#102A4C] disabled:opacity-60"
+              >
+                ← Change account type
+              </button>
+              <Link
+                to="/"
+                className="inline-flex items-center rounded-full border border-[#D5DEEB] bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-[#315FEA] hover:bg-[#EEF3FF] hover:text-[#3156A2]"
+              >
+                Back to home
+              </Link>
+            </div>
+            <nav aria-label="Employer registration progress" className="mb-6">
+              <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+>>>>>>> Stashed changes
             {registrationSteps.map((registrationStep, index) => {
               const isCurrent = index === step;
               const isComplete = index < step;
@@ -187,26 +222,26 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
                     disabled={index > step || loading}
                     onClick={() => setStep(index)}
                     aria-current={isCurrent ? "step" : undefined}
-                    className={`flex w-full items-start gap-3 rounded-lg p-2 text-left transition lg:px-0 lg:py-3 ${
+                    className={`flex w-full items-start gap-2 rounded-lg border p-2 text-left transition ${
                       isCurrent
-                        ? "bg-white/10"
-                        : "disabled:cursor-default"
+                        ? "border-[#0759AE] bg-blue-50 text-[#123B70]"
+                        : "border-slate-200 text-slate-600 hover:border-slate-300 disabled:cursor-default"
                     }`}
                   >
                     <span
                       className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${
                         isCurrent || isComplete
-                          ? "border-white bg-white text-[#0759AE]"
-                          : "border-blue-200/70 text-blue-100"
+                          ? "border-[#0759AE] bg-[#0759AE] text-white"
+                          : "border-slate-300 text-slate-500"
                       }`}
                     >
                       {isComplete ? "✓" : index + 1}
                     </span>
                     <span className="min-w-0">
-                      <span className="block text-xs font-bold sm:text-sm">
+                      <span className="block text-[0.68rem] font-bold sm:text-xs">
                         {registrationStep.title}
                       </span>
-                      <span className="mt-0.5 hidden text-[0.68rem] leading-4 text-blue-100 sm:block">
+                      <span className="mt-0.5 hidden text-[0.65rem] leading-4 text-slate-500 md:block">
                         {registrationStep.detail}
                       </span>
                     </span>
@@ -215,19 +250,11 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
               );
             })}
           </ol>
-        </nav>
+            </nav>
 
-        <p className="mt-auto hidden pt-8 text-xs leading-5 text-blue-100 lg:block">
-          Already have an employer account?{" "}
-          <Link to="/login" className="font-semibold text-white underline">
-            Sign in
-          </Link>
-        </p>
-      </aside>
-
-      <main className="min-w-0 px-4 py-6 sm:px-7 sm:py-8 lg:px-10 xl:px-14">
-        <div className="mx-auto max-w-4xl">
-          <header className="border-b border-slate-200 pb-5">
+            <div className="min-w-0 px-4 py-6 sm:px-7 sm:py-8 lg:px-10 xl:px-14">
+              <div className="mx-auto max-w-4xl">
+                <header className="border-b border-slate-200 pb-5">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               PESO Mabini Employer Portal
             </p>
@@ -238,7 +265,7 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
               Please provide your company details. Your account will be reviewed
               by PESO Mabini.
             </p>
-          </header>
+                </header>
 
           <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-950">
             <p className="font-bold">Employer verification requirements</p>
@@ -624,6 +651,9 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
             </Link>
           </p>
         </div>
+      </div>
+          </div>
+        </section>
       </main>
     </div>
   );
