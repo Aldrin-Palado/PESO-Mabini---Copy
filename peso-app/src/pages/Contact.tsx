@@ -42,7 +42,7 @@ const quickLinks = [
 
 const Contact: React.FC = () => {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
+    <div className="whirl-page-background min-h-screen text-slate-800">
 
       <Navbar />
 

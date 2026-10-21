@@ -119,6 +119,23 @@
    ========================================================================== */
 
 @layer components {
+  .whirl-page-background {
+    background-color: #ffffff;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.82)),
+      url("./assets/images/Glossy Red, Gold and Blue Ribbons.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-attachment: fixed;
+  }
+
+  @media (max-width: 767px) {
+    .whirl-page-background {
+      background-attachment: scroll;
+    }
+  }
+
   .hero-media {
     position: absolute;
     inset: 0;

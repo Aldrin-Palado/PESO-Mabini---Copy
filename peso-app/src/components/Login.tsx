@@ -161,11 +161,11 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F3F6FB]">
+    <div className="whirl-page-background min-h-screen">
       <main className="grid min-h-screen lg:grid-cols-2">
         <AuthSideImage />
 
-        <section className="flex min-h-[calc(100dvh-19rem)] flex-col justify-center bg-[#F3F6FB] px-5 py-10 sm:px-10 lg:min-h-screen lg:px-12 xl:px-20">
+        <section className="flex min-h-[calc(100dvh-19rem)] flex-col justify-center bg-white/85 px-5 py-10 backdrop-blur-sm sm:px-10 lg:min-h-screen lg:px-12 xl:px-20">
           <div className="mx-auto w-full max-w-[33rem]">
             <PesoLogo
               size="auth"

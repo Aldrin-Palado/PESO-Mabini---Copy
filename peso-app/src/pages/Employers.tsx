@@ -35,7 +35,7 @@ export default function Employers() {
     : [];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="whirl-page-background min-h-screen">
 
       <Navbar />
 

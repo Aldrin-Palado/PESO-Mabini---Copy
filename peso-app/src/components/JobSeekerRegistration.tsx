@@ -115,11 +115,11 @@ const handleRegister = async (e: React.FormEvent) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F3F6FB]">
+    <div className="whirl-page-background min-h-screen">
       <main className="grid min-h-screen lg:grid-cols-2">
           <AuthSideImage variant="register" />
 
-          <section className="flex flex-col justify-center bg-[#F3F6FB] px-5 py-9 sm:px-10 lg:min-h-screen lg:px-12 xl:px-16 2xl:px-20">
+          <section className="flex flex-col justify-center bg-white/85 px-5 py-9 backdrop-blur-sm sm:px-10 lg:min-h-screen lg:px-12 xl:px-16 2xl:px-20">
           <div className="mx-auto w-full max-w-[38rem]">
 
             {/* Header */}

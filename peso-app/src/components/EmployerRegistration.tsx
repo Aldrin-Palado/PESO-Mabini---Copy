@@ -252,11 +252,11 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
   const progress = ((step + 1) / registrationSteps.length) * 100;
 
   return (
-    <div className="min-h-screen bg-[#F3F6FB] text-slate-800">
+    <div className="whirl-page-background min-h-screen text-slate-800">
       <main className="grid min-h-screen lg:grid-cols-2">
         <AuthSideImage variant="register" />
 
-        <section className="min-w-0 bg-[#F3F6FB] px-5 py-7 sm:px-10 sm:py-9 lg:px-12 xl:px-16 2xl:px-20">
+        <section className="min-w-0 bg-white/85 px-5 py-7 backdrop-blur-sm sm:px-10 sm:py-9 lg:px-12 xl:px-16 2xl:px-20">
           <div className="mx-auto w-full max-w-[38rem]">
             <div className="mb-6">
               <PesoLogo
