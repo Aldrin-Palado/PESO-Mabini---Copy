@@ -109,6 +109,7 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
       setStep(0);
       return;
     }
+
     if (!privacyAccepted) {
       alert("Please accept the data privacy notice to continue.");
       return;
@@ -118,15 +119,22 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
 
     try {
       const email = form.email.trim().toLowerCase();
+      const companyName = form.companyName.trim();
+      const businessAddress = form.businessAddress.trim();
       const contactPerson = form.contactPerson.trim();
+      const contactNumber = form.contactNumber.trim();
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password: form.password,
         options: {
           data: {
             role: "employer",
-            company_name: form.companyName.trim(),
+            company_name: companyName,
+            business_address: businessAddress,
             contact_person: contactPerson,
+            contact_no: contactNumber,
+            full_name: contactPerson,
             job_posting_categories: getSelectedJobTypes(),
           },
         },
@@ -134,30 +142,14 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
 
       if (error) throw error;
 
-      const userId = data.user?.id;
-      if (!userId) {
+      if (!data.user?.id) {
         throw new Error(
           "Supabase did not return a user ID. Please check your email confirmation settings and try again.",
         );
       }
 
-      const { error: profileError } = await supabase
-        .from("employer")
-        .insert({
-          user_id: userId,
-          name: form.companyName.trim(),
-          address: form.businessAddress.trim(),
-          contact_person: contactPerson,
-          contact_no: form.contactNumber.trim(),
-          email,
-        });
-
-      if (profileError) {
-        console.error("Employer profile creation error:", profileError);
-        throw new Error(
-          `Your login was created, but we couldn't save the company profile: ${profileError.message}`,
-        );
-      }
+      // The handle_new_user() database trigger creates the employer profile.
+      // Do not insert into public.employer here, because that would create a duplicate.
 
       alert(
         "Employer registration submitted. Please check your email to confirm your account. PESO Mabini will review your company details before verification.",
