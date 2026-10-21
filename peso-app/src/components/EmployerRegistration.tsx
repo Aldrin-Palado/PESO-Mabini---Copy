@@ -194,6 +194,23 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
                 Back to home
               </Link>
             </div>
+            <div className="mb-2 flex items-center justify-between text-xs text-slate-500">
+              <span>Step {step + 1} of 4</span>
+              <span>{registrationSteps[step].title}</span>
+            </div>
+            <div
+              className="mb-4 h-1.5 overflow-hidden rounded-full bg-slate-200"
+              role="progressbar"
+              aria-label="Registration progress"
+              aria-valuemin={1}
+              aria-valuemax={4}
+              aria-valuenow={step + 1}
+            >
+              <div
+                className="h-full rounded-full bg-[#0759AE] transition-[width]"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
             <nav aria-label="Employer registration progress" className="mb-6">
               <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {registrationSteps.map((registrationStep, index) => {
@@ -265,24 +282,6 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
               <li>Valid government ID of the owner / authorized representative</li>
               <li>Authorization letter, if the representative is not the owner</li>
             </ul>
-          </div>
-
-          <div className="mt-5 flex items-center justify-between text-xs text-slate-500">
-            <span>Step {step + 1} of 4</span>
-            <span>{registrationSteps[step].title}</span>
-          </div>
-          <div
-            className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200"
-            role="progressbar"
-            aria-label="Registration progress"
-            aria-valuemin={1}
-            aria-valuemax={4}
-            aria-valuenow={step + 1}
-          >
-            <div
-              className="h-full rounded-full bg-[#0759AE] transition-[width]"
-              style={{ width: `${progress}%` }}
-            />
           </div>
 
           <form
