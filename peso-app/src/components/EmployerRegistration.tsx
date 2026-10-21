@@ -162,22 +162,6 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
   const progress = ((step + 1) / registrationSteps.length) * 100;
 
   return (
-<<<<<<< Updated upstream
-    <div className="min-h-screen bg-[#F1F3F5] text-slate-800 lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
-      <aside className="flex flex-col bg-[#0759AE] px-5 py-5 text-white lg:sticky lg:top-0 lg:h-screen lg:px-6 lg:py-7">
-        <Link
-          to="/"
-          className="mb-6 text-sm text-blue-100 transition hover:text-white"
-        >
-          <span aria-hidden="true">←</span> Back to Home
-        </Link>
-
-        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-blue-100">
-          Registration Steps
-        </p>
-        <nav aria-label="Employer registration progress" className="mt-3">
-          <ol className="grid grid-cols-2 gap-2 lg:block lg:space-y-1">
-=======
     <div className="whirl-page-background min-h-screen text-slate-800">
       <main className="grid min-h-screen lg:grid-cols-2">
         <AuthSideImage variant="register" />
@@ -210,46 +194,45 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
             </div>
             <nav aria-label="Employer registration progress" className="mb-6">
               <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4">
->>>>>>> Stashed changes
-            {registrationSteps.map((registrationStep, index) => {
-              const isCurrent = index === step;
-              const isComplete = index < step;
+                {registrationSteps.map((registrationStep, index) => {
+                  const isCurrent = index === step;
+                  const isComplete = index < step;
 
-              return (
-                <li key={registrationStep.title}>
-                  <button
-                    type="button"
-                    disabled={index > step || loading}
-                    onClick={() => setStep(index)}
-                    aria-current={isCurrent ? "step" : undefined}
-                    className={`flex w-full items-start gap-2 rounded-lg border p-2 text-left transition ${
-                      isCurrent
-                        ? "border-[#0759AE] bg-blue-50 text-[#123B70]"
-                        : "border-slate-200 text-slate-600 hover:border-slate-300 disabled:cursor-default"
-                    }`}
-                  >
-                    <span
-                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${
-                        isCurrent || isComplete
-                          ? "border-[#0759AE] bg-[#0759AE] text-white"
-                          : "border-slate-300 text-slate-500"
-                      }`}
-                    >
-                      {isComplete ? "✓" : index + 1}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-[0.68rem] font-bold sm:text-xs">
-                        {registrationStep.title}
-                      </span>
-                      <span className="mt-0.5 hidden text-[0.65rem] leading-4 text-slate-500 md:block">
-                        {registrationStep.detail}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
+                  return (
+                    <li key={registrationStep.title}>
+                      <button
+                        type="button"
+                        disabled={index > step || loading}
+                        onClick={() => setStep(index)}
+                        aria-current={isCurrent ? "step" : undefined}
+                        className={`flex w-full items-start gap-2 rounded-lg border p-2 text-left transition ${
+                          isCurrent
+                            ? "border-[#0759AE] bg-blue-50 text-[#123B70]"
+                            : "border-slate-200 text-slate-600 hover:border-slate-300 disabled:cursor-default"
+                        }`}
+                      >
+                        <span
+                          className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${
+                            isCurrent || isComplete
+                              ? "border-[#0759AE] bg-[#0759AE] text-white"
+                              : "border-slate-300 text-slate-500"
+                          }`}
+                        >
+                          {isComplete ? "✓" : index + 1}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[0.68rem] font-bold sm:text-xs">
+                            {registrationStep.title}
+                          </span>
+                          <span className="mt-0.5 hidden text-[0.65rem] leading-4 text-slate-500 md:block">
+                            {registrationStep.detail}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
             </nav>
 
             <div className="min-w-0 px-4 py-6 sm:px-7 sm:py-8 lg:px-10 xl:px-14">
