@@ -12,6 +12,7 @@ type JobMatch = {
     type: string;
     salary: string;
     description: string;
+    requirements: string;
   };
   match_score: number;
   reasons: string[];
@@ -27,26 +28,30 @@ export default function JobMatchesModule() {
   const [error, setError] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
 
-  const findMatches = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const runMatching = async (
+    profile: string,
+    resume: File | null,
+    authorized = resumeAuthorized,
+  ) => {
+    if (loading) return;
     setLoading(true);
     setError("");
     setHasSearched(false);
 
     try {
-      if (!resumeFile && profileText.trim().length < 10) {
+      if (!resume && profile.trim().length < 10) {
         throw new Error("Enter at least 10 characters about your skills or upload a PDF resume.");
       }
 
       let resumeBase64: string | undefined;
-      if (resumeFile) {
-        if (!resumeAuthorized) {
+      if (resume) {
+        if (!authorized) {
           throw new Error("Please authorize sending your resume for AI analysis.");
         }
-        if (resumeFile.size > maxResumeBytes) {
+        if (resume.size > maxResumeBytes) {
           throw new Error("Resume PDF must be 1 MB or smaller.");
         }
-        const bytes = new Uint8Array(await resumeFile.arrayBuffer());
+        const bytes = new Uint8Array(await resume.arrayBuffer());
         if (new TextDecoder().decode(bytes.subarray(0, 5)) !== "%PDF-") {
           throw new Error("The selected file is not a valid PDF document.");
         }
@@ -60,7 +65,7 @@ export default function JobMatchesModule() {
 
       const result = await invokePesoAI<{ matches: JobMatch[] }>(
         "job-matches",
-        resumeBase64 ? { resumeBase64 } : { profileText },
+        resumeBase64 ? { resumeBase64 } : { profileText: profile },
       );
       setMatches(result.matches);
       setHasSearched(true);
@@ -73,6 +78,11 @@ export default function JobMatchesModule() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const findMatches = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void runMatching(profileText, resumeFile);
   };
 
   return (
@@ -100,25 +110,44 @@ export default function JobMatchesModule() {
           accept="application/pdf,.pdf"
           disabled={loading}
           onChange={(event) => {
-            setResumeFile(event.target.files?.[0] ?? null);
+            const selectedFile = event.target.files?.[0] ?? null;
+            setResumeFile(selectedFile);
             setResumeAuthorized(false);
+            setMatches([]);
+            setHasSearched(false);
+            setError("");
           }}
           className="mt-2 block w-full rounded-xl border border-slate-300 bg-white text-sm file:mr-3 file:border-0 file:bg-slate-100 file:px-3 file:py-2.5 file:font-semibold file:text-slate-700"
         />
         {resumeFile && (
-          <label className="mt-3 flex items-start gap-2.5 text-xs leading-5 text-slate-600">
-            <input
-              type="checkbox"
-              checked={resumeAuthorized}
-              onChange={(event) => setResumeAuthorized(event.target.checked)}
-              disabled={loading}
-              className="mt-0.5 h-4 w-4 shrink-0 accent-[#0759AE]"
-            />
-            <span>
-              I authorize sending this resume to Google Gemini for AI-assisted job matching.
-              I understand it will not be stored and the recommendations are advisory only.
-            </span>
-          </label>
+          <div className="mt-3 space-y-2">
+            <label className="flex items-start gap-2.5 text-xs leading-5 text-slate-600">
+              <input
+                type="checkbox"
+                checked={resumeAuthorized}
+                onChange={(event) => {
+                  const authorized = event.target.checked;
+                  setResumeAuthorized(authorized);
+                  if (authorized && resumeFile) {
+                    void runMatching(profileText, resumeFile, true);
+                  }
+                }}
+                disabled={loading}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[#0759AE]"
+              />
+              <span>
+                I authorize sending this resume to Google Gemini for AI-assisted job matching.
+                I understand it will not be stored and the recommendations are advisory only.
+              </span>
+            </label>
+            <p role="status" aria-live="polite" className="text-xs font-semibold text-[#0759AE]">
+              {loading
+                ? "AI is scanning your resume against employer-submitted job requirements..."
+                : hasSearched && resumeAuthorized
+                  ? "Resume scan complete. Review the matching jobs and their employer requirements below."
+                  : "Your resume will be scanned automatically after you authorize AI analysis."}
+            </p>
+          </div>
         )}
 
         <div className="my-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -142,8 +171,9 @@ export default function JobMatchesModule() {
         />
         <div className="mt-3 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <p className="text-xs text-slate-500">
-            Upload a PDF resume or enter at least 10 characters. For manual entry, do not include
-            your name, address, contact information, or other sensitive details.
+            {resumeFile
+              ? "Your resume is scanned after you authorize AI analysis. Use the button to scan it again."
+              : "Upload a PDF resume or enter at least 10 characters. For manual entry, do not include your name, address, contact information, or other sensitive details."}
           </p>
           <button
             type="submit"
@@ -154,7 +184,7 @@ export default function JobMatchesModule() {
             }
             className="shrink-0 rounded-xl bg-[#0759AE] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#064A91] disabled:cursor-wait disabled:opacity-50"
           >
-            {loading ? "Finding matches..." : "Find my matches"}
+            {loading ? "Scanning..." : resumeFile ? "Scan resume again" : "Find my matches"}
           </button>
         </div>
       </form>
@@ -168,7 +198,7 @@ export default function JobMatchesModule() {
       {hasSearched && matches.length === 0 && (
         <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
           No suitable open vacancies were found from the information provided. Try adding
-          more detail about your skills or experience.
+          more detail about your skills or experience, or review the employer-posted requirements.
         </p>
       )}
 
@@ -190,6 +220,22 @@ export default function JobMatchesModule() {
             <p className="mt-3 text-sm text-slate-600">
               {match.job.location} · {match.job.type} · {match.job.salary}
             </p>
+            <div className="mt-4">
+              <h4 className="text-sm font-bold text-slate-800">Employer-provided requirements</h4>
+              {match.job.requirements.trim() ? (
+                <ul className="mt-1 list-inside list-disc space-y-1 text-sm text-slate-600">
+                  {match.job.requirements
+                    .split(/\r?\n/)
+                    .map((requirement) => requirement.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim())
+                    .filter(Boolean)
+                    .map((requirement, index) => <li key={index}>{requirement}</li>)}
+                </ul>
+              ) : (
+                <p className="mt-1 text-sm text-slate-500">
+                  The employer did not provide specific requirements for this vacancy.
+                </p>
+              )}
+            </div>
             {match.reasons.length > 0 && (
               <div className="mt-4">
                 <h4 className="text-sm font-bold text-slate-800">Why it may fit</h4>

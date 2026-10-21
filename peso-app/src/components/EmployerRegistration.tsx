@@ -119,7 +119,7 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
     try {
       const email = form.email.trim().toLowerCase();
       const contactPerson = form.contactPerson.trim();
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password: form.password,
         options: {
@@ -136,6 +136,12 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
       });
 
       if (error) throw error;
+
+      if (!data.user?.id) {
+        throw new Error(
+          "Supabase did not return a user ID. Please check your email confirmation settings and try again.",
+        );
+      }
 
       alert(
         "Employer registration submitted. Please check your email to confirm your account. PESO Mabini will review your company details before verification.",

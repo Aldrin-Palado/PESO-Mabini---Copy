@@ -4,7 +4,7 @@ import HeroBackground from "../components/HeroBackground";
 import Navbar from "../components/Navbar";
 
 const backgroundImage = new URL(
-  "../assets/images/Random.jpg",
+  "../assets/images/contact.png",
   import.meta.url,
 ).href;
 
@@ -43,7 +43,7 @@ const serviceThemes = [
 
 const About: React.FC = () => {
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-800">
+    <div className="whirl-page-background flex min-h-screen flex-col text-slate-800">
 
       <Navbar />
 
@@ -104,7 +104,6 @@ const About: React.FC = () => {
             controls
             playsInline
             preload="metadata"
-            poster={backgroundImage}
           >
             <source src={aboutVideo} type="video/mp4" />
             Your browser does not support the video tag.

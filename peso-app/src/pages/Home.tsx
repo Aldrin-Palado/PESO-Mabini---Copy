@@ -52,7 +52,7 @@ function Home() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-800">
+    <div className="whirl-page-background flex min-h-screen flex-col text-slate-800">
 
       <Navbar />
 
