@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import AuthSideImage from "./AuthSideImage";
+import PesoLogo from "./PesoLogo";
 import { supabase } from "../services/supabase";
 
 type EmployerRegistrationProps = {
