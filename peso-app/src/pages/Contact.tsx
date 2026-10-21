@@ -1,8 +1,18 @@
 import React from "react";
 import Footer from "../components/Footer";
+import LocationMap, { MABINI_LOCATION_QUERY } from "../components/LocationMap";
 import Navbar from "../components/Navbar";
 
-const contactMethods = [
+interface ContactMethod {
+  title: string;
+  detail: string;
+  accent: string;
+  borderAccent: string;
+  label: string;
+  link?: string;
+}
+
+const contactMethods: ContactMethod[] = [
   {
     title: "Office Address",
     detail:
@@ -10,6 +20,7 @@ const contactMethods = [
     accent: "bg-sky-50 text-sky-600",
     borderAccent: "bg-sky-600",
     label: "Visit Us",
+    link: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(MABINI_LOCATION_QUERY)}`,
   },
   {
     title: "Email Us",
@@ -140,6 +151,18 @@ const Contact: React.FC = () => {
                   <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-600">
                     {item.detail}
                   </p>
+
+                  {item.link && (
+                    <a
+                      href={item.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-sky-600 transition hover:text-sky-700"
+                    >
+                      Open in Google Maps
+                      <span aria-hidden="true">→</span>
+                    </a>
+                  )}
 
                 </div>
 
@@ -359,32 +382,23 @@ const Contact: React.FC = () => {
                   📍 Mabini, Batangas, Philippines
                 </p>
 
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(MABINI_LOCATION_QUERY)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-sky-700"
+                >
+                  Get Directions
+                </a>
+
               </div>
 
             </div>
 
-            {/* Map Placeholder */}
+            {/* Map */}
             <div className="bg-slate-100 p-4 sm:p-5 lg:p-8">
 
-              <div className="flex h-full min-h-[280px] items-center justify-center rounded-2xl border border-slate-200 bg-gradient-to-br from-sky-100 via-slate-50 to-yellow-50">
-
-                <div className="text-center">
-
-                  <div className="text-6xl">
-                    📍
-                  </div>
-
-                  <p className="mt-4 text-xl font-black text-slate-800">
-                    PESO Mabini
-                  </p>
-
-                  <p className="mt-1 text-sm text-slate-500">
-                    Mabini, Batangas, Philippines
-                  </p>
-
-                </div>
-
-              </div>
+              <LocationMap className="h-full min-h-[280px]" />
 
             </div>
 

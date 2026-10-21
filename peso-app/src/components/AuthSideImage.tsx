@@ -9,7 +9,7 @@ type AuthSideImageProps = {
 
 function AuthSideImage({ variant = "login" }: AuthSideImageProps) {
   return (
-    <section className="relative flex min-h-[19rem] flex-col justify-end overflow-hidden bg-[#123B70] px-6 py-7 text-white after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-0 after:bg-[#F3F6FB] sm:min-h-[23rem] sm:px-10 sm:py-9 lg:sticky lg:top-0 lg:h-screen lg:min-h-0 lg:px-12 lg:py-11 lg:after:-right-14 lg:after:-top-[10%] lg:after:z-10 lg:after:h-[120%] lg:after:w-28 lg:after:rounded-[50%] lg:after:content-[''] xl:px-16 xl:py-14">
+    <section className="relative flex min-h-[19rem] flex-col justify-end overflow-hidden bg-[#123B70] px-6 py-7 text-white after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-0 after:bg-white sm:min-h-[23rem] sm:px-10 sm:py-9 lg:sticky lg:top-0 lg:h-screen lg:min-h-0 lg:px-12 lg:py-11 lg:after:-right-14 lg:after:-top-[10%] lg:after:z-10 lg:after:h-[120%] lg:after:w-28 lg:after:rounded-[50%] lg:after:content-[''] xl:px-16 xl:py-14">
       <img
         src={backgroundImage}
         alt="Public Employment Service Office in Mabini, Batangas"
