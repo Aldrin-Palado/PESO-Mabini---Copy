@@ -1,315 +1,320 @@
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { supabase } from "../services/supabase";
 
-interface ApplicationRow {
-  id: number | string;
-  applicant_name: string;
-  applicant_email?: string | null;
-  position_title: string;
+type ApplicationRow = {
+  application_id: string;
+  employer_id: string;
+  job_seeker_id: string;
+  job_vacancy_id?: string | null;
+  position_title: string | null;
   status: string;
-  created_at?: string | null;
+  date_applied: string;
+  applicant_name?: string;
+  applicant_email?: string | null;
   contact_number?: string | null;
-}
+};
 
-interface ApplicationsModuleProps {
+type Props = {
   applications: ApplicationRow[];
-  onRefresh?: () => void;
-}
-
-type ApplicationStatus =
-  | "All"
-  | "Pending"
-  | "For Review"
-  | "Shortlisted"
-  | "Hired"
-  | "Rejected";
-
-function StatusBadge({ status }: { status: string }) {
-  const normalized = status?.toLowerCase();
-
-  const styles: Record<string, string> = {
-    pending: "bg-yellow-100 text-yellow-800",
-    "for review": "bg-blue-100 text-blue-800",
-    shortlisted: "bg-purple-100 text-purple-800",
-    hired: "bg-green-100 text-green-800",
-    rejected: "bg-red-100 text-red-800",
-  };
-
-  return (
-    <span
-      className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-        styles[normalized] ?? "bg-slate-100 text-slate-600"
-      }`}
-    >
-      {status || "Unknown"}
-    </span>
-  );
-}
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-12 text-center">
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-2xl text-[#0446A7]">
-        ✓
-      </div>
-
-      <p className="font-semibold text-slate-700">{message}</p>
-
-      <p className="mt-1 text-sm text-slate-500">
-        Applications will appear here when applicants apply to your jobs.
-      </p>
-    </div>
-  );
-}
-
-function formatDate(value?: string | null) {
-  if (!value) return "Not specified";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleDateString("en-PH", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
+  onRefresh: () => Promise<void> | void;
+};
 
 export default function ApplicationsModule({
   applications,
   onRefresh,
-}: ApplicationsModuleProps) {
+}: Props) {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] =
-    useState<ApplicationStatus>("All");
+  const [statusFilter, setStatusFilter] = useState("All Status");
+  const [message, setMessage] = useState("");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  const filteredApplications = useMemo(() => {
-    return applications.filter((application) => {
-      const searchText = search.trim().toLowerCase();
+  const filteredApplications = applications.filter((application) => {
+    const searchValue = search.toLowerCase();
 
-      const matchesSearch =
-        !searchText ||
-        application.applicant_name?.toLowerCase().includes(searchText) ||
-        application.applicant_email?.toLowerCase().includes(searchText) ||
-        application.position_title?.toLowerCase().includes(searchText);
+    const matchesSearch =
+      (application.applicant_name || "")
+        .toLowerCase()
+        .includes(searchValue) ||
+      (application.position_title || "")
+        .toLowerCase()
+        .includes(searchValue);
 
-      const matchesStatus =
-        statusFilter === "All" ||
-        application.status?.toLowerCase() ===
-          statusFilter.toLowerCase();
+    const matchesStatus =
+      statusFilter === "All Status" ||
+      application.status.toLowerCase() ===
+        statusFilter.toLowerCase();
 
-      return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus;
+  });
+
+  const formatDate = (date: string) => {
+    if (!date) return "Not specified";
+
+    return new Date(date).toLocaleDateString("en-PH", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
-  }, [applications, search, statusFilter]);
+  };
 
-  const countStatus = (status: string) =>
-    applications.filter(
-      (application) =>
-        application.status?.toLowerCase() === status.toLowerCase()
-    ).length;
+  const handleStatusChange = async (
+    application: ApplicationRow,
+    newStatus: string
+  ) => {
+    setUpdatingId(application.application_id);
+    setMessage("");
 
-  const statuses: ApplicationStatus[] = [
-    "All",
-    "Pending",
-    "For Review",
-    "Shortlisted",
-    "Hired",
-    "Rejected",
-  ];
+    const { error } = await supabase
+      .from("application")
+      .update({
+        status: newStatus,
+      })
+      .eq("application_id", application.application_id)
+      .eq("employer_id", application.employer_id);
+
+    setUpdatingId(null);
+
+    if (error) {
+      setMessage(
+        `Failed to update application status: ${error.message}`
+      );
+      return;
+    }
+
+    setMessage("Application status updated successfully.");
+
+    await onRefresh();
+  };
+
+  const statusClass = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "shortlisted":
+        return "bg-blue-100 text-blue-700";
+
+      case "hired":
+      case "accepted":
+        return "bg-green-100 text-green-700";
+
+      case "rejected":
+        return "bg-red-100 text-red-700";
+
+      case "for review":
+        return "bg-yellow-100 text-yellow-700";
+
+      default:
+        return "bg-slate-100 text-slate-700";
+    }
+  };
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <section className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-[#123B70] sm:text-3xl">
-            Applications
-          </h1>
+    <div className="space-y-6">
 
-          <p className="mt-2 text-sm text-slate-500">
-            Review and manage applicants for your job vacancies.
-          </p>
-        </div>
+      {/* HEADER */}
 
-        <button
-          type="button"
-          onClick={onRefresh}
-          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+      <div>
+        <h1 className="text-3xl font-black text-[#123B70]">
+          Applications
+        </h1>
+
+        <p className="mt-1 text-sm text-slate-500">
+          View and manage job seekers who applied to your job postings.
+        </p>
+      </div>
+
+      {/* MESSAGE */}
+
+      {message && (
+        <div
+          role="status"
+          className="rounded-xl bg-blue-50 p-4 text-sm text-blue-800"
         >
-          ↻ Refresh
-        </button>
-      </section>
+          {message}
+        </div>
+      )}
 
-      {/* Statistics */}
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          {
-            label: "Total Applications",
-            value: applications.length,
-            color: "text-[#123B70]",
-          },
-          {
-            label: "Pending",
-            value: countStatus("pending"),
-            color: "text-yellow-600",
-          },
-          {
-            label: "Shortlisted",
-            value: countStatus("shortlisted"),
-            color: "text-purple-600",
-          },
-          {
-            label: "Hired",
-            value: countStatus("hired"),
-            color: "text-green-600",
-          },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-          >
-            <p className="text-sm font-semibold text-slate-500">
-              {stat.label}
-            </p>
+      {/* APPLICATIONS CONTAINER */}
 
-            <p className={`mt-3 text-3xl font-black ${stat.color}`}>
-              {stat.value}
-            </p>
-          </div>
-        ))}
-      </section>
+      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
 
-      {/* Search and Filters */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label
-              htmlFor="application-search"
-              className="mb-2 block text-sm font-bold text-slate-700"
-            >
-              Search Applicants
-            </label>
+        {/* SEARCH AND FILTER */}
+
+        <div className="border-b border-slate-100 p-5">
+
+          <div className="flex flex-col gap-3 md:flex-row">
 
             <input
-              id="application-search"
               type="search"
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search name, email, or position..."
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100"
+              onChange={(event) =>
+                setSearch(event.target.value)
+              }
+              placeholder="Search job seeker or job position..."
+              className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#0446A7]"
             />
-          </div>
-
-          <div>
-            <label
-              htmlFor="application-status"
-              className="mb-2 block text-sm font-bold text-slate-700"
-            >
-              Filter by Status
-            </label>
 
             <select
-              id="application-status"
               value={statusFilter}
               onChange={(event) =>
-                setStatusFilter(
-                  event.target.value as ApplicationStatus
-                )
+                setStatusFilter(event.target.value)
               }
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100"
+              className="rounded-xl border border-slate-200 px-4 py-3 text-sm"
             >
-              {statuses.map((status) => (
-                <option key={status} value={status}>
-                  {status === "All" ? "All Applications" : status}
-                </option>
-              ))}
+              <option value="All Status">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="for review">For Review</option>
+              <option value="shortlisted">Shortlisted</option>
+              <option value="rejected">Rejected</option>
+              <option value="hired">Hired</option>
             </select>
+
           </div>
-        </div>
-      </section>
 
-      {/* Applications Table */}
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-6 py-5">
-          <h2 className="text-lg font-black text-[#123B70]">
-            Applicant List
-          </h2>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Showing {filteredApplications.length} of {applications.length} applications
+          <p className="mt-3 text-xs text-slate-500">
+            Showing {filteredApplications.length} application(s)
           </p>
+
         </div>
+
+        {/* APPLICATION LIST */}
 
         {filteredApplications.length === 0 ? (
-          <EmptyState
-            message={
-              applications.length === 0
-                ? "No applications received yet."
-                : "No applications match your search."
-            }
-          />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[850px] text-left">
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                <tr>
-                  <th className="px-6 py-4 font-semibold">
-                    Applicant
-                  </th>
 
-                  <th className="px-6 py-4 font-semibold">
-                    Position
-                  </th>
+          <div className="p-10 text-center">
 
-                  <th className="px-6 py-4 font-semibold">
-                    Date Applied
-                  </th>
+            <h2 className="text-lg font-bold text-[#123B70]">
+              No Applications Found
+            </h2>
 
-                  <th className="px-6 py-4 font-semibold">
-                    Status
-                  </th>
-                </tr>
-              </thead>
+            <p className="mt-2 text-sm text-slate-500">
+              There are no applications matching your search.
+            </p>
 
-              <tbody className="divide-y divide-slate-100">
-                {filteredApplications.map((application) => (
-                  <tr
-                    key={application.id}
-                    className="transition hover:bg-slate-50"
-                  >
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-bold text-slate-800">
-                        {application.applicant_name}
-                      </p>
-
-                      <p className="mt-1 text-xs text-slate-500">
-                        {application.applicant_email || "No email provided"}
-                      </p>
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-semibold text-slate-700">
-                        {application.position_title}
-                      </p>
-                    </td>
-
-                    <td className="px-6 py-4 text-sm text-slate-600">
-                      {formatDate(application.created_at)}
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <StatusBadge status={application.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
+
+        ) : (
+
+          <div className="divide-y divide-slate-100">
+
+            {filteredApplications.map((application) => (
+
+              <article
+                key={application.application_id}
+                className="p-5 transition hover:bg-slate-50 sm:p-6"
+              >
+
+                {/* APPLICANT INFORMATION */}
+
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+
+                  <div className="min-w-0">
+
+                    <h2 className="text-lg font-black text-[#123B70]">
+                      {application.applicant_name ||
+                        "Job Seeker"}
+                    </h2>
+
+                    <p className="mt-1 text-sm font-semibold text-slate-700">
+                      Applied Position:{" "}
+                      {application.position_title ||
+                        "Job Position"}
+                    </p>
+
+                    <p className="mt-2 text-xs text-slate-500">
+                      Application Date:{" "}
+                      {formatDate(application.date_applied)}
+                    </p>
+
+                  </div>
+
+                  {/* APPLICATION STATUS */}
+
+                  <span
+                    className={`w-fit rounded-full px-3 py-1 text-xs font-bold capitalize ${statusClass(application.status)}`}
+                  >
+                    {application.status}
+                  </span>
+
+                </div>
+
+                {/* CONTACT INFORMATION */}
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">
+                      Email
+                    </p>
+
+                    <p className="mt-1 break-all text-sm text-slate-700">
+                      {application.applicant_email ||
+                        "Not available"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">
+                      Contact Number
+                    </p>
+
+                    <p className="mt-1 text-sm text-slate-700">
+                      {application.contact_number ||
+                        "Not available"}
+                    </p>
+                  </div>
+
+                </div>
+
+                {/* UPDATE STATUS */}
+
+                <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center">
+
+                  <label
+                    htmlFor={`status-${application.application_id}`}
+                    className="text-xs font-bold text-slate-500"
+                  >
+                    Update Application Status
+                  </label>
+
+                  <select
+                    id={`status-${application.application_id}`}
+                    value={application.status}
+                    disabled={
+                      updatingId === application.application_id
+                    }
+                    onChange={(event) =>
+                      void handleStatusChange(
+                        application,
+                        event.target.value
+                      )
+                    }
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:opacity-50"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="for review">For Review</option>
+                    <option value="shortlisted">Shortlisted</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="hired">Hired</option>
+                  </select>
+
+                  {updatingId === application.application_id && (
+                    <span className="text-xs text-slate-500">
+                      Updating...
+                    </span>
+                  )}
+
+                </div>
+
+              </article>
+
+            ))}
+
+          </div>
+
         )}
-      </section>
+
+      </div>
+
     </div>
   );
 }

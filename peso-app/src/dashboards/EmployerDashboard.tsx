@@ -504,31 +504,6 @@ export default function EmployerDashboard() {
     created_at: application.date_applied,
   }));
 
-  const jobPostModuleJobs = jobs.map((job) => ({
-    job_vacancy_id: Number(job.job_vacancy_id),
-    position_title: job.position_title,
-    status: job.status,
-    created_at: job.date_posted,
-    salary:
-      job.salary_min !== null && job.salary_max !== null
-        ? `${job.salary_min} - ${job.salary_max}`
-        : job.salary_min ?? job.salary_max,
-    employment_type: job.employment_type,
-    location: job.location,
-    description: job.description,
-    application_deadline: job.deadline,
-  }));
-
-  const applicationModuleRows = applications.map((application) => ({
-    id: application.application_id,
-    applicant_name: application.applicant_name || "Job Seeker",
-    applicant_email: null,
-    position_title: application.position_title || "Job post",
-    status: application.status,
-    created_at: application.date_applied,
-    contact_number: null,
-  }));
-
   const companyProfile = {
     company_name: profile.name || "",
     company_email: profile.email || "",
@@ -549,7 +524,8 @@ export default function EmployerDashboard() {
       case "My Job Posts":
         return (
           <MyJobPostModule
-            jobs={jobPostModuleJobs}
+            jobs={jobs}
+            employerId={profile.employer_id}
             onRefresh={handleRefresh}
           />
         );
@@ -557,7 +533,7 @@ export default function EmployerDashboard() {
       case "Applications":
         return (
           <ApplicationsModule
-            applications={applicationModuleRows}
+            applications={applications}
             onRefresh={handleRefresh}
           />
         );

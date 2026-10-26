@@ -1,371 +1,683 @@
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { supabase } from "../services/supabase";
 
-interface JobPost {
-  job_vacancy_id: number;
+type JobPost = {
+  job_vacancy_id: string;
+  employer_id: string;
   position_title: string;
+  description: string | null;
+  requirements: string | null;
+  location: string;
+  employment_type: string;
+  salary_min: number | null;
+  salary_max: number | null;
+  vacancies_available: number;
   status: string;
-  created_at?: string;
-  salary?: number | string | null;
-  employment_type?: string | null;
-  location?: string | null;
-  description?: string | null;
-  application_deadline?: string | null;
-}
+  date_posted: string;
+  deadline: string | null;
+};
 
-interface MyJobPostModuleProps {
+type Props = {
   jobs: JobPost[];
-  onRefresh?: () => void;
-}
+  employerId: string;
+  onRefresh: () => Promise<void> | void;
+};
 
-type JobStatus = "All" | "Active" | "Closed" | "Pending";
+type JobForm = {
+  position_title: string;
+  description: string;
+  requirements: string;
+  location: string;
+  employment_type: string;
+  salary_min: string;
+  salary_max: string;
+  vacancies_available: string;
+  deadline: string;
+};
 
-function StatusBadge({ status }: { status: string }) {
-  const normalized = status?.toLowerCase();
-
-  const styles: Record<string, string> = {
-    active: "bg-green-100 text-green-700",
-    open: "bg-green-100 text-green-700",
-    closed: "bg-slate-100 text-slate-600",
-    pending: "bg-yellow-100 text-yellow-800",
-    inactive: "bg-slate-100 text-slate-600",
-    rejected: "bg-red-100 text-red-700",
-  };
-
-  return (
-    <span
-      className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-        styles[normalized] ?? "bg-slate-100 text-slate-600"
-      }`}
-    >
-      {status || "Unknown"}
-    </span>
-  );
-}
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-12 text-center">
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-2xl text-[#0446A7]">
-        ▤
-      </div>
-
-      <p className="font-semibold text-slate-700">{message}</p>
-
-      <p className="mt-1 text-sm text-slate-500">
-        Your job posts will appear here.
-      </p>
-    </div>
-  );
-}
-
-function formatDate(value?: string | null) {
-  if (!value) return "Not specified";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleDateString("en-PH", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function formatSalary(value?: number | string | null) {
-  if (value === null || value === undefined || value === "") {
-    return "Salary not specified";
-  }
-
-  const numericValue = Number(value);
-
-  if (Number.isNaN(numericValue)) {
-    return String(value);
-  }
-
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-    maximumFractionDigits: 2,
-  }).format(numericValue);
-}
+const emptyForm: JobForm = {
+  position_title: "",
+  description: "",
+  requirements: "",
+  location: "",
+  employment_type: "Full-time",
+  salary_min: "",
+  salary_max: "",
+  vacancies_available: "1",
+  deadline: "",
+};
 
 export default function MyJobPostModule({
   jobs,
+  employerId,
   onRefresh,
-}: MyJobPostModuleProps) {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<JobStatus>("All");
+}: Props) {
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<JobForm>(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
-  const filteredJobs = useMemo(() => {
-    return jobs.filter((job) => {
-      const searchText = search.trim().toLowerCase();
+  const updateField = (field: keyof JobForm, value: string) => {
+    setForm((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  };
 
-      const matchesSearch =
-        !searchText ||
-        job.position_title?.toLowerCase().includes(searchText) ||
-        job.location?.toLowerCase().includes(searchText) ||
-        job.employment_type?.toLowerCase().includes(searchText);
+  const openCreateForm = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setMessage("");
+    setShowForm(true);
+  };
 
-      const status = job.status?.toLowerCase();
+  const openEditForm = (job: JobPost) => {
+    setEditingId(job.job_vacancy_id);
 
-      const matchesStatus =
-        statusFilter === "All" ||
-        (statusFilter === "Active" &&
-          ["active", "open"].includes(status)) ||
-        (statusFilter === "Closed" && status === "closed") ||
-        (statusFilter === "Pending" && status === "pending");
-
-      return matchesSearch && matchesStatus;
+    setForm({
+      position_title: job.position_title ?? "",
+      description: job.description ?? "",
+      requirements: job.requirements ?? "",
+      location: job.location ?? "",
+      employment_type: job.employment_type ?? "Full-time",
+      salary_min:
+        job.salary_min === null ? "" : String(job.salary_min),
+      salary_max:
+        job.salary_max === null ? "" : String(job.salary_max),
+      vacancies_available: String(job.vacancies_available || 1),
+      deadline: job.deadline
+        ? job.deadline.slice(0, 10)
+        : "",
     });
-  }, [jobs, search, statusFilter]);
 
-  const activeCount = jobs.filter((job) =>
-    ["active", "open"].includes(job.status?.toLowerCase())
-  ).length;
+    setMessage("");
+    setShowForm(true);
+  };
 
-  const closedCount = jobs.filter(
-    (job) => job.status?.toLowerCase() === "closed"
-  ).length;
+  const handleSubmit = async (
+    event: React.FormEvent<HTMLFormElement>
+  ) => {
+    event.preventDefault();
 
-  const pendingCount = jobs.filter(
-    (job) => job.status?.toLowerCase() === "pending"
-  ).length;
+    if (!employerId) {
+      setMessage("Employer account not found.");
+      return;
+    }
+
+    if (
+      form.salary_min !== "" &&
+      form.salary_max !== "" &&
+      Number(form.salary_min) > Number(form.salary_max)
+    ) {
+      setMessage("Minimum salary cannot exceed maximum salary.");
+      return;
+    }
+
+    setSaving(true);
+    setMessage("");
+
+    const jobData = {
+      employer_id: employerId,
+      position_title: form.position_title.trim(),
+      description: form.description.trim() || null,
+      requirements: form.requirements.trim() || null,
+      location: form.location.trim(),
+      employment_type: form.employment_type,
+      salary_min:
+        form.salary_min === ""
+          ? null
+          : Number(form.salary_min),
+      salary_max:
+        form.salary_max === ""
+          ? null
+          : Number(form.salary_max),
+      vacancies_available: Math.max(
+        1,
+        Number(form.vacancies_available) || 1
+      ),
+      deadline: form.deadline || null,
+    };
+
+    const result = editingId
+      ? await supabase
+          .from("job_vacancy")
+          .update(jobData)
+          .eq("job_vacancy_id", editingId)
+          .eq("employer_id", employerId)
+      : await supabase
+          .from("job_vacancy")
+          .insert({
+            ...jobData,
+            status: "open",
+          });
+
+    setSaving(false);
+
+    if (result.error) {
+      setMessage(
+        `Failed to save job posting: ${result.error.message}`
+      );
+      return;
+    }
+
+    setShowForm(false);
+    setEditingId(null);
+    setForm(emptyForm);
+
+    setMessage(
+      editingId
+        ? "Job posting updated successfully."
+        : "Job posting published successfully."
+    );
+
+    await onRefresh();
+  };
+
+  const handleDelete = async (job: JobPost) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${job.position_title}"?`
+    );
+
+    if (!confirmed) return;
+
+    setMessage("");
+
+    const { error } = await supabase
+      .from("job_vacancy")
+      .delete()
+      .eq("job_vacancy_id", job.job_vacancy_id)
+      .eq("employer_id", employerId);
+
+    if (error) {
+      setMessage(`Failed to delete job: ${error.message}`);
+      return;
+    }
+
+    setMessage("Job posting deleted successfully.");
+
+    await onRefresh();
+  };
+
+  const handleStatusChange = async (
+    job: JobPost,
+    newStatus: string
+  ) => {
+    setMessage("");
+
+    const { error } = await supabase
+      .from("job_vacancy")
+      .update({ status: newStatus })
+      .eq("job_vacancy_id", job.job_vacancy_id)
+      .eq("employer_id", employerId);
+
+    if (error) {
+      setMessage(`Failed to update status: ${error.message}`);
+      return;
+    }
+
+    setMessage("Job status updated successfully.");
+
+    await onRefresh();
+  };
+
+  const formatSalary = (job: JobPost) => {
+    if (job.salary_min === null && job.salary_max === null) {
+      return "Not specified";
+    }
+
+    const minimum =
+      job.salary_min === null
+        ? "Not specified"
+        : `₱${job.salary_min.toLocaleString()}`;
+
+    const maximum =
+      job.salary_max === null
+        ? "Not specified"
+        : `₱${job.salary_max.toLocaleString()}`;
+
+    return `${minimum} - ${maximum}`;
+  };
+
+  const formatDate = (date: string | null) => {
+    if (!date) return "Not specified";
+
+    return new Date(date).toLocaleDateString("en-PH", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <section className="flex flex-wrap items-center justify-between gap-4">
+    <div className="space-y-6">
+
+      {/* HEADER */}
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
         <div>
-          <h1 className="text-2xl font-black text-[#123B70] sm:text-3xl">
+          <h1 className="text-3xl font-black text-[#123B70]">
             My Job Posts
           </h1>
 
-          <p className="mt-2 text-sm text-slate-500">
-            Manage and monitor your company's job vacancies.
+          <p className="mt-1 text-sm text-slate-500">
+            Create and manage your company's job vacancies.
           </p>
         </div>
 
         <button
           type="button"
-          onClick={onRefresh}
-          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+          onClick={openCreateForm}
+          className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white hover:bg-blue-800"
         >
-          ↻ Refresh
+          + Create Job Post
         </button>
-      </section>
 
-      {/* Statistics */}
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-slate-500">
-            Total Job Posts
-          </p>
+      </div>
 
-          <p className="mt-3 text-3xl font-black text-[#123B70]">
-            {jobs.length}
-          </p>
+      {/* MESSAGE */}
+
+      {message && (
+        <div
+          role="status"
+          className="rounded-xl bg-blue-50 p-4 text-sm text-blue-800"
+        >
+          {message}
         </div>
+      )}
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-slate-500">
-            Active
-          </p>
+      {/* JOB POST FORM */}
 
-          <p className="mt-3 text-3xl font-black text-green-600">
-            {activeCount}
-          </p>
-        </div>
+      {showForm && (
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+        >
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-slate-500">
-            Pending
-          </p>
+          <div className="flex items-center justify-between">
 
-          <p className="mt-3 text-3xl font-black text-yellow-600">
-            {pendingCount}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-slate-500">
-            Closed
-          </p>
-
-          <p className="mt-3 text-3xl font-black text-slate-600">
-            {closedCount}
-          </p>
-        </div>
-      </section>
-
-      {/* Search and Filters */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label
-              htmlFor="job-search"
-              className="mb-2 block text-sm font-bold text-slate-700"
-            >
-              Search Job Posts
-            </label>
-
-            <input
-              id="job-search"
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search position, location, or employment type..."
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="job-status-filter"
-              className="mb-2 block text-sm font-bold text-slate-700"
-            >
-              Filter by Status
-            </label>
-
-            <select
-              id="job-status-filter"
-              value={statusFilter}
-              onChange={(event) =>
-                setStatusFilter(event.target.value as JobStatus)
-              }
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100"
-            >
-              <option value="All">All Job Posts</option>
-              <option value="Active">Active</option>
-              <option value="Pending">Pending</option>
-              <option value="Closed">Closed</option>
-            </select>
-          </div>
-        </div>
-      </section>
-
-      {/* Job Posts */}
-      <section>
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-black text-[#123B70]">
-              Job Vacancies
+            <h2 className="text-xl font-black text-[#123B70]">
+              {editingId
+                ? "Edit Job Posting"
+                : "Create Job Posting"}
             </h2>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Showing {filteredJobs.length} of {jobs.length} job posts
-            </p>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="text-sm font-semibold text-slate-500"
+            >
+              Cancel
+            </button>
+
           </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+
+            {/* JOB TITLE */}
+
+            <label className="text-sm font-semibold text-slate-700">
+              Job Title *
+
+              <input
+                required
+                value={form.position_title}
+                onChange={(event) =>
+                  updateField(
+                    "position_title",
+                    event.target.value
+                  )
+                }
+                placeholder="Enter job title"
+                className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal"
+              />
+            </label>
+
+            {/* LOCATION */}
+
+            <label className="text-sm font-semibold text-slate-700">
+              Location *
+
+              <input
+                required
+                value={form.location}
+                onChange={(event) =>
+                  updateField("location", event.target.value)
+                }
+                placeholder="Enter job location"
+                className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal"
+              />
+            </label>
+
+            {/* EMPLOYMENT TYPE */}
+
+            <label className="text-sm font-semibold text-slate-700">
+              Employment Type
+
+              <select
+                value={form.employment_type}
+                onChange={(event) =>
+                  updateField(
+                    "employment_type",
+                    event.target.value
+                  )
+                }
+                className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal"
+              >
+                <option value="Full-time">Full-time</option>
+                <option value="Part-time">Part-time</option>
+                <option value="Contract">Contract</option>
+                <option value="Temporary">Temporary</option>
+                <option value="Internship">Internship</option>
+              </select>
+            </label>
+
+            {/* VACANCIES */}
+
+            <label className="text-sm font-semibold text-slate-700">
+              Available Vacancies *
+
+              <input
+                required
+                type="number"
+                min="1"
+                value={form.vacancies_available}
+                onChange={(event) =>
+                  updateField(
+                    "vacancies_available",
+                    event.target.value
+                  )
+                }
+                className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal"
+              />
+            </label>
+
+            {/* MIN SALARY */}
+
+            <label className="text-sm font-semibold text-slate-700">
+              Minimum Salary
+
+              <input
+                type="number"
+                min="0"
+                value={form.salary_min}
+                onChange={(event) =>
+                  updateField("salary_min", event.target.value)
+                }
+                placeholder="₱"
+                className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal"
+              />
+            </label>
+
+            {/* MAX SALARY */}
+
+            <label className="text-sm font-semibold text-slate-700">
+              Maximum Salary
+
+              <input
+                type="number"
+                min="0"
+                value={form.salary_max}
+                onChange={(event) =>
+                  updateField("salary_max", event.target.value)
+                }
+                placeholder="₱"
+                className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal"
+              />
+            </label>
+
+            {/* DESCRIPTION */}
+
+            <label className="text-sm font-semibold text-slate-700 md:col-span-2">
+              Job Description *
+
+              <textarea
+                required
+                rows={4}
+                value={form.description}
+                onChange={(event) =>
+                  updateField("description", event.target.value)
+                }
+                placeholder="Describe the responsibilities of the job"
+                className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal"
+              />
+            </label>
+
+            {/* REQUIREMENTS */}
+
+            <label className="text-sm font-semibold text-slate-700 md:col-span-2">
+              Job Requirements
+
+              <textarea
+                rows={4}
+                value={form.requirements}
+                onChange={(event) =>
+                  updateField("requirements", event.target.value)
+                }
+                placeholder="Enter qualifications and requirements"
+                className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal"
+              />
+            </label>
+
+            {/* DEADLINE */}
+
+            <label className="text-sm font-semibold text-slate-700">
+              Application Deadline
+
+              <input
+                type="date"
+                value={form.deadline}
+                onChange={(event) =>
+                  updateField("deadline", event.target.value)
+                }
+                className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal"
+              />
+            </label>
+
+          </div>
+
+          {/* SUBMIT */}
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="rounded-xl bg-[#0446A7] px-6 py-3 text-sm font-bold text-white disabled:opacity-50"
+          >
+            {saving
+              ? "Saving..."
+              : editingId
+                ? "Save Changes"
+                : "Publish Job"}
+          </button>
+
+        </form>
+      )}
+
+      {/* JOB POSTS */}
+
+      {jobs.length === 0 ? (
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center">
+
+          <h2 className="text-lg font-bold text-[#123B70]">
+            No Job Posts Yet
+          </h2>
+
+          <p className="mt-2 text-sm text-slate-500">
+            Create your first job posting to allow job seekers
+            to apply.
+          </p>
+
+          <button
+            type="button"
+            onClick={openCreateForm}
+            className="mt-5 rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white"
+          >
+            Create Job Post
+          </button>
+
         </div>
 
-        {filteredJobs.length === 0 ? (
-          <EmptyState
-            message={
-              jobs.length === 0
-                ? "You have not posted any job vacancies yet."
-                : "No job posts match your search."
-            }
-          />
-        ) : (
-          <div className="grid gap-5 lg:grid-cols-2">
-            {filteredJobs.map((job) => (
-              <article
-                key={job.job_vacancy_id}
-                className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md"
-              >
-                {/* Job Header */}
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="break-words text-lg font-black text-[#123B70]">
-                      {job.position_title}
-                    </h3>
+      ) : (
 
-                    <p className="mt-1 text-xs text-slate-500">
-                      Job ID: {job.job_vacancy_id}
-                    </p>
-                  </div>
+        <div className="grid gap-5">
 
-                  <StatusBadge status={job.status} />
+          {jobs.map((job) => (
+
+            <article
+              key={job.job_vacancy_id}
+              className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+            >
+
+              {/* JOB HEADER */}
+
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+
+                <div>
+
+                  <h2 className="text-xl font-black text-[#123B70]">
+                    {job.position_title}
+                  </h2>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    {job.location}
+                  </p>
+
+                  <p className="mt-1 text-sm text-slate-500">
+                    {job.employment_type}
+                  </p>
+
                 </div>
 
-                {/* Job Details */}
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <p className="text-xs font-semibold text-slate-400">
-                      Salary
-                    </p>
+                <span className="w-fit rounded-full bg-blue-50 px-3 py-1 text-xs font-bold capitalize text-blue-700">
+                  {job.status}
+                </span>
 
-                    <p className="mt-1 text-sm font-bold text-slate-700">
-                      {formatSalary(job.salary)}
-                    </p>
-                  </div>
+              </div>
 
-                  <div>
-                    <p className="text-xs font-semibold text-slate-400">
-                      Employment Type
-                    </p>
+              {/* JOB DETAILS */}
 
-                    <p className="mt-1 text-sm font-bold text-slate-700">
-                      {job.employment_type || "Not specified"}
-                    </p>
-                  </div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
 
-                  <div>
-                    <p className="text-xs font-semibold text-slate-400">
-                      Location
-                    </p>
+                <div>
+                  <p className="text-xs font-semibold text-slate-400">
+                    Salary
+                  </p>
 
-                    <p className="mt-1 text-sm font-bold text-slate-700">
-                      {job.location || "Not specified"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-semibold text-slate-400">
-                      Posted Date
-                    </p>
-
-                    <p className="mt-1 text-sm font-bold text-slate-700">
-                      {formatDate(job.created_at)}
-                    </p>
-                  </div>
+                  <p className="mt-1 text-sm font-semibold text-slate-700">
+                    {formatSalary(job)}
+                  </p>
                 </div>
 
-                {/* Description */}
-                {job.description && (
-                  <div className="mt-5 border-t border-slate-100 pt-4">
-                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">
-                      Description
-                    </p>
+                <div>
+                  <p className="text-xs font-semibold text-slate-400">
+                    Available Vacancies
+                  </p>
 
-                    <p className="whitespace-pre-line break-words text-sm leading-6 text-slate-600">
-                      {job.description.length > 250
-                        ? `${job.description.slice(0, 250)}...`
-                        : job.description}
-                    </p>
-                  </div>
-                )}
-
-                {/* Deadline */}
-                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
-                  <div>
-                    <p className="text-xs font-semibold text-slate-400">
-                      Application Deadline
-                    </p>
-
-                    <p className="mt-1 text-sm font-bold text-slate-700">
-                      {formatDate(job.application_deadline)}
-                    </p>
-                  </div>
+                  <p className="mt-1 text-sm font-semibold text-slate-700">
+                    {job.vacancies_available}
+                  </p>
                 </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
+
+                <div>
+                  <p className="text-xs font-semibold text-slate-400">
+                    Date Posted
+                  </p>
+
+                  <p className="mt-1 text-sm text-slate-700">
+                    {formatDate(job.date_posted)}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-slate-400">
+                    Application Deadline
+                  </p>
+
+                  <p className="mt-1 text-sm text-slate-700">
+                    {formatDate(job.deadline)}
+                  </p>
+                </div>
+
+              </div>
+
+              {/* DESCRIPTION */}
+
+              {job.description && (
+                <div className="mt-5">
+
+                  <h3 className="text-sm font-bold text-slate-700">
+                    Job Description
+                  </h3>
+
+                  <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-600">
+                    {job.description}
+                  </p>
+
+                </div>
+              )}
+
+              {/* REQUIREMENTS */}
+
+              {job.requirements && (
+                <div className="mt-5">
+
+                  <h3 className="text-sm font-bold text-slate-700">
+                    Requirements
+                  </h3>
+
+                  <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-600">
+                    {job.requirements}
+                  </p>
+
+                </div>
+              )}
+
+              {/* ACTIONS */}
+
+              <div className="mt-6 flex flex-wrap gap-3">
+
+                <button
+                  type="button"
+                  onClick={() => openEditForm(job)}
+                  className="rounded-lg border border-blue-200 px-4 py-2 text-sm font-bold text-[#0446A7] hover:bg-blue-50"
+                >
+                  Edit
+                </button>
+
+                <select
+                  aria-label={`Status for ${job.position_title}`}
+                  value={job.status}
+                  onChange={(event) =>
+                    void handleStatusChange(job, event.target.value)
+                  }
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                >
+                  <option value="open">Open</option>
+                  <option value="closed">Closed</option>
+                  <option value="draft">Draft</option>
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(job)}
+                  className="rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50"
+                >
+                  Delete
+                </button>
+
+              </div>
+
+            </article>
+
+          ))}
+
+        </div>
+
+      )}
+
     </div>
   );
 }
