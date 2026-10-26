@@ -184,7 +184,7 @@ export default function MyJobPostModule({
       `${employerId}/${jobId}/${Date.now()}.${fileExtension}`;
 
     const { error: uploadError } = await supabase.storage
-      .from(STORAGE_BUCKET)
+      .from("job-images")
       .upload(filePath, file, {
         cacheControl: "3600",
         upsert: true,
