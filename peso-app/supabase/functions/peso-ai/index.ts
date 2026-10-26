@@ -11,6 +11,8 @@ const corsHeaders = {
 const maxPdfBytes = 1_000_000;
 const maxProfileTextLength = 6_000;
 const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.8-flash";
+const fallbackModel = Deno.env.get("GEMINI_FALLBACK_MODEL") ?? "gemini-2.5-flash";
+const maxGenerationAttempts = 3;
 
 type ChatMessage = {
   role: "user" | "model";
@@ -92,6 +94,81 @@ function getGemini() {
     throw new Error("Gemini is not configured. Set GEMINI_API_KEY in Supabase Function Secrets.");
   }
   return new GoogleGenAI({ apiKey });
+}
+
+function getNestedGeminiStatus(value: unknown, depth = 0): number | undefined {
+  if (!value || typeof value !== "object" || depth > 5) {
+    return undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+  for (const key of ["error", "response", "data", "details"]) {
+    const nestedStatus = getNestedGeminiStatus(record[key], depth + 1);
+    if (nestedStatus !== undefined) return nestedStatus;
+  }
+
+  for (const key of ["code", "status"]) {
+    const candidate = record[key];
+    const status = typeof candidate === "string" ? Number(candidate) : candidate;
+    if (typeof status === "number" && Number.isFinite(status)) return status;
+  }
+
+  return undefined;
+}
+
+function isTransientGeminiError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  let parsedMessage: unknown;
+  try {
+    parsedMessage = JSON.parse(message);
+  } catch {
+    // SDK errors may contain a plain-text message rather than a JSON response body.
+  }
+
+  const status =
+    getNestedGeminiStatus(parsedMessage) ??
+    getNestedGeminiStatus(error);
+  if (status === 408 || status === 429 || (status !== undefined && status >= 500)) {
+    return true;
+  }
+
+  return /\b(?:408|429|500|502|503|504)\b|UNAVAILABLE|RESOURCE_EXHAUSTED|high demand|temporarily unavailable/i
+    .test(message);
+}
+
+function sleep(milliseconds: number) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function generateContent(
+  ai: GoogleGenAI,
+  params: Omit<Parameters<GoogleGenAI["models"]["generateContent"]>[0], "model">,
+) {
+  const models = [...new Set([model, fallbackModel])];
+  let lastError: unknown;
+
+  for (const currentModel of models) {
+    for (let attempt = 0; attempt < maxGenerationAttempts; attempt += 1) {
+      if (attempt > 0) {
+        const backoffMs = 1_000 * 2 ** (attempt - 1);
+        await sleep(backoffMs + Math.random() * 500);
+      }
+
+      try {
+        return await ai.models.generateContent({ ...params, model: currentModel });
+      } catch (error) {
+        lastError = error;
+        if (!isTransientGeminiError(error)) {
+          throw error;
+        }
+        console.warn(
+          `Gemini model ${currentModel} returned a transient error; attempt ${attempt + 1} of ${maxGenerationAttempts}.`,
+        );
+      }
+    }
+  }
+
+  throw lastError;
 }
 
 function parseJsonObject<T>(text: string): T {
@@ -182,8 +259,7 @@ async function handleChat(
 
   const vacancies = await listOpenVacancies(supabase);
   const ai = getGemini();
-  const response = await ai.models.generateContent({
-    model,
+  const response = await generateContent(ai, {
     contents: messages.map((message) => ({
       role: message.role,
       parts: [{ text: message.content }],
@@ -234,8 +310,7 @@ async function handleJobMatches(
     candidateProfile: resumeBase64 ? "See attached PDF resume." : profileText,
     vacancies: vacancies.map(publicVacancy),
   });
-  const response = await ai.models.generateContent({
-    model,
+  const response = await generateContent(ai, {
     contents: resumeBase64
       ? [{
           role: "user",
@@ -334,7 +409,9 @@ Deno.serve(async (request: Request) => {
   } catch (error) {
     console.error("PESO AI function error:", error);
     const message = error instanceof Error ? error.message : "Unexpected AI service error.";
-    const status = /authentication|session/i.test(message)
+    const status = isTransientGeminiError(error)
+      ? 503
+      : /authentication|session/i.test(message)
       ? 401
       : /only active|permission|profile is required/i.test(message)
         ? 403

@@ -26,7 +26,9 @@ supabase functions deploy peso-ai
 ```
 
 Optionally set `GEMINI_MODEL` as a Supabase Function secret to use a different supported
-Gemini model. The default is `gemini-3.8-flash`.
+Gemini model. The default is `gemini-3.8-flash`. Transient Gemini service errors are retried
+with exponential backoff; after retries, the function falls back to `gemini-2.5-flash`.
+Set `GEMINI_FALLBACK_MODEL` to override the fallback model.
 
 Job-seeker messages, profile summaries, and resumes submitted for job matching are sent to
 Google Gemini for processing. Use these features only when authorized and with any required
