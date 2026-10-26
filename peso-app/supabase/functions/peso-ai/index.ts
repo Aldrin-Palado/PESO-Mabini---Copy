@@ -8,8 +8,12 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const maxPdfBytes = 1_000_000;
-const maxProfileTextLength = 6_000;
+const maxPdfBytes = 500_000;
+const maxProfileTextLength = 4_000;
+const maxChatHistoryMessages = 6;
+const maxVacanciesForAI = 12;
+const maxGenerationDurationMs = 20_000;
+const vacancyCacheTtlMs = 30_000;
 const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.8-flash";
 const fallbackModel = Deno.env.get("GEMINI_FALLBACK_MODEL") ?? "gemini-2.5-flash";
 const maxGenerationAttempts = 3;
@@ -30,6 +34,9 @@ type Vacancy = {
   salary_max: number | null;
   employer: { name: string | null } | { name: string | null }[] | null;
 };
+
+let geminiClient: GoogleGenAI | undefined;
+let publicVacancyCache: { expiresAt: number; vacancies: Vacancy[] } | undefined;
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -89,11 +96,17 @@ async function enforcePublicChatLimit(request: Request) {
 }
 
 function getGemini() {
+  if (geminiClient) return geminiClient;
+
   const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) {
     throw new Error("Gemini is not configured. Set GEMINI_API_KEY in Supabase Function Secrets.");
   }
-  return new GoogleGenAI({ apiKey });
+  geminiClient = new GoogleGenAI({
+    apiKey,
+    httpOptions: { timeout: maxGenerationDurationMs },
+  });
+  return geminiClient;
 }
 
 function getNestedGeminiStatus(value: unknown, depth = 0): number | undefined {
@@ -132,7 +145,7 @@ function isTransientGeminiError(error: unknown) {
     return true;
   }
 
-  return /\b(?:408|429|500|502|503|504)\b|UNAVAILABLE|RESOURCE_EXHAUSTED|high demand|temporarily unavailable/i
+  return /\b(?:408|429|500|502|503|504)\b|UNAVAILABLE|RESOURCE_EXHAUSTED|high demand|temporarily unavailable|timed? ?out|abort/i
     .test(message);
 }
 
@@ -147,24 +160,26 @@ async function generateContent(
   const models = [...new Set([model, fallbackModel])];
   let lastError: unknown;
 
-  for (const currentModel of models) {
-    for (let attempt = 0; attempt < maxGenerationAttempts; attempt += 1) {
-      if (attempt > 0) {
-        const backoffMs = 1_000 * 2 ** (attempt - 1);
-        await sleep(backoffMs + Math.random() * 500);
-      }
+  for (let attempt = 0; attempt < maxGenerationAttempts; attempt += 1) {
+    if (attempt > 0) {
+      const backoffMs = 1_000 * 2 ** (attempt - 1);
+      await sleep(backoffMs + Math.random() * 500);
+    }
 
-      try {
-        return await ai.models.generateContent({ ...params, model: currentModel });
-      } catch (error) {
-        lastError = error;
-        if (!isTransientGeminiError(error)) {
-          throw error;
-        }
-        console.warn(
-          `Gemini model ${currentModel} returned a transient error; attempt ${attempt + 1} of ${maxGenerationAttempts}.`,
-        );
+    const currentModel =
+      attempt < maxGenerationAttempts - 1
+        ? models[0]
+        : models[models.length - 1];
+    try {
+      return await ai.models.generateContent({ ...params, model: currentModel });
+    } catch (error) {
+      lastError = error;
+      if (!isTransientGeminiError(error)) {
+        throw error;
       }
+      console.warn(
+        `Gemini model ${currentModel} returned a transient error; attempt ${attempt + 1} of ${maxGenerationAttempts}.`,
+      );
     }
   }
 
@@ -192,7 +207,14 @@ async function requireJobSeeker(supabase: ReturnType<typeof getSupabaseClient>, 
   return data;
 }
 
-async function listOpenVacancies(supabase: ReturnType<typeof getSupabaseClient>) {
+async function listOpenVacancies(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  usePublicCache = false,
+) {
+  if (usePublicCache && publicVacancyCache && publicVacancyCache.expiresAt > Date.now()) {
+    return publicVacancyCache.vacancies;
+  }
+
   const { data, error } = await supabase
     .from("job_vacancy")
     .select(
@@ -200,10 +222,17 @@ async function listOpenVacancies(supabase: ReturnType<typeof getSupabaseClient>)
     )
     .eq("status", "open")
     .order("date_posted", { ascending: false })
-    .limit(40);
+    .limit(maxVacanciesForAI);
 
   if (error) throw new Error(`Unable to load open vacancies: ${error.message}`);
-  return (data ?? []) as Vacancy[];
+  const vacancies = (data ?? []) as Vacancy[];
+  if (usePublicCache) {
+    publicVacancyCache = {
+      expiresAt: Date.now() + vacancyCacheTtlMs,
+      vacancies,
+    };
+  }
+  return vacancies;
 }
 
 function publicVacancy(vacancy: Vacancy) {
@@ -221,8 +250,8 @@ function publicVacancy(vacancy: Vacancy) {
       vacancy.salary_min || vacancy.salary_max
         ? `${vacancy.salary_min ?? "—"} to ${vacancy.salary_max ?? "—"}`
         : "Not specified",
-    description: (vacancy.description ?? "").slice(0, 1_200),
-    requirements: (vacancy.requirements ?? "").slice(0, 1_200),
+    description: (vacancy.description ?? "").slice(0, 600),
+    requirements: (vacancy.requirements ?? "").slice(0, 600),
   };
 }
 
@@ -251,13 +280,13 @@ async function handleChat(
       throw new Error("Each chat message must be between 1 and 1,000 characters.");
     }
     return { role: message.role, content };
-  });
+  }).slice(-maxChatHistoryMessages);
 
   if (messages[messages.length - 1].role !== "user") {
     throw new Error("Send a user message to continue.");
   }
 
-  const vacancies = await listOpenVacancies(supabase);
+  const vacancies = await listOpenVacancies(supabase, true);
   const ai = getGemini();
   const response = await generateContent(ai, {
     contents: messages.map((message) => ({
@@ -361,14 +390,14 @@ async function handleJobMatches(
 function decodePdf(base64: string) {
   const normalized = base64.replace(/^data:application\/pdf;base64,/i, "");
   if (!normalized || normalized.length > Math.ceil(maxPdfBytes / 3) * 4 + 8) {
-    throw new Error("PDF must be 1 MB or smaller.");
+    throw new Error("PDF must be 500 KB or smaller.");
   }
   if (!/^[A-Za-z0-9+/]*={0,2}$/.test(normalized)) {
     throw new Error("The uploaded resume is not valid base64 data.");
   }
 
   const binary = atob(normalized);
-  if (binary.length > maxPdfBytes) throw new Error("PDF must be 1 MB or smaller.");
+  if (binary.length > maxPdfBytes) throw new Error("PDF must be 500 KB or smaller.");
   if (!binary.startsWith("%PDF-")) throw new Error("Upload a valid PDF resume.");
   return normalized;
 }
