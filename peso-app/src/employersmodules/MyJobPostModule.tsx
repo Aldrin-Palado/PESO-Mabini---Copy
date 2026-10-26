@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "../services/supabase";
 
 type JobPost = {
@@ -16,6 +16,7 @@ type JobPost = {
   status: string;
   date_posted: string;
   deadline: string | null;
+  image_url?: string | null;
 };
 
 type Props = {
@@ -48,6 +49,8 @@ const emptyForm: JobForm = {
   deadline: "",
 };
 
+const STORAGE_BUCKET = "job-images";
+
 export default function MyJobPostModule({
   jobs,
   employerId,
@@ -56,8 +59,20 @@ export default function MyJobPostModule({
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<JobForm>(emptyForm);
+
+  const [selectedImage, setSelectedImage] =
+    useState<File | null>(null);
+
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    null
+  );
+
+  const [removeImage, setRemoveImage] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const updateField = (field: keyof JobForm, value: string) => {
     setForm((previous) => ({
@@ -66,9 +81,20 @@ export default function MyJobPostModule({
     }));
   };
 
+  const resetImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    setRemoveImage(false);
+
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
+  };
+
   const openCreateForm = () => {
     setEditingId(null);
     setForm(emptyForm);
+    resetImage();
     setMessage("");
     setShowForm(true);
   };
@@ -87,14 +113,125 @@ export default function MyJobPostModule({
       salary_max:
         job.salary_max === null ? "" : String(job.salary_max),
       vacancies_available: String(job.vacancies_available || 1),
-      deadline: job.deadline
-        ? job.deadline.slice(0, 10)
-        : "",
+      deadline: job.deadline ? job.deadline.slice(0, 10) : "",
     });
+
+    resetImage();
+
+    // Display the existing job image.
+    setImagePreview(job.image_url || null);
 
     setMessage("");
     setShowForm(true);
   };
+
+  // IMAGE SELECTION
+
+  const handleImageChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    setMessage("");
+
+    // Allow only image files.
+    if (!file.type.startsWith("image/")) {
+      setMessage("Please select a valid image file.");
+      event.target.value = "";
+      return;
+    }
+
+    // Maximum image size: 5 MB.
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage("Image size must not exceed 5 MB.");
+      event.target.value = "";
+      return;
+    }
+
+    setSelectedImage(file);
+    setRemoveImage(false);
+
+    // Preview the selected image.
+    const previewUrl = URL.createObjectURL(file);
+
+    setImagePreview(previewUrl);
+  };
+
+  // REMOVE IMAGE
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    setRemoveImage(true);
+
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
+  };
+
+  // UPLOAD IMAGE TO SUPABASE STORAGE
+
+  const uploadJobImage = async (
+    file: File,
+    jobId: string
+  ): Promise<string | null> => {
+    const fileExtension =
+      file.name.split(".").pop()?.toLowerCase() || "jpg";
+
+    const filePath =
+      `${employerId}/${jobId}/${Date.now()}.${fileExtension}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: true,
+        contentType: file.type,
+      });
+
+    if (uploadError) {
+      throw new Error(uploadError.message);
+    }
+
+    const { data } = supabase.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  };
+
+  // DELETE OLD IMAGE FROM STORAGE
+
+  const deleteStoredImage = async (imageUrl: string | null) => {
+    if (!imageUrl) return;
+
+    try {
+      const url = new URL(imageUrl);
+      const marker = `/storage/v1/object/public/${STORAGE_BUCKET}/`;
+
+      const markerIndex = url.pathname.indexOf(marker);
+
+      if (markerIndex === -1) return;
+
+      const filePath = decodeURIComponent(
+        url.pathname.substring(markerIndex + marker.length)
+      );
+
+      const { error } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .remove([filePath]);
+
+      if (error) {
+        console.error("Failed to remove old job image:", error.message);
+      }
+    } catch (error) {
+      console.error("Failed to remove job image:", error);
+    }
+  };
+
+  // CREATE OR UPDATE JOB POST
 
   const handleSubmit = async (
     event: React.FormEvent<HTMLFormElement>
@@ -115,65 +252,157 @@ export default function MyJobPostModule({
       return;
     }
 
-    setSaving(true);
-    setMessage("");
-
-    const jobData = {
-      employer_id: employerId,
-      position_title: form.position_title.trim(),
-      description: form.description.trim() || null,
-      requirements: form.requirements.trim() || null,
-      location: form.location.trim(),
-      employment_type: form.employment_type,
-      salary_min:
-        form.salary_min === ""
-          ? null
-          : Number(form.salary_min),
-      salary_max:
-        form.salary_max === ""
-          ? null
-          : Number(form.salary_max),
-      vacancies_available: Math.max(
-        1,
-        Number(form.vacancies_available) || 1
-      ),
-      deadline: form.deadline || null,
-    };
-
-    const result = editingId
-      ? await supabase
-          .from("job_vacancy")
-          .update(jobData)
-          .eq("job_vacancy_id", editingId)
-          .eq("employer_id", employerId)
-      : await supabase
-          .from("job_vacancy")
-          .insert({
-            ...jobData,
-            status: "open",
-          });
-
-    setSaving(false);
-
-    if (result.error) {
-      setMessage(
-        `Failed to save job posting: ${result.error.message}`
-      );
+    if (
+      form.deadline &&
+      form.deadline < new Date().toISOString().slice(0, 10)
+    ) {
+      setMessage("Application deadline cannot be in the past.");
       return;
     }
 
-    setShowForm(false);
-    setEditingId(null);
-    setForm(emptyForm);
+    setSaving(true);
+    setMessage("");
 
-    setMessage(
-      editingId
-        ? "Job posting updated successfully."
-        : "Job posting published successfully."
-    );
+    try {
+      let jobId = editingId;
 
-    await onRefresh();
+      // CREATE JOB FIRST IF NEW
+
+      if (!jobId) {
+        const { data, error } = await supabase
+          .from("job_vacancy")
+          .insert({
+            employer_id: employerId,
+            position_title: form.position_title.trim(),
+            description: form.description.trim() || null,
+            requirements: form.requirements.trim() || null,
+            location: form.location.trim(),
+            employment_type: form.employment_type,
+            salary_min:
+              form.salary_min === ""
+                ? null
+                : Number(form.salary_min),
+            salary_max:
+              form.salary_max === ""
+                ? null
+                : Number(form.salary_max),
+            vacancies_available: Math.max(
+              1,
+              Number(form.vacancies_available) || 1
+            ),
+            deadline: form.deadline || null,
+            status: "open",
+          })
+          .select("job_vacancy_id")
+          .single();
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        jobId = data.job_vacancy_id;
+      } else {
+        // UPDATE EXISTING JOB
+
+        const { error } = await supabase
+          .from("job_vacancy")
+          .update({
+            position_title: form.position_title.trim(),
+            description: form.description.trim() || null,
+            requirements: form.requirements.trim() || null,
+            location: form.location.trim(),
+            employment_type: form.employment_type,
+            salary_min:
+              form.salary_min === ""
+                ? null
+                : Number(form.salary_min),
+            salary_max:
+              form.salary_max === ""
+                ? null
+                : Number(form.salary_max),
+            vacancies_available: Math.max(
+              1,
+              Number(form.vacancies_available) || 1
+            ),
+            deadline: form.deadline || null,
+          })
+          .eq("job_vacancy_id", jobId)
+          .eq("employer_id", employerId);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+      }
+
+      // GET CURRENT IMAGE URL
+
+      const existingJob = jobs.find(
+        (job) => job.job_vacancy_id === jobId
+      );
+
+      let imageUrl = existingJob?.image_url || null;
+
+      // REMOVE IMAGE IF REQUESTED
+
+      if (removeImage) {
+        imageUrl = null;
+      }
+
+      // UPLOAD NEW IMAGE IF SELECTED
+
+      if (selectedImage && jobId) {
+        imageUrl = await uploadJobImage(selectedImage, jobId);
+      }
+
+      // SAVE IMAGE URL TO DATABASE
+
+      if (jobId) {
+        const { error } = await supabase
+          .from("job_vacancy")
+          .update({
+            image_url: imageUrl,
+          })
+          .eq("job_vacancy_id", jobId)
+          .eq("employer_id", employerId);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+      }
+
+      // DELETE OLD IMAGE AFTER SUCCESSFUL UPDATE
+
+      if (
+        existingJob?.image_url &&
+        existingJob.image_url !== imageUrl
+      ) {
+        await deleteStoredImage(existingJob.image_url);
+      }
+
+      setShowForm(false);
+      setEditingId(null);
+      setForm(emptyForm);
+      resetImage();
+
+      setMessage(
+        editingId
+          ? "Job posting updated successfully."
+          : "Job posting published successfully."
+      );
+
+      await onRefresh();
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? `Failed to save job posting: ${error.message}`
+          : "Failed to save job posting."
+      );
+    } finally {
+      setSaving(false);
+    }
   };
+
+  // DELETE JOB POST
 
   const handleDelete = async (job: JobPost) => {
     const confirmed = window.confirm(
@@ -195,10 +424,15 @@ export default function MyJobPostModule({
       return;
     }
 
+    // Remove associated image from Storage.
+    await deleteStoredImage(job.image_url || null);
+
     setMessage("Job posting deleted successfully.");
 
     await onRefresh();
   };
+
+  // CHANGE JOB STATUS
 
   const handleStatusChange = async (
     job: JobPost,
@@ -208,7 +442,9 @@ export default function MyJobPostModule({
 
     const { error } = await supabase
       .from("job_vacancy")
-      .update({ status: newStatus })
+      .update({
+        status: newStatus,
+      })
       .eq("job_vacancy_id", job.job_vacancy_id)
       .eq("employer_id", employerId);
 
@@ -221,6 +457,8 @@ export default function MyJobPostModule({
 
     await onRefresh();
   };
+
+  // FORMAT SALARY
 
   const formatSalary = (job: JobPost) => {
     if (job.salary_min === null && job.salary_max === null) {
@@ -240,6 +478,8 @@ export default function MyJobPostModule({
     return `${minimum} - ${maximum}`;
   };
 
+  // FORMAT DATE
+
   const formatDate = (date: string | null) => {
     if (!date) return "Not specified";
 
@@ -256,7 +496,6 @@ export default function MyJobPostModule({
       {/* HEADER */}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
         <div>
           <h1 className="text-3xl font-black text-[#123B70]">
             My Job Posts
@@ -274,7 +513,6 @@ export default function MyJobPostModule({
         >
           + Create Job Post
         </button>
-
       </div>
 
       {/* MESSAGE */}
@@ -295,24 +533,66 @@ export default function MyJobPostModule({
           onSubmit={handleSubmit}
           className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
         >
-
           <div className="flex items-center justify-between">
-
             <h2 className="text-xl font-black text-[#123B70]">
-              {editingId
-                ? "Edit Job Posting"
-                : "Create Job Posting"}
+              {editingId ? "Edit Job Posting" : "Create Job Posting"}
             </h2>
 
             <button
               type="button"
-              onClick={() => setShowForm(false)}
+              onClick={() => {
+                setShowForm(false);
+                resetImage();
+              }}
               className="text-sm font-semibold text-slate-500"
             >
               Cancel
             </button>
-
           </div>
+
+          {/* IMAGE UPLOAD */}
+
+          <div>
+            <label className="text-sm font-semibold text-slate-700">
+              Job Image
+            </label>
+
+            <p className="mt-1 text-xs text-slate-500">
+              Upload a job banner or image. Maximum size: 5 MB.
+            </p>
+
+            {imagePreview && (
+              <div className="mt-3">
+                <img
+                  src={imagePreview}
+                  alt="Job posting preview"
+                  className="h-48 w-full rounded-xl border border-slate-200 object-cover"
+                />
+              </div>
+            )}
+
+            <div className="mt-3 flex flex-wrap gap-3">
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="block w-full text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:font-semibold file:text-[#0446A7] hover:file:bg-blue-100"
+              />
+
+              {imagePreview && (
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50"
+                >
+                  Remove Image
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* JOB DETAILS */}
 
           <div className="grid gap-4 md:grid-cols-2">
 
@@ -325,10 +605,7 @@ export default function MyJobPostModule({
                 required
                 value={form.position_title}
                 onChange={(event) =>
-                  updateField(
-                    "position_title",
-                    event.target.value
-                  )
+                  updateField("position_title", event.target.value)
                 }
                 placeholder="Enter job title"
                 className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal"
@@ -359,10 +636,7 @@ export default function MyJobPostModule({
               <select
                 value={form.employment_type}
                 onChange={(event) =>
-                  updateField(
-                    "employment_type",
-                    event.target.value
-                  )
+                  updateField("employment_type", event.target.value)
                 }
                 className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal"
               >
@@ -491,23 +765,19 @@ export default function MyJobPostModule({
                 ? "Save Changes"
                 : "Publish Job"}
           </button>
-
         </form>
       )}
 
       {/* JOB POSTS */}
 
       {jobs.length === 0 ? (
-
         <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center">
-
           <h2 className="text-lg font-bold text-[#123B70]">
             No Job Posts Yet
           </h2>
 
           <p className="mt-2 text-sm text-slate-500">
-            Create your first job posting to allow job seekers
-            to apply.
+            Create your first job posting to allow job seekers to apply.
           </p>
 
           <button
@@ -517,26 +787,28 @@ export default function MyJobPostModule({
           >
             Create Job Post
           </button>
-
         </div>
-
       ) : (
-
         <div className="grid gap-5">
-
           {jobs.map((job) => (
-
             <article
               key={job.job_vacancy_id}
               className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
             >
+              {/* JOB IMAGE */}
+
+              {job.image_url && (
+                <img
+                  src={job.image_url}
+                  alt={`${job.position_title} job`}
+                  className="mb-5 h-52 w-full rounded-xl object-cover"
+                />
+              )}
 
               {/* JOB HEADER */}
 
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-
                 <div>
-
                   <h2 className="text-xl font-black text-[#123B70]">
                     {job.position_title}
                   </h2>
@@ -548,19 +820,16 @@ export default function MyJobPostModule({
                   <p className="mt-1 text-sm text-slate-500">
                     {job.employment_type}
                   </p>
-
                 </div>
 
                 <span className="w-fit rounded-full bg-blue-50 px-3 py-1 text-xs font-bold capitalize text-blue-700">
                   {job.status}
                 </span>
-
               </div>
 
               {/* JOB DETAILS */}
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
-
                 <div>
                   <p className="text-xs font-semibold text-slate-400">
                     Salary
@@ -600,14 +869,12 @@ export default function MyJobPostModule({
                     {formatDate(job.deadline)}
                   </p>
                 </div>
-
               </div>
 
               {/* DESCRIPTION */}
 
               {job.description && (
                 <div className="mt-5">
-
                   <h3 className="text-sm font-bold text-slate-700">
                     Job Description
                   </h3>
@@ -615,7 +882,6 @@ export default function MyJobPostModule({
                   <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-600">
                     {job.description}
                   </p>
-
                 </div>
               )}
 
@@ -623,7 +889,6 @@ export default function MyJobPostModule({
 
               {job.requirements && (
                 <div className="mt-5">
-
                   <h3 className="text-sm font-bold text-slate-700">
                     Requirements
                   </h3>
@@ -631,14 +896,12 @@ export default function MyJobPostModule({
                   <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-600">
                     {job.requirements}
                   </p>
-
                 </div>
               )}
 
               {/* ACTIONS */}
 
               <div className="mt-6 flex flex-wrap gap-3">
-
                 <button
                   type="button"
                   onClick={() => openEditForm(job)}
@@ -667,17 +930,11 @@ export default function MyJobPostModule({
                 >
                   Delete
                 </button>
-
               </div>
-
             </article>
-
           ))}
-
         </div>
-
       )}
-
     </div>
   );
 }

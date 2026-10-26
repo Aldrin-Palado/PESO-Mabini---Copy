@@ -47,6 +47,7 @@ interface JobPost {
   status: string;
   date_posted: string;
   deadline: string | null;
+  image_url: string | null;
 }
 
 interface ApplicationRow {
@@ -181,7 +182,7 @@ export default function EmployerDashboard() {
       await supabase
         .from("job_vacancy")
         .select(
-          "job_vacancy_id, employer_id, position_title, description, requirements, location, employment_type, salary_min, salary_max, vacancies_available, status, date_posted, deadline"
+          "job_vacancy_id, employer_id, position_title, description, requirements, location, employment_type, salary_min, salary_max, vacancies_available, status, date_posted, deadline, image_url"
         )
         .eq("employer_id", employer.employer_id)
         .order("date_posted", { ascending: false });
