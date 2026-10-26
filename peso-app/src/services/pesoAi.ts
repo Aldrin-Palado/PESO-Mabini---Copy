@@ -6,9 +6,18 @@ export async function invokePesoAI<T>(
   action: AIAction,
   payload: Record<string, unknown>,
 ): Promise<T> {
-  const { data, error } = await supabase.functions.invoke("peso-ai", {
+  const invoke = () => supabase.functions.invoke("peso-ai", {
     body: { action, ...payload },
   });
+  let result = await invoke();
+
+  if (result.error?.context instanceof Response && result.error.context.status === 546) {
+    console.warn(`PESO AI ${action} function ran out of compute resources; retrying once.`);
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+    result = await invoke();
+  }
+
+  const { data, error } = result;
 
   if (error) {
     console.error(`PESO AI ${action} request failed:`, error);
