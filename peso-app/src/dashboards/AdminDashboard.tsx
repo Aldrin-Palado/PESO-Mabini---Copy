@@ -6,7 +6,7 @@ import AdminSidebar, {
 } from "../components/AdminSidebar";
 import ProfileAvatar from "../components/ProfileAvatar";
 
-import AdminAccounts from "../pages/AdminAccounts";
+import AdminAccounts from "../adminmodules/AdminAccounts";
 
 import DashboardModule from "../adminmodules/DashboardModule";
 import JobPostsModule from "../adminmodules/JobPostsModule";

@@ -5,7 +5,7 @@ type Account = {
   user_id: string;
   full_name: string;
   email: string;
-  contact_no?: string;
+  contact_no?: string | null;
   is_active: boolean;
   role: "superadmin" | "staff";
 };
