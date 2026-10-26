@@ -40,7 +40,7 @@ export default function AIChatbotModule({
 
     try {
       const result = await invokePesoAI<{ reply: string }>("chat", {
-        messages: nextMessages.slice(-12),
+        messages: nextMessages.slice(-6),
       });
       setMessages((current) => [
         ...current,

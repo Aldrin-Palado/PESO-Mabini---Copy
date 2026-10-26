@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { invokePesoAI } from "../services/pesoAi";
 
-const maxResumeBytes = 1_000_000;
+const maxResumeBytes = 500_000;
 
 type JobMatch = {
   job: {
@@ -49,7 +49,7 @@ export default function JobMatchesModule() {
           throw new Error("Please authorize sending your resume for AI analysis.");
         }
         if (resume.size > maxResumeBytes) {
-          throw new Error("Resume PDF must be 1 MB or smaller.");
+          throw new Error("Resume PDF must be 500 KB or smaller.");
         }
         const bytes = new Uint8Array(await resume.arrayBuffer());
         if (new TextDecoder().decode(bytes.subarray(0, 5)) !== "%PDF-") {
@@ -102,7 +102,7 @@ export default function JobMatchesModule() {
 
       <form onSubmit={findMatches} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <label htmlFor="job-match-resume" className="text-sm font-bold text-slate-800">
-          Upload resume (PDF, up to 1 MB)
+          Upload resume (PDF, up to 500 KB)
         </label>
         <input
           id="job-match-resume"
@@ -163,7 +163,7 @@ export default function JobMatchesModule() {
           id="job-match-profile"
           value={profileText}
           onChange={(event) => setProfileText(event.target.value)}
-          maxLength={6000}
+          maxLength={4000}
           rows={6}
           disabled={loading || Boolean(resumeFile)}
           placeholder="For example: Two years of customer service experience, Microsoft Office, bookkeeping NC II, looking for full-time work near Mabini..."
