@@ -1,11 +1,12 @@
-import { GoogleGenAI } from "npm:@google/genai@2.28.0";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import type { GoogleGenAI } from "npm:@google/genai@2.28.0";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
 };
 
 const maxPdfBytes = 500_000;
@@ -14,8 +15,17 @@ const maxChatHistoryMessages = 6;
 const maxVacanciesForAI = 12;
 const maxGenerationDurationMs = 20_000;
 const vacancyCacheTtlMs = 30_000;
-const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.8-flash";
-const fallbackModel = Deno.env.get("GEMINI_FALLBACK_MODEL") ?? "gemini-2.5-flash";
+const defaultModel = "gemini-3.8-flash";
+
+function getConfiguredModel(value: string | undefined) {
+  const configuredModel = value?.trim();
+  return configuredModel && configuredModel !== "gemini-2.5-flash"
+    ? configuredModel
+    : defaultModel;
+}
+
+const model = getConfiguredModel(Deno.env.get("GEMINI_MODEL"));
+const fallbackModel = getConfiguredModel(Deno.env.get("GEMINI_FALLBACK_MODEL"));
 const maxGenerationAttempts = 3;
 
 type ChatMessage = {
@@ -48,7 +58,21 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-function getSupabaseClient(authorization?: string) {
+async function createSupabaseClient(
+  supabaseUrl: string,
+  supabaseKey: string,
+  authorization?: string,
+) {
+  const { createClient } = await import("npm:@supabase/supabase-js@2");
+  return createClient(supabaseUrl, supabaseKey, {
+    global: authorization
+      ? { headers: { Authorization: authorization } }
+      : undefined,
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+async function getSupabaseClient(authorization?: string) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseKey =
     Deno.env.get("SUPABASE_ANON_KEY") ??
@@ -58,12 +82,7 @@ function getSupabaseClient(authorization?: string) {
     throw new Error("Supabase function environment is not configured.");
   }
 
-  return createClient(supabaseUrl, supabaseKey, {
-    global: authorization
-      ? { headers: { Authorization: authorization } }
-      : undefined,
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  return createSupabaseClient(supabaseUrl, supabaseKey, authorization);
 }
 
 async function enforcePublicChatLimit(request: Request) {
@@ -79,9 +98,7 @@ async function enforcePublicChatLimit(request: Request) {
     request.headers.get("x-real-ip") ??
     forwardedFor?.split(",").at(-1)?.trim() ??
     "unknown";
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const supabase = await createSupabaseClient(supabaseUrl, serviceRoleKey);
   const { data, error } = await supabase.rpc("consume_peso_ai_chat_request", {
     p_client_ip: clientIp.slice(0, 128),
   });
@@ -95,13 +112,14 @@ async function enforcePublicChatLimit(request: Request) {
   return null;
 }
 
-function getGemini() {
+async function getGemini() {
   if (geminiClient) return geminiClient;
 
   const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) {
     throw new Error("Gemini is not configured. Set GEMINI_API_KEY in Supabase Function Secrets.");
   }
+  const { GoogleGenAI } = await import("npm:@google/genai@2.28.0");
   geminiClient = new GoogleGenAI({
     apiKey,
     httpOptions: { timeout: maxGenerationDurationMs },
@@ -149,6 +167,21 @@ function isTransientGeminiError(error: unknown) {
     .test(message);
 }
 
+function isMissingGeminiModelError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  let parsedMessage: unknown;
+  try {
+    parsedMessage = JSON.parse(message);
+  } catch {
+    // SDK errors may contain a plain-text message rather than a JSON response body.
+  }
+
+  return (
+    getNestedGeminiStatus(parsedMessage) === 404 ||
+    getNestedGeminiStatus(error) === 404
+  );
+}
+
 function sleep(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
@@ -159,27 +192,43 @@ async function generateContent(
 ) {
   const models = [...new Set([model, fallbackModel])];
   let lastError: unknown;
+  let totalAttempts = 0;
 
-  for (let attempt = 0; attempt < maxGenerationAttempts; attempt += 1) {
-    if (attempt > 0) {
-      const backoffMs = 1_000 * 2 ** (attempt - 1);
-      await sleep(backoffMs + Math.random() * 500);
-    }
+  if (models.length === 1) {
+    console.warn(
+      "GEMINI_FALLBACK_MODEL resolves to the primary model; configure a different supported model for fallback.",
+    );
+  }
 
-    const currentModel =
-      attempt < maxGenerationAttempts - 1
-        ? models[0]
-        : models[models.length - 1];
-    try {
-      return await ai.models.generateContent({ ...params, model: currentModel });
-    } catch (error) {
-      lastError = error;
-      if (!isTransientGeminiError(error)) {
+  for (const [modelIndex, currentModel] of models.entries()) {
+    const attemptsForModel =
+      modelIndex === 0 && models.length > 1
+        ? maxGenerationAttempts - 1
+        : maxGenerationAttempts;
+
+    for (let attempt = 0; attempt < attemptsForModel && totalAttempts < maxGenerationAttempts; attempt += 1) {
+      if (totalAttempts > 0) {
+        const backoffMs = 1_000 * 2 ** (totalAttempts - 1);
+        await sleep(backoffMs + Math.random() * 500);
+      }
+
+      totalAttempts += 1;
+      try {
+        return await ai.models.generateContent({ ...params, model: currentModel });
+      } catch (error) {
+        lastError = error;
+        if (isTransientGeminiError(error)) {
+          console.warn(
+            `Gemini model ${currentModel} returned a transient error; attempt ${totalAttempts} of ${maxGenerationAttempts}.`,
+          );
+          continue;
+        }
+        if (modelIndex < models.length - 1 && isMissingGeminiModelError(error)) {
+          console.warn(`Gemini model ${currentModel} was not found; trying the configured fallback model.`);
+          break;
+        }
         throw error;
       }
-      console.warn(
-        `Gemini model ${currentModel} returned a transient error; attempt ${attempt + 1} of ${maxGenerationAttempts}.`,
-      );
     }
   }
 
@@ -195,7 +244,7 @@ function parseJsonObject<T>(text: string): T {
   return JSON.parse(text.slice(firstBrace, lastBrace + 1)) as T;
 }
 
-async function requireJobSeeker(supabase: ReturnType<typeof getSupabaseClient>, userId: string) {
+async function requireJobSeeker(supabase: SupabaseClient, userId: string) {
   const { data, error } = await supabase
     .from("job_seeker")
     .select("job_seeker_id, full_name, address, resume_url")
@@ -208,7 +257,7 @@ async function requireJobSeeker(supabase: ReturnType<typeof getSupabaseClient>, 
 }
 
 async function listOpenVacancies(
-  supabase: ReturnType<typeof getSupabaseClient>,
+  supabase: SupabaseClient,
   usePublicCache = false,
 ) {
   if (usePublicCache && publicVacancyCache && publicVacancyCache.expiresAt > Date.now()) {
@@ -256,7 +305,7 @@ function publicVacancy(vacancy: Vacancy) {
 }
 
 async function handleChat(
-  supabase: ReturnType<typeof getSupabaseClient>,
+  supabase: SupabaseClient,
   body: Record<string, unknown>,
 ) {
   if (!Array.isArray(body.messages) || body.messages.length === 0) {
@@ -287,7 +336,7 @@ async function handleChat(
   }
 
   const vacancies = await listOpenVacancies(supabase, true);
-  const ai = getGemini();
+  const ai = await getGemini();
   const response = await generateContent(ai, {
     contents: messages.map((message) => ({
       role: message.role,
@@ -306,7 +355,7 @@ async function handleChat(
 }
 
 async function handleJobMatches(
-  supabase: ReturnType<typeof getSupabaseClient>,
+  supabase: SupabaseClient,
   userId: string,
   body: Record<string, unknown>,
 ) {
@@ -334,7 +383,7 @@ async function handleJobMatches(
   const vacancies = await listOpenVacancies(supabase);
   if (vacancies.length === 0) return { matches: [] };
 
-  const ai = getGemini();
+  const ai = await getGemini();
   const matchingData = JSON.stringify({
     candidateProfile: resumeBase64 ? "See attached PDF resume." : profileText,
     vacancies: vacancies.map(publicVacancy),
@@ -404,7 +453,7 @@ function decodePdf(base64: string) {
 
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
   if (request.method !== "POST") return jsonResponse({ error: "Method not allowed." }, 405);
 
@@ -414,7 +463,7 @@ Deno.serve(async (request: Request) => {
       case "chat": {
         const rateLimitResponse = await enforcePublicChatLimit(request);
         if (rateLimitResponse) return rateLimitResponse;
-        const supabase = getSupabaseClient();
+        const supabase = await getSupabaseClient();
         return jsonResponse(await handleChat(supabase, body));
       }
       case "job-matches": {
@@ -422,7 +471,7 @@ Deno.serve(async (request: Request) => {
         if (!authorization?.startsWith("Bearer ")) {
           return jsonResponse({ error: "Authentication is required." }, 401);
         }
-        const supabase = getSupabaseClient(authorization);
+        const supabase = await getSupabaseClient(authorization);
         const {
           data: { user },
           error: authError,
