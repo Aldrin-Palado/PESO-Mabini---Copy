@@ -333,62 +333,23 @@ function Register() {
 
       uploadedResumePath = resumePath;
 
-      // STEP 3: Update the profile created by the auth.users trigger.
-      // Do not INSERT another job_seeker record.
+      // Registration details are copied by the auth.users trigger. Update only
+      // profile fields supported by the existing job_seeker schema here.
       const { error: profileError } = await supabase
         .from("job_seeker")
         .update({
           contact_no: formData.contactNumber.trim(),
           address: formData.address.trim(),
           birth_date: details.dateOfBirth || null,
-          registration_details: registrationDetails,
           resume_url: resumePath,
         })
         .eq("user_id", userId);
 
       if (profileError) {
-        const missingRegistrationDetailsColumn =
-          profileError.code === "PGRST204" &&
-          profileError.message.includes("registration_details") &&
-          profileError.message.toLowerCase().includes("schema cache");
-
-        if (!missingRegistrationDetailsColumn) {
-          console.error("Job seeker profile update error:", profileError);
-          alert(
-            `Account and resume were created, but your profile could not be updated: ${profileError.message}. Please contact the administrator.`,
-          );
-          return;
-        }
-
-        console.warn(
-          "The registration_details column is not available yet. Retrying with existing profile fields; submitted registration details remain in the Auth user metadata.",
-        );
-
-        const { error: fallbackProfileError } = await supabase
-          .from("job_seeker")
-          .update({
-            contact_no: formData.contactNumber.trim(),
-            address: formData.address.trim(),
-            birth_date: details.dateOfBirth || null,
-            resume_url: resumePath,
-          })
-          .eq("user_id", userId);
-
-        if (fallbackProfileError) {
-          console.error(
-            "Job seeker profile fallback update error:",
-            fallbackProfileError,
-          );
-          alert(
-            `Your account and resume were created, but your profile could not be updated: ${fallbackProfileError.message}. Your submitted details are retained with your account. Please contact the administrator.`,
-          );
-          return;
-        }
-
+        console.error("Job seeker profile update error:", profileError);
         alert(
-          "Your account and resume were created. Your registration details are saved with your account, but the profile database update is still needed. Please ask the administrator to apply the registration-details migration, then log in.",
+          `Account and resume were created, but your profile could not be updated: ${profileError.message}. Please contact the administrator.`,
         );
-        navigate("/login");
         return;
       }
 
