@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Footer from "../components/Footer";
 import HeroBackground from "../components/HeroBackground";
 import Navbar from "../components/Navbar";
+import AppIcon from "../components/AppIcon";
 import AIChatbotModule from "../jobseekersmodules/AIChatbotModule";
 
 const backgroundImage = new URL(
@@ -118,7 +119,7 @@ function Home() {
 
             <p className="hero-lead mt-6 max-w-2xl text-slate-200 sm:mt-7">
 
-              PESO-Hub provides accessible employment services
+              PESO MABINI provides accessible employment services
               connecting job seekers, employers, and the
               Public Employment Service Office in one platform.
 
@@ -134,9 +135,7 @@ function Home() {
                 className="inline-flex items-center justify-center rounded-xl bg-yellow-400 px-6 py-3.5 text-center font-bold text-slate-900 shadow-lg transition hover:-translate-y-1 hover:bg-yellow-300 sm:px-7"
               >
                 Find a Job
-                <span className="ml-2">
-                  →
-                </span>
+                <AppIcon name="arrowRight" className="ml-2 h-4 w-4" />
               </a>
 
               <Link
@@ -154,23 +153,17 @@ function Home() {
             <div className="mt-8 flex flex-col gap-y-3 text-xs text-slate-300 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-x-8 sm:text-sm">
 
               <div className="flex items-center gap-2">
-                <span className="text-yellow-400">
-                  ✓
-                </span>
+                <AppIcon name="check" className="h-4 w-4 text-yellow-400" />
                 Employment Assistance
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-yellow-400">
-                  ✓
-                </span>
+                <AppIcon name="check" className="h-4 w-4 text-yellow-400" />
                 Job Opportunities
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-yellow-400">
-                  ✓
-                </span>
+                <AppIcon name="check" className="h-4 w-4 text-yellow-400" />
                 Employer Services
               </div>
 
@@ -323,7 +316,7 @@ function Home() {
                           <div>
 
                             <h3 className="font-bold text-slate-900">
-                              PESO-Hub
+                              PESO MABINI
                             </h3>
 
                             <p className="text-sm text-slate-500">
@@ -377,7 +370,7 @@ function Home() {
                       <div className="flex justify-between px-5 py-3 text-sm text-slate-500">
 
                         <span>
-                          👍 {post.likes + (isLiked ? 1 : 0)} Likes
+                          <AppIcon name="thumbsUp" className="mr-1 inline h-4 w-4" /> {post.likes + (isLiked ? 1 : 0)} Likes
                         </span>
 
                         <span>
@@ -401,15 +394,15 @@ function Home() {
                                 : "text-slate-600"
                             }`}
                           >
-                            👍 Like
+                            <AppIcon name="thumbsUp" className="mx-auto mb-1 h-4 w-4" /> Like
                           </button>
 
                           <button className="py-3 font-semibold text-slate-600 transition hover:bg-sky-50 hover:text-sky-600">
-                            💬 Comment
+                            <AppIcon name="message" className="mx-auto mb-1 h-4 w-4" /> Comment
                           </button>
 
                           <button className="py-3 font-semibold text-slate-600 transition hover:bg-sky-50 hover:text-sky-600">
-                            ↗ Share
+                            <AppIcon name="share" className="mx-auto mb-1 h-4 w-4" /> Share
                           </button>
 
                         </div>
@@ -531,7 +524,7 @@ function Home() {
                       </p>
 
                       <button className="mt-4 text-sm font-semibold text-sky-600 hover:text-sky-700">
-                        Read More →
+                        Read More <AppIcon name="arrowRight" className="ml-1 inline h-4 w-4" />
                       </button>
 
                     </article>

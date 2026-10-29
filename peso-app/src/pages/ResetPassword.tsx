@@ -101,7 +101,7 @@ export default function ResetPassword() {
               <p className="mt-3 text-sm leading-6 text-slate-500 sm:text-base">
                 {updated
                   ? "Your password has been changed. You can now sign in with your new password."
-                  : "Choose a new password for your PESO-Hub account."}
+                  : "Choose a new password for your PESO MABINI account."}
               </p>
             </div>
 

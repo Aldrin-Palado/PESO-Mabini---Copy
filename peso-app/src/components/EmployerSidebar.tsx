@@ -70,7 +70,8 @@ function EmployersSidebar({
 
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-lg font-black">
-              PESO-Hub
+              <span className="text-white">PESO </span>
+              <span className="text-red-400">MABINI</span>
             </h1>
             <p className="text-xs text-blue-100">
               Employer Portal

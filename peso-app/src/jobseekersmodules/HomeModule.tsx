@@ -125,7 +125,7 @@ export default function HomeModule({
             onClick={() => onNavigate("Jobs")}
             className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-700"
           >
-            💼
+            <AppIcon name="briefcase" className="h-5 w-5" />
             Find Jobs
           </button>
 
@@ -136,7 +136,7 @@ export default function HomeModule({
             onClick={() => onNavigate("Messages")}
             className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-700"
           >
-            🔔
+            <AppIcon name="bell" className="h-5 w-5" />
             PESO Updates
           </button>
 
@@ -163,7 +163,7 @@ export default function HomeModule({
             </p>
 
             <p className="mt-4 text-sm leading-6 text-gray-700">
-              Welcome to PESO-Hub! Check this feed regularly for
+              Welcome to PESO MABINI! Check this feed regularly for
               employment opportunities, announcements, job fairs,
               and other employment-related activities.
             </p>
@@ -171,7 +171,7 @@ export default function HomeModule({
             <div className="mt-4 rounded-xl bg-blue-50 p-4">
 
               <p className="text-sm font-semibold text-blue-800">
-                📢 Employment Updates
+                <AppIcon name="megaphone" className="mr-1 inline h-4 w-4" /> Employment Updates
               </p>
 
               <p className="mt-1 text-sm text-blue-700">
@@ -188,21 +188,21 @@ export default function HomeModule({
             type="button"
             className="flex-1 rounded-lg py-2 text-sm font-medium text-gray-500 hover:bg-gray-50"
           >
-            👍 Like
+            <AppIcon name="thumbsUp" className="mr-1 inline h-4 w-4" /> Like
           </button>
 
           <button
             type="button"
             className="flex-1 rounded-lg py-2 text-sm font-medium text-gray-500 hover:bg-gray-50"
           >
-            💬 Comment
+            <AppIcon name="message" className="mr-1 inline h-4 w-4" /> Comment
           </button>
 
           <button
             type="button"
             className="flex-1 rounded-lg py-2 text-sm font-medium text-gray-500 hover:bg-gray-50"
           >
-            ↗ Share
+            <AppIcon name="share" className="mr-1 inline h-4 w-4" /> Share
           </button>
 
         </div>
@@ -270,11 +270,11 @@ export default function HomeModule({
                   <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
 
                     <span className="rounded-full bg-gray-100 px-3 py-1">
-                      📍 {job.location}
+                      <AppIcon name="mapPin" className="mr-1 inline h-3.5 w-3.5" /> {job.location}
                     </span>
 
                     <span className="rounded-full bg-gray-100 px-3 py-1">
-                      💼 {job.type}
+                      <AppIcon name="briefcase" className="mr-1 inline h-3.5 w-3.5" /> {job.type}
                     </span>
 
                   </div>
@@ -288,7 +288,7 @@ export default function HomeModule({
                     onClick={() => onNavigate("Jobs")}
                     className="mt-3 text-sm font-semibold text-blue-700 hover:text-blue-900"
                   >
-                    View Job →
+                    View Job <AppIcon name="arrowRight" className="ml-1 inline h-4 w-4" />
                   </button>
 
                 </div>
@@ -305,7 +305,7 @@ export default function HomeModule({
         <div className="flex gap-3">
 
           <div className="text-xl">
-            💡
+            <AppIcon name="lightbulb" className="h-6 w-6 text-yellow-700" />
           </div>
 
           <div className="flex-1">
@@ -325,7 +325,7 @@ export default function HomeModule({
               onClick={() => onNavigate("Profile")}
               className="mt-3 text-sm font-bold text-yellow-900 underline hover:text-yellow-700"
             >
-              Update My Profile →
+              Update My Profile <AppIcon name="arrowRight" className="ml-1 inline h-4 w-4" />
             </button>
 
           </div>
@@ -335,3 +335,4 @@ export default function HomeModule({
     </div>
   );
 }
+import AppIcon from "../components/AppIcon";

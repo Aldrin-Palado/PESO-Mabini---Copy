@@ -2,6 +2,7 @@ import React from "react";
 import Footer from "../components/Footer";
 import HeroBackground from "../components/HeroBackground";
 import Navbar from "../components/Navbar";
+import AppIcon from "../components/AppIcon";
 
 const backgroundImage = new URL(
   "../assets/images/contact.png",
@@ -79,7 +80,7 @@ const About: React.FC = () => {
             <h1 className="hero-heading-compact font-black text-white">
               About{" "}
               <span className="text-sky-300">
-                PESO-Hub
+                PESO MABINI
               </span>
             </h1>
 
@@ -282,9 +283,7 @@ const About: React.FC = () => {
                   className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-4"
                 >
                   <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-500">
-                    <span className="text-sm font-black text-white">
-                      ✓
-                    </span>
+                    <AppIcon name="check" className="h-4 w-4 text-white" />
                   </div>
 
                   <p className="text-sm font-semibold leading-6 text-slate-200">
@@ -336,12 +335,12 @@ const About: React.FC = () => {
                     Public Employment Service Office
                   </p>
 
-                  <p className="mt-4 text-sm text-slate-600">
-                    📍 Mabini, Batangas
+                  <p className="mt-4 flex items-center gap-2 text-sm text-slate-600">
+                    <AppIcon name="mapPin" className="h-4 w-4 text-sky-700" /> Mabini, Batangas
                   </p>
 
-                  <p className="mt-2 text-sm text-slate-600">
-                    ✉️{" "}
+                  <p className="mt-2 flex items-center gap-2 text-sm text-slate-600">
+                    <AppIcon name="mail" className="h-4 w-4 shrink-0 text-sky-700" />
                     <a
                       href="mailto:peso.mabini@plo.gov.ph"
                       className="font-medium text-sky-600 hover:text-sky-700"
@@ -350,8 +349,8 @@ const About: React.FC = () => {
                     </a>
                   </p>
 
-                  <p className="mt-2 text-sm text-slate-600">
-                    📞 (02) XXXX-XXXX
+                  <p className="mt-2 flex items-center gap-2 text-sm text-slate-600">
+                    <AppIcon name="phone" className="h-4 w-4 text-sky-700" /> (02) XXXX-XXXX
                   </p>
 
                 </div>

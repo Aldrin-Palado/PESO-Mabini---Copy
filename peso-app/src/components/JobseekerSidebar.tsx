@@ -91,7 +91,8 @@ export default function JobSeekerSidebar({
 
             <div>
               <h1 className="text-lg font-bold text-blue-800">
-                PESO-Hub
+                <span className="text-blue-800">PESO </span>
+                <span className="text-red-600">MABINI</span>
               </h1>
 
               <p className="text-xs text-gray-500">

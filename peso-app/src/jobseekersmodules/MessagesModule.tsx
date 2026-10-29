@@ -145,7 +145,7 @@ export default function MessagesModule({
             {filteredConversations.length === 0 ? (
               <div className="p-6 text-center">
                 <div className="text-3xl">
-                  💬
+                  <AppIcon name="message" className="mx-auto h-9 w-9 text-blue-700" />
                 </div>
 
                 <p className="mt-2 text-sm font-medium text-gray-700">
@@ -363,3 +363,4 @@ export default function MessagesModule({
     </div>
   );
 }
+import AppIcon from "../components/AppIcon";

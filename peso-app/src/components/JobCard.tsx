@@ -65,21 +65,21 @@ function JobCard({ job, index }: JobCardProps) {
       <div className="mt-5 space-y-3 text-sm text-slate-600">
         {job.location && (
           <div className="flex items-center gap-3">
-            <span>📍</span>
+            <AppIcon name="mapPin" className="h-4 w-4 text-sky-700" />
             <span>{job.location}</span>
           </div>
         )}
 
         {job.employment_type && (
           <div className="flex items-center gap-3">
-            <span>💼</span>
+            <AppIcon name="briefcase" className="h-4 w-4 text-sky-700" />
             <span>{job.employment_type}</span>
           </div>
         )}
 
         {job.salary && (
           <div className="flex items-center gap-3">
-            <span>💰</span>
+            <AppIcon name="dollar" className="h-4 w-4 text-sky-700" />
             <span>{job.salary}</span>
           </div>
         )}
@@ -212,3 +212,4 @@ function JobCard({ job, index }: JobCardProps) {
 }
 
 export default JobCard;
+import AppIcon from "./AppIcon";

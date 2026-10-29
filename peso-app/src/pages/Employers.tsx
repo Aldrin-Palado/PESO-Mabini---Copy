@@ -1,44 +1,50 @@
 import { useState } from "react";
 import Navbar from "../components/Navbar";
+import AppIcon, { type AppIconName } from "../components/AppIcon";
 
-const recommendations = [
+const recommendations: {
+  icon: AppIconName;
+  title: string;
+  description: string;
+  examples: string;
+}[] = [
   {
-    icon: "🎓",
+    icon: "graduationCap",
     title: "Entry-Level Opportunities",
     description:
       "Help fresh graduates and first-time job seekers begin their careers by posting entry-level positions.",
     examples: "Office assistant, sales associate, service crew",
   },
   {
-    icon: "🛠️",
+    icon: "wrench",
     title: "Skilled and Technical Jobs",
     description:
       "Find applicants with specific skills, training, or experience for your business needs.",
     examples: "Electrician, technician, machine operator",
   },
   {
-    icon: "💼",
+    icon: "briefcase",
     title: "Professional Positions",
     description:
       "Share openings that require specialized knowledge, qualifications, or professional experience.",
     examples: "Accountant, HR staff, supervisor",
   },
   {
-    icon: "⏰",
+    icon: "clock",
     title: "Part-Time and Temporary Work",
     description:
       "Offer flexible or short-term opportunities for applicants looking for alternative work arrangements.",
     examples: "Seasonal staff, part-time cashier, project assistant",
   },
   {
-    icon: "🏭",
+    icon: "factory",
     title: "Local and Community Jobs",
     description:
       "Post vacancies available in Mabini and nearby areas to connect with local job seekers.",
     examples: "Retail staff, hospitality staff, production worker",
   },
   {
-    icon: "📈",
+    icon: "chart",
     title: "Career Growth Opportunities",
     description:
       "Promote positions where applicants can develop their skills and grow within your organization.",
@@ -92,7 +98,7 @@ export default function Employers() {
               onClick={() => setShowAuthModal(true)}
               className="mt-8 inline-flex items-center justify-center rounded-full bg-yellow-400 px-6 py-3 text-sm font-bold text-slate-950 shadow-lg transition hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-300 focus:ring-offset-2 focus:ring-offset-slate-950"
             >
-              Post a Job <span className="ml-2" aria-hidden="true">→</span>
+              Post a Job <AppIcon name="arrowRight" className="ml-2 h-4 w-4" />
             </button>
           </div>
         </div>
@@ -123,7 +129,7 @@ export default function Employers() {
                 className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-sky-300 hover:shadow-md"
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 text-2xl">
-                  {item.icon}
+                  <AppIcon name={item.icon} className="h-6 w-6 text-sky-700" />
                 </div>
                 <h3 className="mt-4 text-lg font-bold text-slate-900">
                   {item.title}
@@ -142,7 +148,7 @@ export default function Employers() {
                   onClick={() => setShowAuthModal(true)}
                   className="mt-5 inline-flex items-center text-sm font-bold text-sky-700 transition hover:text-sky-900"
                 >
-                  Post Now <span className="ml-1" aria-hidden="true">→</span>
+                  Post Now <AppIcon name="arrowRight" className="ml-1 h-4 w-4" />
                 </button>
               </article>
             ))}
@@ -171,7 +177,7 @@ export default function Employers() {
               onClick={() => setShowAuthModal(true)}
               className="inline-flex shrink-0 items-center justify-center rounded-full bg-yellow-400 px-6 py-3 text-sm font-bold text-slate-950 transition hover:bg-yellow-300"
             >
-              Post Now <span className="ml-2" aria-hidden="true">→</span>
+              Post Now <AppIcon name="arrowRight" className="ml-2 h-4 w-4" />
             </button>
           </div>
         </section>
@@ -191,7 +197,7 @@ export default function Employers() {
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
             <div className="flex items-start justify-between gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-100 text-2xl">
-                💼
+                <AppIcon name="briefcase" className="h-6 w-6 text-sky-700" />
               </div>
               <button
                 type="button"
@@ -199,7 +205,7 @@ export default function Employers() {
                 aria-label="Close dialog"
                 className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
               >
-                ✕
+                <AppIcon name="x" className="h-5 w-5" />
               </button>
             </div>
 
