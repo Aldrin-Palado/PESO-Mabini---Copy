@@ -182,74 +182,10 @@ export default function HomeModule({
       </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-<<<<<<< HEAD
         <h2 className="font-semibold text-gray-900">PESO Announcements</h2>
         <p className="mt-2 text-sm text-gray-500">
           No announcements are available.
         </p>
-=======
-
-        <div className="flex items-start gap-3">
-
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-700 font-bold text-white">
-            P
-          </div>
-
-          <div className="flex-1">
-
-            <h2 className="font-semibold text-gray-900">
-              PESO Mabini
-            </h2>
-
-            <p className="text-xs text-gray-400">
-              Public Employment Service Office · 1 day ago
-            </p>
-
-            <p className="mt-4 text-sm leading-6 text-gray-700">
-              Welcome to PESO MABINI! Check this feed regularly for
-              employment opportunities, announcements, job fairs,
-              and other employment-related activities.
-            </p>
-
-            <div className="mt-4 rounded-xl bg-blue-50 p-4">
-
-              <p className="text-sm font-semibold text-blue-800">
-                <AppIcon name="megaphone" className="mr-1 inline h-4 w-4" /> Employment Updates
-              </p>
-
-              <p className="mt-1 text-sm text-blue-700">
-                New job opportunities are now available for job seekers.
-              </p>
-
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-5 flex border-t border-gray-100 pt-3">
-
-          <button
-            type="button"
-            className="flex-1 rounded-lg py-2 text-sm font-medium text-gray-500 hover:bg-gray-50"
-          >
-            <AppIcon name="thumbsUp" className="mr-1 inline h-4 w-4" /> Like
-          </button>
-
-          <button
-            type="button"
-            className="flex-1 rounded-lg py-2 text-sm font-medium text-gray-500 hover:bg-gray-50"
-          >
-            <AppIcon name="message" className="mr-1 inline h-4 w-4" /> Comment
-          </button>
-
-          <button
-            type="button"
-            className="flex-1 rounded-lg py-2 text-sm font-medium text-gray-500 hover:bg-gray-50"
-          >
-            <AppIcon name="share" className="mr-1 inline h-4 w-4" /> Share
-          </button>
-
-        </div>
->>>>>>> 516ecd93c0d25d674d275de75206569a89c63321
       </div>
 
       {/* Recommended Jobs */}

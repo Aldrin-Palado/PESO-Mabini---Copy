@@ -248,13 +248,6 @@ export default function ApplicationsModule({
                   <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-500">
 
                     <span>
-<<<<<<< HEAD
-=======
-                      <AppIcon name="mapPin" className="mr-1 inline h-4 w-4" /> {application.location}
-                    </span>
-
-                    <span>
->>>>>>> 516ecd93c0d25d674d275de75206569a89c63321
                       Applied: {application.date}
                     </span>
 
