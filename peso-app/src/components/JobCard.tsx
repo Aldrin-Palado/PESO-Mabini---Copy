@@ -1,14 +1,22 @@
 import { useEffect, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { supabase } from "../services/supabase";
 import type { JobVacancy } from "../types/JobVacancy";
 
 interface JobCardProps {
   job: JobVacancy;
   /** Position in the list, used to alternate the accent stripe. */
   index: number;
+  isAuthenticated: boolean;
 }
 
-function JobCard({ job, index }: JobCardProps) {
+function JobCard({ job, index, isAuthenticated }: JobCardProps) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isCheckingLogin, setIsCheckingLogin] = useState(false);
+  const [loginError, setLoginError] = useState("");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   /*
    * Alternating left accent stripe: red, yellow, red, yellow...
@@ -25,16 +33,67 @@ function JobCard({ job, index }: JobCardProps) {
     ? "before:bg-red-200 group-hover:before:bg-red-400"
     : "before:bg-yellow-300 group-hover:before:bg-yellow-400";
 
+  const closeDetails = () => {
+    setIsDetailsOpen(false);
+    if (searchParams.get("job") === job.job_vacancy_id) {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("job");
+      setSearchParams(nextParams, { replace: true });
+    }
+  };
+
+  useEffect(() => {
+    if (
+      isAuthenticated &&
+      searchParams.get("job") === job.job_vacancy_id
+    ) {
+      setIsDetailsOpen(true);
+    }
+  }, [isAuthenticated, job.job_vacancy_id, searchParams]);
+
   useEffect(() => {
     if (!isDetailsOpen) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsDetailsOpen(false);
+      if (event.key === "Escape") closeDetails();
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isDetailsOpen]);
+  }, [isDetailsOpen, job.job_vacancy_id, searchParams, setSearchParams]);
+
+  const viewJobDetails = async () => {
+    if (isCheckingLogin) return;
+    setIsCheckingLogin(true);
+    setLoginError("");
+
+    try {
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+
+      if (error) throw error;
+
+      if (!session) {
+        const returnParams = new URLSearchParams(location.search);
+        returnParams.set("job", job.job_vacancy_id);
+        navigate("/login", {
+          state: {
+            returnTo: `${location.pathname}?${returnParams.toString()}`,
+          },
+        });
+        return;
+      }
+
+      setIsDetailsOpen(true);
+    } catch (error) {
+      console.error("Could not verify sign-in before opening job details:", error);
+      setLoginError("Unable to verify your sign-in. Please try again.");
+    } finally {
+      setIsCheckingLogin(false);
+    }
+  };
 
   return (
     <>
@@ -65,11 +124,17 @@ function JobCard({ job, index }: JobCardProps) {
       <div className="mt-6 border-t border-slate-100 pt-5">
         <button
           type="button"
-          onClick={() => setIsDetailsOpen(true)}
-          className="w-full rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-sky-700"
+          onClick={viewJobDetails}
+          disabled={isCheckingLogin}
+          className="w-full rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-sky-700 disabled:cursor-wait disabled:opacity-70"
         >
-          View Job
+          {isCheckingLogin ? "Checking..." : "View Job Details"}
         </button>
+        {loginError && (
+          <p role="alert" className="mt-2 text-sm text-red-700">
+            {loginError}
+          </p>
+        )}
       </div>
       </div>
 
@@ -78,7 +143,7 @@ function JobCard({ job, index }: JobCardProps) {
           className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
-              setIsDetailsOpen(false);
+              closeDetails();
             }
           }}
         >
@@ -103,7 +168,7 @@ function JobCard({ job, index }: JobCardProps) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setIsDetailsOpen(false)}
+                  onClick={closeDetails}
                   aria-label="Close job details"
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
                 >
@@ -245,7 +310,7 @@ function JobCard({ job, index }: JobCardProps) {
                 <div className="flex justify-end border-t border-slate-100 pt-5">
                   <button
                     type="button"
-                    onClick={() => setIsDetailsOpen(false)}
+                    onClick={closeDetails}
                     className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500"
                   >
                     Close details

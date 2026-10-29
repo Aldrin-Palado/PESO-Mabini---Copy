@@ -15,6 +15,13 @@ export interface OpenJobVacancyRow {
   job_classification: "local" | "international";
 }
 
+export interface PublicJobVacancyPreviewRow {
+  job_vacancy_id: string;
+  position_title: string;
+  employer_name: string | null;
+  job_classification: "local" | "international";
+}
+
 export interface JobVacancy {
   job_vacancy_id: string;
   position_title: string;

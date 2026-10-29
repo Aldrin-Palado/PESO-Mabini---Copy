@@ -7,6 +7,7 @@ import AppIcon from "../components/AppIcon";
 import type {
   JobVacancy,
   OpenJobVacancyRow,
+  PublicJobVacancyPreviewRow,
 } from "../types/JobVacancy";
 import { supabase } from "../services/supabase";
 
@@ -16,15 +17,35 @@ function JobVacancies() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const loadJobs = async () => {
       setLoading(true);
       setLoadError("");
 
-      const { data, error } = await supabase
-        .rpc("get_open_job_vacancies")
-        .order("date_posted", { ascending: false });
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.error("Error checking login before loading job details:", sessionError);
+        setJobs([]);
+        setLoadError("Unable to check your sign-in status. Please refresh and try again.");
+        setLoading(false);
+        return;
+      }
+
+      setIsAuthenticated(Boolean(session));
+
+      const { data, error } = session
+        ? await supabase
+            .rpc("get_open_job_vacancies")
+            .order("date_posted", { ascending: false })
+        : await supabase
+            .rpc("get_public_job_vacancy_previews")
+            .order("position_title", { ascending: true });
 
       if (error) {
         console.error("Error loading job vacancies:", error);
@@ -34,39 +55,46 @@ function JobVacancies() {
         return;
       }
 
-      const formattedJobs: JobVacancy[] = (
-        (data ?? []) as OpenJobVacancyRow[]
-      ).map((job) => {
-        let salary = "Salary not specified";
+      const formattedJobs: JobVacancy[] = session
+        ? ((data ?? []) as OpenJobVacancyRow[]).map((job) => {
+            let salary = "Salary not specified";
 
-        if (job.salary_min != null && job.salary_max != null) {
-          salary = `₱${Number(job.salary_min).toLocaleString()} - ₱${Number(
-            job.salary_max
-          ).toLocaleString()}`;
-        } else if (job.salary_min != null) {
-          salary = `From ₱${Number(job.salary_min).toLocaleString()}`;
-        } else if (job.salary_max != null) {
-          salary = `Up to ₱${Number(job.salary_max).toLocaleString()}`;
-        }
+            if (job.salary_min != null && job.salary_max != null) {
+              salary = `₱${Number(job.salary_min).toLocaleString()} - ₱${Number(
+                job.salary_max
+              ).toLocaleString()}`;
+            } else if (job.salary_min != null) {
+              salary = `From ₱${Number(job.salary_min).toLocaleString()}`;
+            } else if (job.salary_max != null) {
+              salary = `Up to ₱${Number(job.salary_max).toLocaleString()}`;
+            }
 
-        return {
-          job_vacancy_id: job.job_vacancy_id,
-          position_title: job.position_title,
-          location: job.location ?? undefined,
-          employment_type: job.employment_type ?? undefined,
-          salary,
-          description: job.description ?? undefined,
-          requirements: job.requirements ?? undefined,
-          vacancies_available: job.vacancies_available ?? undefined,
-          deadline: job.deadline ?? undefined,
-          date_posted: job.date_posted ?? undefined,
-          image_url: job.image_url ?? null,
-          job_classification: job.job_classification,
-          employer: {
-            name: job.employer_name ?? undefined,
-          },
-        };
-      });
+            return {
+              job_vacancy_id: job.job_vacancy_id,
+              position_title: job.position_title,
+              location: job.location ?? undefined,
+              employment_type: job.employment_type ?? undefined,
+              salary,
+              description: job.description ?? undefined,
+              requirements: job.requirements ?? undefined,
+              vacancies_available: job.vacancies_available ?? undefined,
+              deadline: job.deadline ?? undefined,
+              date_posted: job.date_posted ?? undefined,
+              image_url: job.image_url ?? null,
+              job_classification: job.job_classification,
+              employer: {
+                name: job.employer_name ?? undefined,
+              },
+            };
+          })
+        : ((data ?? []) as PublicJobVacancyPreviewRow[]).map((job) => {
+            return {
+              job_vacancy_id: job.job_vacancy_id,
+              position_title: job.position_title,
+              job_classification: job.job_classification,
+              employer: { name: job.employer_name ?? undefined },
+            };
+          });
 
       setJobs(formattedJobs);
       setLoading(false);
@@ -281,6 +309,7 @@ function JobVacancies() {
                   key={job.job_vacancy_id}
                   job={job}
                   index={index}
+                  isAuthenticated={isAuthenticated}
                 />
               ))}
 

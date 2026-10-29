@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import AuthSideImage from "./AuthSideImage";
 import PesoLogo from "./PesoLogo";
 import { supabase } from "../services/supabase";
@@ -7,6 +7,7 @@ import AppIcon from "./AppIcon";
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -103,7 +104,16 @@ function Login() {
           navigate("/", { replace: true });
           return;
         }
-        navigate("/jobseeker", { replace: true });
+        const state = location.state;
+        const returnTo =
+          state &&
+          typeof state === "object" &&
+          "returnTo" in state &&
+          typeof state.returnTo === "string" &&
+          state.returnTo.startsWith("/jobs")
+            ? state.returnTo
+            : "/jobseeker";
+        navigate(returnTo, { replace: true });
         return;
       }
 
