@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Footer from "../components/Footer";
 import JobCard from "../components/JobCard";
 import Navbar from "../components/Navbar";
@@ -10,6 +11,7 @@ import type {
 import { supabase } from "../services/supabase";
 
 function JobVacancies() {
+  const [searchParams] = useSearchParams();
   const [jobs, setJobs] = useState<JobVacancy[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -73,14 +75,16 @@ function JobVacancies() {
     void loadJobs();
   }, []);
 
+  const classification = searchParams.get("classification");
   const filteredJobs = jobs.filter((job) => {
     const searchText = search.toLowerCase();
 
     return (
-      job.position_title.toLowerCase().includes(searchText) ||
-      (job.location?.toLowerCase() ?? "").includes(searchText) ||
-      (job.employment_type?.toLowerCase() ?? "").includes(searchText) ||
-      (job.employer?.name?.toLowerCase() ?? "").includes(searchText)
+      (!classification || job.job_classification === classification) &&
+      (job.position_title.toLowerCase().includes(searchText) ||
+        (job.location?.toLowerCase() ?? "").includes(searchText) ||
+        (job.employment_type?.toLowerCase() ?? "").includes(searchText) ||
+        (job.employer?.name?.toLowerCase() ?? "").includes(searchText))
     );
   });
 

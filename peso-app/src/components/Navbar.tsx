@@ -5,13 +5,19 @@ import PesoLogo from "./PesoLogo";
 export default function Navbar() {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isVacancyMenuOpen, setIsVacancyMenuOpen] = useState(false);
 
   const navItems = [
     { name: "Home", path: "/" },
     { name: "About Us", path: "/about" },
-    { name: "Job Vacancies", path: "/jobs" },
     { name: "Employers", path: "/employers" },
     { name: "Contact Us", path: "/contact" },
+  ];
+
+  const vacancyFilters = [
+    { name: "All Jobs", search: "" },
+    { name: "Local Jobs", search: "?classification=local" },
+    { name: "International Jobs", search: "?classification=international" },
   ];
 
   return (
@@ -25,9 +31,63 @@ export default function Navbar() {
 
         {/* Navigation */}
         <div className="hidden items-center gap-8 md:flex">
-          {navItems.map((item) => {
+          {navItems.slice(0, 2).map((item) => {
             const isActive = location.pathname === item.path;
-
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`relative py-2 font-semibold transition ${
+                  isActive
+                    ? "text-[#0446A7] after:absolute after:-bottom-2 after:left-0 after:h-1 after:w-full after:rounded-full after:bg-[#EA4B45]"
+                    : "text-[#123B70] hover:text-[#0446A7]"
+                }`}
+              >
+                {item.name}
+              </Link>
+            );
+          })}
+          <div className="relative">
+            <div className="flex items-center gap-1">
+              <Link
+                to="/jobs"
+                className={`relative py-2 font-semibold transition ${
+                  location.pathname === "/jobs"
+                    ? "text-[#0446A7] after:absolute after:-bottom-2 after:left-0 after:h-1 after:w-full after:rounded-full after:bg-[#EA4B45]"
+                    : "text-[#123B70] hover:text-[#0446A7]"
+                }`}
+              >
+                Job Vacancies
+              </Link>
+              <button
+                type="button"
+                aria-label="Choose job vacancy classification"
+                aria-expanded={isVacancyMenuOpen}
+                onClick={() => setIsVacancyMenuOpen((open) => !open)}
+                className="rounded p-1 text-[#123B70] transition hover:bg-slate-100 hover:text-[#0446A7]"
+              >
+                <svg className={`h-4 w-4 transition-transform ${isVacancyMenuOpen ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+            {isVacancyMenuOpen && (
+              <div className="absolute left-0 top-full z-50 mt-2 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                {vacancyFilters.map((filter) => (
+                  <Link
+                    key={filter.name}
+                    to={{ pathname: "/jobs", search: filter.search }}
+                    onClick={() => setIsVacancyMenuOpen(false)}
+                    className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-[#123B70] transition hover:bg-sky-50 hover:text-[#0446A7]"
+                  >
+                    {filter.name}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+          {navItems.slice(2).map((item) => {
+            const isActive = location.pathname === item.path;
             return (
               <Link
                 key={item.path}
@@ -98,9 +158,69 @@ export default function Navbar() {
           className="max-h-[calc(100svh-4rem)] overflow-y-auto border-t border-slate-200 bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2 md:hidden overscroll-contain"
         >
           <div className="flex flex-col gap-1">
-            {navItems.map((item) => {
+            {navItems.slice(0, 2).map((item) => {
               const isActive = location.pathname === item.path;
 
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`rounded-lg px-4 py-3 font-semibold transition ${
+                    isActive
+                      ? "bg-sky-50 text-[#0446A7]"
+                      : "text-[#123B70] hover:bg-slate-50"
+                  }`}
+                >
+                  {item.name}
+                </Link>
+              );
+            })}
+            <div>
+              <div className="flex items-center">
+                <Link
+                  to="/jobs"
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`flex-1 rounded-lg px-4 py-3 font-semibold transition ${
+                    location.pathname === "/jobs"
+                      ? "bg-sky-50 text-[#0446A7]"
+                      : "text-[#123B70] hover:bg-slate-50"
+                  }`}
+                >
+                  Job Vacancies
+                </Link>
+                <button
+                  type="button"
+                  aria-label="Choose job vacancy classification"
+                  aria-expanded={isVacancyMenuOpen}
+                  onClick={() => setIsVacancyMenuOpen((open) => !open)}
+                  className="flex h-11 w-11 items-center justify-center rounded-lg text-[#123B70] transition hover:bg-slate-100"
+                >
+                  <svg className={`h-4 w-4 transition-transform ${isVacancyMenuOpen ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+              {isVacancyMenuOpen && (
+                <div className="ml-4 border-l-2 border-sky-100 py-1 pl-3">
+                  {vacancyFilters.map((filter) => (
+                    <Link
+                      key={filter.name}
+                      to={{ pathname: "/jobs", search: filter.search }}
+                      onClick={() => {
+                        setIsVacancyMenuOpen(false);
+                        setIsMenuOpen(false);
+                      }}
+                      className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-[#123B70] transition hover:bg-sky-50 hover:text-[#0446A7]"
+                    >
+                      {filter.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+            {navItems.slice(2).map((item) => {
+              const isActive = location.pathname === item.path;
               return (
                 <Link
                   key={item.path}
