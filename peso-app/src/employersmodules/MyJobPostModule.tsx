@@ -267,12 +267,16 @@ export default function MyJobPostModule({
     setSaving(true);
     setMessage("");
 
+    let saveStage = "preparing the job post";
+
     try {
       let jobId = editingId;
 
       // CREATE JOB FIRST IF NEW
 
       if (!jobId) {
+        saveStage = "creating the job post";
+
         const { data, error } = await supabase
           .from("job_vacancy")
           .insert({
@@ -307,6 +311,8 @@ export default function MyJobPostModule({
         jobId = data.job_vacancy_id;
       } else {
         // UPDATE EXISTING JOB
+
+        saveStage = "updating the job details";
 
         const { error } = await supabase
           .from("job_vacancy")
@@ -355,12 +361,15 @@ export default function MyJobPostModule({
       // UPLOAD NEW IMAGE IF SELECTED
 
       if (selectedImage && jobId) {
+        saveStage = "uploading the image to Supabase Storage";
         imageUrl = await uploadJobImage(selectedImage, jobId);
       }
 
       // SAVE IMAGE URL TO DATABASE
 
       if (jobId) {
+        saveStage = "saving the image URL to the job post";
+
         const { error } = await supabase
           .from("job_vacancy")
           .update({
@@ -398,8 +407,8 @@ export default function MyJobPostModule({
     } catch (error) {
       setMessage(
         error instanceof Error
-          ? `Failed to save job posting: ${error.message}`
-          : "Failed to save job posting."
+          ? `Failed while ${saveStage}: ${error.message}`
+          : `Failed while ${saveStage}.`
       );
     } finally {
       setSaving(false);
