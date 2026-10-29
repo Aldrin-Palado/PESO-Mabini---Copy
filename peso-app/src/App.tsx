@@ -6,11 +6,11 @@ import About from "./pages/About";
 import JobVacancies from "./pages/JobVacancies";
 import Employers from "./pages/Employers";
 import Contact from "./pages/Contact";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
 
 import Login from "./components/Login";
 import JobSeekerRegistration from "./components/JobSeekerRegistration";
+import ForgotPassword from "./components/ForgotPassword";
+import ResetPassword from "./components/ResetPassword";
 
 import AdminDashboard from "./dashboards/AdminDashboard";
 import StaffDashboard from "./dashboards/StaffDashboard";
