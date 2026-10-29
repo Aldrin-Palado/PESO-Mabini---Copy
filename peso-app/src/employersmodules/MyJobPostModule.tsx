@@ -136,9 +136,13 @@ export default function MyJobPostModule({
 
     setMessage("");
 
-    // Allow only image files.
-    if (!file.type.startsWith("image/")) {
-      setMessage("Please select a valid image file.");
+    // Keep accepted formats aligned with the Storage bucket's MIME allowlist.
+    if (
+      !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(
+        file.type
+      )
+    ) {
+      setMessage("Please select a JPEG, PNG, WebP, or GIF image.");
       event.target.value = "";
       return;
     }
@@ -184,7 +188,7 @@ export default function MyJobPostModule({
       `${employerId}/${jobId}/${Date.now()}.${fileExtension}`;
 
     const { error: uploadError } = await supabase.storage
-      .from("job-images")
+      .from(STORAGE_BUCKET)
       .upload(filePath, file, {
         cacheControl: "3600",
         upsert: true,
@@ -558,7 +562,7 @@ export default function MyJobPostModule({
             </label>
 
             <p className="mt-1 text-xs text-slate-500">
-              Upload a job banner or image. Maximum size: 5 MB.
+              Upload a JPEG, PNG, WebP, or GIF job image. Maximum size: 5 MB.
             </p>
 
             {imagePreview && (
@@ -575,7 +579,7 @@ export default function MyJobPostModule({
               <input
                 ref={imageInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/gif"
                 onChange={handleImageChange}
                 className="block w-full text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:font-semibold file:text-[#0446A7] hover:file:bg-blue-100"
               />
