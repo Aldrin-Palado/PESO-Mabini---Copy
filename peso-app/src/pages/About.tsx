@@ -78,6 +78,18 @@ function About() {
       </section>
 
       <main className="mx-auto w-full max-w-7xl px-5 py-12 sm:px-6 sm:py-16 lg:px-8">
+        <section className="mb-12" aria-label="PESO Mabini video">
+          <video
+            className="mx-auto aspect-video w-full max-w-4xl rounded-xl border border-slate-200 bg-slate-950 object-cover"
+            controls
+            playsInline
+            preload="metadata"
+          >
+            <source src={aboutVideo} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        </section>
+
         <section className="grid gap-6 md:grid-cols-2">
           <article className="rounded-xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
             <p className="text-sm font-bold uppercase text-red-600">Our purpose</p>
@@ -160,17 +172,6 @@ function About() {
           </div>
         </section>
 
-        <section className="mt-14" aria-label="PESO Mabini video">
-          <video
-            className="mx-auto aspect-video w-full max-w-4xl rounded-xl border border-slate-200 bg-slate-950 object-cover"
-            controls
-            playsInline
-            preload="metadata"
-          >
-            <source src={aboutVideo} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
-        </section>
       </main>
 
       <Footer />
