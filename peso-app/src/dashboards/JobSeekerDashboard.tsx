@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import AppIcon from "../components/AppIcon";
+import ProfileAvatar from "../components/ProfileAvatar";
 
 import { supabase } from "../services/supabase";
 import {
@@ -47,6 +48,7 @@ export default function JobSeekerDashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [seeker, setSeeker] = useState<Seeker | null>(null);
+  const [hasProfilePhoto, setHasProfilePhoto] = useState<boolean | null>(null);
 
   const [loading, setLoading] = useState(true);
 
@@ -430,16 +432,13 @@ export default function JobSeekerDashboard() {
 
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
 
-              {/* AVATAR */}
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-white/20 text-3xl font-black">
-
-                {seeker.full_name
-                  ? seeker.full_name
-                      .charAt(0)
-                      .toUpperCase()
-                  : "J"}
-
-              </div>
+              <ProfileAvatar
+                userId={seeker.user_id}
+                fullName={seeker.full_name}
+                size="small"
+                showControls={false}
+                onPhotoStatusChange={setHasProfilePhoto}
+              />
 
               {/* NAME */}
               <div>
@@ -560,6 +559,18 @@ export default function JobSeekerDashboard() {
             </div>
           </form>
 
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-black text-[#123B70]">Profile picture</h2>
+          <p className="mb-5 mt-1 text-sm text-slate-500">
+            Add a clear photo so employers can recognize you.
+          </p>
+          <ProfileAvatar
+            userId={seeker.user_id}
+            fullName={seeker.full_name}
+            onPhotoStatusChange={setHasProfilePhoto}
+          />
         </div>
 
         {/* RESUME */}
@@ -963,27 +974,6 @@ export default function JobSeekerDashboard() {
               </div>
             </div>
 
-            {/* SEARCH BAR */}
-
-            <div className="hidden max-w-md flex-1 md:block">
-
-              <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-
-                <AppIcon name="search" className="h-5 w-5 text-slate-400" />
-
-                <input
-                  type="text"
-                  placeholder="Search jobs..."
-                  onFocus={() =>
-                    handlePageChange("Jobs")
-                  }
-                  className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
-                />
-
-              </div>
-
-            </div>
-
             {/* =================================================
                 USER AREA
                 ================================================= */}
@@ -1020,15 +1010,14 @@ export default function JobSeekerDashboard() {
 
                 {/* PROFILE AVATAR */}
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 font-black text-[#0446A7]">
-
-                  {seeker.full_name
-                    ? seeker.full_name
-                        .charAt(0)
-                        .toUpperCase()
-                    : "J"}
-
-                </div>
+                <ProfileAvatar
+                  key={hasProfilePhoto ? "photo-added" : "photo-missing"}
+                  userId={seeker.user_id}
+                  fullName={seeker.full_name}
+                  size="small"
+                  showControls={false}
+                  onPhotoStatusChange={setHasProfilePhoto}
+                />
 
                 {/* PROFILE INFORMATION */}
 
@@ -1058,6 +1047,27 @@ export default function JobSeekerDashboard() {
             ================================================= */}
 
         <section className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          {hasProfilePhoto === false && activePage !== "Profile" && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="mx-auto mb-6 flex max-w-7xl flex-col gap-4 rounded-2xl border border-blue-200 bg-blue-50 p-5 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div>
+                <p className="font-bold text-blue-900">Complete your profile setup</p>
+                <p className="mt-1 text-sm text-blue-800">
+                  Add a profile picture to finish setting up your job seeker profile.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handlePageChange("Profile")}
+                className="shrink-0 rounded-xl bg-[#0446A7] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#123B70] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0446A7]"
+              >
+                Complete setup
+              </button>
+            </div>
+          )}
           {renderContent()}
         </section>
 

@@ -308,7 +308,7 @@ function Register() {
 
       if (!data.session) {
         alert(
-          "Your account was created. Confirm your email and sign in, then upload your resume from My Profile.",
+          "Your account was created. Confirm your email and sign in, then complete your profile setup by adding a profile picture in My Profile.",
         );
         navigate("/login");
         return;
@@ -359,7 +359,7 @@ function Register() {
       }
 
       alert(
-        "Account created successfully! Please check your email to confirm your account, then log in.",
+        "Account created successfully! Please check your email to confirm your account, then log in. A reminder will help you complete your profile setup by adding a profile picture.",
       );
       navigate("/login");
     } catch (error) {
