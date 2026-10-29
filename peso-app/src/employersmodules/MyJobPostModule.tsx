@@ -590,7 +590,7 @@ export default function MyJobPostModule({
                 <img
                   src={imagePreview}
                   alt="Job posting preview"
-                  className="h-48 w-full rounded-xl border border-slate-200 object-cover"
+                  className="h-56 w-full rounded-xl border border-slate-200 bg-slate-50 object-contain sm:h-72"
                 />
               </div>
             )}
@@ -825,7 +825,7 @@ export default function MyJobPostModule({
                 <img
                   src={job.image_url}
                   alt={`${job.position_title} job`}
-                  className="mb-5 h-52 w-full rounded-xl object-cover"
+                  className="mb-5 h-56 w-full rounded-xl bg-slate-50 object-contain sm:h-64"
                 />
               )}
 
