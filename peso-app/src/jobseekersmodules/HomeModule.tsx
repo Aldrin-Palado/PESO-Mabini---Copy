@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../services/supabase";
+import type { OpenJobVacancyRow } from "../types/JobVacancy";
 
 type Seeker = {
   job_seeker_id: string;
@@ -49,20 +50,7 @@ export default function HomeModule({
       setJobsError("");
 
       const { data, error } = await supabase
-        .from("job_vacancy")
-        .select(`
-          job_vacancy_id,
-          position_title,
-          location,
-          employment_type,
-          description,
-          date_posted,
-          image_url,
-          employer (
-            name
-          )
-        `)
-        .eq("status", "open")
+        .rpc("get_open_job_vacancies")
         .order("date_posted", { ascending: false })
         .limit(3);
 
@@ -77,14 +65,10 @@ export default function HomeModule({
       }
 
       setJobPosts(
-        (data ?? []).map((row) => {
-          const employer = Array.isArray(row.employer)
-            ? row.employer[0]
-            : row.employer;
-
+        ((data ?? []) as OpenJobVacancyRow[]).map((row) => {
           return {
             id: row.job_vacancy_id,
-            company: employer?.name || "Employer",
+            company: row.employer_name || "Company name not provided",
             title: row.position_title,
             location: row.location || "Location not specified",
             type: row.employment_type || "Type not specified",

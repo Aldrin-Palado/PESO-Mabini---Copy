@@ -3,7 +3,10 @@ import Footer from "../components/Footer";
 import JobCard from "../components/JobCard";
 import Navbar from "../components/Navbar";
 import AppIcon from "../components/AppIcon";
-import type { JobVacancy } from "../types/JobVacancy";
+import type {
+  JobVacancy,
+  OpenJobVacancyRow,
+} from "../types/JobVacancy";
 import { supabase } from "../services/supabase";
 
 function JobVacancies() {
@@ -18,25 +21,7 @@ function JobVacancies() {
       setLoadError("");
 
       const { data, error } = await supabase
-        .from("job_vacancy")
-        .select(`
-          job_vacancy_id,
-          position_title,
-          location,
-          employment_type,
-          salary_min,
-          salary_max,
-          description,
-          requirements,
-          vacancies_available,
-          deadline,
-          date_posted,
-          image_url,
-          employer (
-            name
-          )
-        `)
-        .eq("status", "open")
+        .rpc("get_open_job_vacancies")
         .order("date_posted", { ascending: false });
 
       if (error) {
@@ -47,7 +32,9 @@ function JobVacancies() {
         return;
       }
 
-      const formattedJobs: JobVacancy[] = (data ?? []).map((job) => {
+      const formattedJobs: JobVacancy[] = (
+        (data ?? []) as OpenJobVacancyRow[]
+      ).map((job) => {
         let salary = "Salary not specified";
 
         if (job.salary_min != null && job.salary_max != null) {
@@ -59,10 +46,6 @@ function JobVacancies() {
         } else if (job.salary_max != null) {
           salary = `Up to ₱${Number(job.salary_max).toLocaleString()}`;
         }
-
-        const employer = Array.isArray(job.employer)
-          ? job.employer[0]
-          : job.employer;
 
         return {
           job_vacancy_id: job.job_vacancy_id,
@@ -76,11 +59,9 @@ function JobVacancies() {
           deadline: job.deadline ?? undefined,
           date_posted: job.date_posted ?? undefined,
           image_url: job.image_url ?? null,
-          employer: employer
-            ? {
-                name: employer.name ?? undefined,
-              }
-            : undefined,
+          employer: {
+            name: job.employer_name ?? undefined,
+          },
         };
       });
 
