@@ -8,6 +8,9 @@ const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 type ProfileAvatarProps = {
   userId: string;
   fullName: string;
+  size?: "small" | "large";
+  showControls?: boolean;
+  onPhotoStatusChange?: (hasPhoto: boolean) => void;
 };
 
 function getInitials(fullName: string) {
@@ -22,6 +25,9 @@ function getInitials(fullName: string) {
 export default function ProfileAvatar({
   userId,
   fullName,
+  size = "large",
+  showControls = true,
+  onPhotoStatusChange,
 }: ProfileAvatarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -39,7 +45,9 @@ export default function ProfileAvatar({
       if (cancelled) return;
 
       if (error) {
-        if (error.statusCode !== "404") {
+        if (error.statusCode === "404") {
+          onPhotoStatusChange?.(false);
+        } else {
           console.error("Profile photo load error:", error);
           setErrorMessage(`Unable to load profile photo: ${error.message}`);
         }
@@ -47,13 +55,14 @@ export default function ProfileAvatar({
       }
 
       setAvatarUrl(data.signedUrl);
+      onPhotoStatusChange?.(true);
     };
 
     void loadAvatar();
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, onPhotoStatusChange]);
 
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -93,6 +102,7 @@ export default function ProfileAvatar({
 
       if (urlError) throw urlError;
       setAvatarUrl(data.signedUrl);
+      onPhotoStatusChange?.(true);
     } catch (error) {
       console.error("Profile photo upload error:", error);
       setErrorMessage(
@@ -105,20 +115,31 @@ export default function ProfileAvatar({
     }
   };
 
-  return (
-    <div className="mb-7 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-      <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-[#123B70] text-2xl font-bold text-white shadow-md ring-1 ring-slate-200">
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt={`${fullName}'s profile`}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          getInitials(fullName)
-        )}
-      </div>
+  const avatarSize =
+    size === "small" ? "h-10 w-10 text-sm" : "h-24 w-24 text-2xl";
+  const avatar = (
+    <div
+      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-[#123B70] font-bold text-white shadow-md ring-1 ring-slate-200 ${avatarSize}`}
+    >
+      {avatarUrl ? (
+        <img
+          src={avatarUrl}
+          alt={`${fullName}'s profile`}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        getInitials(fullName)
+      )}
+    </div>
+  );
 
+  if (!showControls) {
+    return avatar;
+  }
+
+  return (
+    <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+      {avatar}
       <div>
         <h4 className="font-semibold text-slate-900">Profile picture</h4>
         <p className="mt-1 text-sm text-slate-500">
