@@ -181,11 +181,22 @@ export default function MyJobPostModule({
     file: File,
     jobId: string
   ): Promise<string | null> => {
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      throw new Error(
+        authError?.message || "Please sign in again before uploading an image."
+      );
+    }
+
     const fileExtension =
       file.name.split(".").pop()?.toLowerCase() || "jpg";
 
     const filePath =
-      `${employerId}/${jobId}/${Date.now()}.${fileExtension}`;
+      `${user.id}/${jobId}/${Date.now()}.${fileExtension}`;
 
     const { error: uploadError } = await supabase.storage
       .from(STORAGE_BUCKET)

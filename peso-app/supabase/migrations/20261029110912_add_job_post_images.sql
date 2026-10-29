@@ -37,12 +37,7 @@ TO authenticated
 WITH CHECK (
   bucket_id = 'job-images'
   AND array_length(storage.foldername(name), 1) = 2
-  AND EXISTS (
-    SELECT 1
-    FROM public.employer AS employer
-    WHERE employer.user_id = auth.uid()
-      AND employer.employer_id::text = (storage.foldername(name))[1]
-  )
+  AND (storage.foldername(name))[1] = (select auth.uid())::text
 );
 
 CREATE POLICY "Employers can view their own job post images"
@@ -52,12 +47,7 @@ TO authenticated
 USING (
   bucket_id = 'job-images'
   AND array_length(storage.foldername(name), 1) = 2
-  AND EXISTS (
-    SELECT 1
-    FROM public.employer AS employer
-    WHERE employer.user_id = auth.uid()
-      AND employer.employer_id::text = (storage.foldername(name))[1]
-  )
+  AND (storage.foldername(name))[1] = (select auth.uid())::text
 );
 
 CREATE POLICY "Employers can update their own job post images"
@@ -67,22 +57,12 @@ TO authenticated
 USING (
   bucket_id = 'job-images'
   AND array_length(storage.foldername(name), 1) = 2
-  AND EXISTS (
-    SELECT 1
-    FROM public.employer AS employer
-    WHERE employer.user_id = auth.uid()
-      AND employer.employer_id::text = (storage.foldername(name))[1]
-  )
+  AND (storage.foldername(name))[1] = (select auth.uid())::text
 )
 WITH CHECK (
   bucket_id = 'job-images'
   AND array_length(storage.foldername(name), 1) = 2
-  AND EXISTS (
-    SELECT 1
-    FROM public.employer AS employer
-    WHERE employer.user_id = auth.uid()
-      AND employer.employer_id::text = (storage.foldername(name))[1]
-  )
+  AND (storage.foldername(name))[1] = (select auth.uid())::text
 );
 
 CREATE POLICY "Employers can delete their own job post images"
@@ -92,10 +72,5 @@ TO authenticated
 USING (
   bucket_id = 'job-images'
   AND array_length(storage.foldername(name), 1) = 2
-  AND EXISTS (
-    SELECT 1
-    FROM public.employer AS employer
-    WHERE employer.user_id = auth.uid()
-      AND employer.employer_id::text = (storage.foldername(name))[1]
-  )
+  AND (storage.foldername(name))[1] = (select auth.uid())::text
 );
