@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { supabase } from "../services/supabase";
 
 type JobSeeker = {
   id?: string;
@@ -63,12 +64,48 @@ export default function JobSeekersModule({
   LoadingMessage,
   EmptyMessage,
 }: Props) {
+  const [openingResumeId, setOpeningResumeId] = useState<string | null>(null);
+  const [resumeError, setResumeError] = useState("");
+
+  const openResume = async (jobSeeker: JobSeeker, rowId: string) => {
+    const resumePath =
+      typeof jobSeeker.resume_url === "string" ? jobSeeker.resume_url : "";
+
+    if (!resumePath) return;
+
+    setOpeningResumeId(rowId);
+    setResumeError("");
+
+    try {
+      const { data, error } = await supabase.storage
+        .from("Resume Files")
+        .createSignedUrl(resumePath, 60);
+
+      if (error) throw error;
+
+      const link = document.createElement("a");
+      link.href = data.signedUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.click();
+    } catch (openError) {
+      console.error("Resume view error:", openError);
+      setResumeError(
+        openError instanceof Error
+          ? openError.message
+          : "Unable to open this resume. Please try again.",
+      );
+    } finally {
+      setOpeningResumeId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
 
       <ModuleHeader
         title="Job Seekers"
-        description="View registered job seekers and their information."
+        description="View registered job seekers and open their uploaded resumes to assess their qualifications."
         onRefresh={onRefresh}
       />
 
@@ -85,6 +122,15 @@ export default function JobSeekersModule({
         />
 
       </div>
+
+      {resumeError && (
+        <p
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+        >
+          {resumeError}
+        </p>
+      )}
 
       {/* TABLE */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -119,6 +165,10 @@ export default function JobSeekersModule({
                   </TableHeader>
 
                   <TableHeader>
+                    Resume
+                  </TableHeader>
+
+                  <TableHeader>
                     Status
                   </TableHeader>
 
@@ -148,13 +198,15 @@ export default function JobSeekersModule({
                           : "Inactive"
                       );
 
+                    const rowId = String(
+                      jobSeeker.id ||
+                        jobSeeker.job_seeker_id ||
+                        index,
+                    );
+
                     return (
                       <tr
-                        key={
-                          jobSeeker.id ||
-                          jobSeeker.job_seeker_id ||
-                          index
-                        }
+                        key={rowId}
                         className="hover:bg-slate-50"
                       >
 
@@ -174,6 +226,32 @@ export default function JobSeekersModule({
 
                         <TableCell>
                           {jobSeeker.address || "-"}
+                        </TableCell>
+
+                        <TableCell>
+                          {jobSeeker.resume_url ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void openResume(
+                                  jobSeeker,
+                                  rowId,
+                                )
+                              }
+                              disabled={
+                                openingResumeId === rowId
+                              }
+                              className="rounded-full border border-[#203F8B] px-3 py-1.5 text-xs font-semibold text-[#203F8B] transition hover:bg-blue-50 disabled:cursor-wait disabled:opacity-60"
+                            >
+                              {openingResumeId === rowId
+                                ? "Opening..."
+                                : "View Resume"}
+                            </button>
+                          ) : (
+                            <span className="text-xs text-slate-400">
+                              Not uploaded
+                            </span>
+                          )}
                         </TableCell>
 
                         <TableCell>

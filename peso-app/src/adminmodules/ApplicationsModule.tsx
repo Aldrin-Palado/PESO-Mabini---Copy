@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { supabase } from "../services/supabase";
 
 type Application = {
   id?: string;
@@ -9,6 +10,11 @@ type Application = {
   status?: string;
   application_status?: string;
   created_at?: string;
+  date_applied?: string;
+  position_title?: string | null;
+  applicant_name?: string | null;
+  applicant_email?: string | null;
+  resume_url?: string | null;
   [key: string]: any;
 };
 
@@ -68,12 +74,53 @@ export default function ApplicationsModule({
   EmptyMessage,
   formatDate,
 }: Props) {
+  const [openingResumeId, setOpeningResumeId] = useState<string | null>(null);
+  const [resumeError, setResumeError] = useState("");
+
+  const openResume = async (
+    application: Application,
+    rowId: string,
+  ) => {
+    const resumePath =
+      typeof application.resume_url === "string"
+        ? application.resume_url
+        : "";
+
+    if (!resumePath) return;
+
+    setOpeningResumeId(rowId);
+    setResumeError("");
+
+    try {
+      const { data, error } = await supabase.storage
+        .from("Resume Files")
+        .createSignedUrl(resumePath, 60);
+
+      if (error) throw error;
+
+      const link = document.createElement("a");
+      link.href = data.signedUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.click();
+    } catch (openError) {
+      console.error("Resume view error:", openError);
+      setResumeError(
+        openError instanceof Error
+          ? openError.message
+          : "Unable to open this resume. Please try again.",
+      );
+    } finally {
+      setOpeningResumeId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
 
       <ModuleHeader
         title="Applications"
-        description="View and monitor submitted job applications."
+        description="View submitted applications and open each applicant's resume to assess their qualifications."
         onRefresh={onRefresh}
       />
 
@@ -107,16 +154,24 @@ export default function ApplicationsModule({
               Pending
             </option>
 
-            <option value="Approved">
-              Approved
+            <option value="Under Review">
+              Under Review
+            </option>
+
+            <option value="Interview">
+              Interview
+            </option>
+
+            <option value="Hired">
+              Hired
             </option>
 
             <option value="Rejected">
               Rejected
             </option>
 
-            <option value="Hired">
-              Hired
+            <option value="Withdrawn">
+              Withdrawn
             </option>
 
           </select>
@@ -124,6 +179,15 @@ export default function ApplicationsModule({
         </div>
 
       </div>
+
+      {resumeError && (
+        <p
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+        >
+          {resumeError}
+        </p>
+      )}
 
       {/* TABLE */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -146,11 +210,15 @@ export default function ApplicationsModule({
                   </TableHeader>
 
                   <TableHeader>
-                    Job Seeker ID
+                    Applicant
                   </TableHeader>
 
                   <TableHeader>
-                    Job Vacancy ID
+                    Position
+                  </TableHeader>
+
+                  <TableHeader>
+                    Resume
                   </TableHeader>
 
                   <TableHeader>
@@ -178,13 +246,15 @@ export default function ApplicationsModule({
                       application.application_status ||
                       "Unknown";
 
+                    const rowId = String(
+                      application.id ||
+                        application.application_id ||
+                        index,
+                    );
+
                     return (
                       <tr
-                        key={
-                          application.id ||
-                          application.application_id ||
-                          index
-                        }
+                        key={rowId}
                         className="hover:bg-slate-50"
                       >
 
@@ -195,13 +265,48 @@ export default function ApplicationsModule({
                         </TableCell>
 
                         <TableCell>
-                          {application.job_seeker_id ||
+                          <span className="block font-semibold text-slate-700">
+                            {application.applicant_name ||
+                              application.job_seeker_id ||
+                              "-"}
+                          </span>
+                          {application.applicant_email && (
+                            <span className="mt-0.5 block text-xs text-slate-500">
+                              {application.applicant_email}
+                            </span>
+                          )}
+                        </TableCell>
+
+                        <TableCell>
+                          {application.position_title ||
+                            application.job_vacancy_id ||
                             "-"}
                         </TableCell>
 
                         <TableCell>
-                          {application.job_vacancy_id ||
-                            "-"}
+                          {application.resume_url ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void openResume(
+                                  application,
+                                  rowId,
+                                )
+                              }
+                              disabled={
+                                openingResumeId === rowId
+                              }
+                              className="rounded-full border border-[#203F8B] px-3 py-1.5 text-xs font-semibold text-[#203F8B] transition hover:bg-blue-50 disabled:cursor-wait disabled:opacity-60"
+                            >
+                              {openingResumeId === rowId
+                                ? "Opening..."
+                                : "View Resume"}
+                            </button>
+                          ) : (
+                            <span className="text-xs text-slate-400">
+                              Not uploaded
+                            </span>
+                          )}
                         </TableCell>
 
                         <TableCell>
@@ -212,7 +317,8 @@ export default function ApplicationsModule({
 
                         <TableCell>
                           {formatDate(
-                            application.created_at
+                            application.date_applied ||
+                              application.created_at
                           )}
                         </TableCell>
 

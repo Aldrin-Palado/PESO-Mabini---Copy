@@ -110,6 +110,11 @@ type Application = {
   status?: string;
   application_status?: string;
   created_at?: string;
+  date_applied?: string;
+  position_title?: string | null;
+  applicant_name?: string | null;
+  applicant_email?: string | null;
+  resume_url?: string | null;
   [key: string]: any;
 };
 
@@ -737,7 +742,7 @@ export default function AdminDashboard() {
       const { data, error } = await supabase
         .from("application")
         .select("*")
-        .order("created_at", {
+        .order("date_applied", {
           ascending: false,
         });
 
@@ -750,7 +755,67 @@ export default function AdminDashboard() {
         return;
       }
 
-      setApplications(data ?? []);
+      const rows = data ?? [];
+      const seekerIds = [
+        ...new Set(
+          rows
+            .map((application) => application.job_seeker_id)
+            .filter(Boolean),
+        ),
+      ];
+      const seekersById = new Map<
+        string,
+        {
+          full_name: string | null;
+          email: string | null;
+          resume_url: string | null;
+        }
+      >();
+
+      if (seekerIds.length > 0) {
+        const {
+          data: seekers,
+          error: seekerError,
+        } = await supabase
+          .from("job_seeker")
+          .select(
+            "job_seeker_id, full_name, email, resume_url",
+          )
+          .in("job_seeker_id", seekerIds);
+
+        if (seekerError) {
+          console.error(
+            "Applicant details error:",
+            seekerError,
+          );
+        } else {
+          (seekers ?? []).forEach((seeker) => {
+            seekersById.set(seeker.job_seeker_id, {
+              full_name: seeker.full_name,
+              email: seeker.email,
+              resume_url: seeker.resume_url,
+            });
+          });
+        }
+      }
+
+      setApplications(
+        rows.map((application) => {
+          const seeker = seekersById.get(
+            application.job_seeker_id,
+          );
+
+          return {
+            ...application,
+            applicant_name:
+              seeker?.full_name ?? null,
+            applicant_email:
+              seeker?.email ?? null,
+            resume_url:
+              seeker?.resume_url ?? null,
+          };
+        }),
+      );
     } finally {
       setModuleLoading(false);
     }
@@ -889,7 +954,7 @@ export default function AdminDashboard() {
 
       const statusMatch =
         applicationStatusFilter === "All" ||
-        status.toLowerCase() ===
+        status.toLowerCase().replace(/_/g, " ") ===
           applicationStatusFilter.toLowerCase();
 
       const searchableText =
