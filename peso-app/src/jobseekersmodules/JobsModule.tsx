@@ -49,66 +49,90 @@ export default function JobsModule({
       setLoading(true);
       setLoadError("");
 
-      const { data, error } = await supabase
-        .from("job_vacancy")
-        .select(`
-          job_vacancy_id,
-          position_title,
-          location,
-          employment_type,
-          salary_min,
-          salary_max,
-          description,
-          image_url,
-          employer (
-            name
-          )
-        `)
-        .eq("status", "open")
-        .order("date_posted", { ascending: false });
+      try {
+        const pageSize = 500;
+        const allRows = [];
 
-      if (!active) return;
+        for (let offset = 0; ; offset += pageSize) {
+          const { data, error } = await supabase
+            .from("job_vacancy")
+            .select(`
+              job_vacancy_id,
+              position_title,
+              location,
+              employment_type,
+              salary_min,
+              salary_max,
+              description,
+              image_url,
+              employer (
+                name
+              )
+            `)
+            .eq("status", "open")
+            .order("date_posted", { ascending: false })
+            .order("job_vacancy_id", { ascending: false })
+            .range(offset, offset + pageSize - 1);
 
-      if (error) {
-        console.error("Error loading jobs for job seeker:", error);
-        setLoadError(`Unable to load jobs: ${error.message}`);
-        setJobs([]);
-        setLoading(false);
-        return;
-      }
+          if (error) {
+            throw new Error(error.message);
+          }
 
-      const availableJobs: Job[] = (data ?? []).map((row) => {
-        const employer = Array.isArray(row.employer)
-          ? row.employer[0]
-          : row.employer;
-        const salaryMin =
-          row.salary_min == null ? null : Number(row.salary_min);
-        const salaryMax =
-          row.salary_max == null ? null : Number(row.salary_max);
+          allRows.push(...(data ?? []));
 
-        let salary = "Salary not specified";
-        if (salaryMin !== null && salaryMax !== null) {
-          salary = `₱${salaryMin.toLocaleString()} - ₱${salaryMax.toLocaleString()}`;
-        } else if (salaryMin !== null) {
-          salary = `From ₱${salaryMin.toLocaleString()}`;
-        } else if (salaryMax !== null) {
-          salary = `Up to ₱${salaryMax.toLocaleString()}`;
+          if (!data || data.length < pageSize) {
+            break;
+          }
         }
 
-        return {
-          id: row.job_vacancy_id,
-          title: row.position_title,
-          company: employer?.name || "Employer",
-          location: row.location || "Location not specified",
-          type: row.employment_type || "Type not specified",
-          salary,
-          description: row.description || "No description provided.",
-          imageUrl: row.image_url ?? null,
-        };
-      });
+        if (!active) return;
 
-      setJobs(availableJobs);
-      setLoading(false);
+        const availableJobs: Job[] = allRows.map((row) => {
+          const employer = Array.isArray(row.employer)
+            ? row.employer[0]
+            : row.employer;
+          const salaryMin =
+            row.salary_min == null ? null : Number(row.salary_min);
+          const salaryMax =
+            row.salary_max == null ? null : Number(row.salary_max);
+
+          let salary = "Salary not specified";
+          if (salaryMin !== null && salaryMax !== null) {
+            salary = `₱${salaryMin.toLocaleString()} - ₱${salaryMax.toLocaleString()}`;
+          } else if (salaryMin !== null) {
+            salary = `From ₱${salaryMin.toLocaleString()}`;
+          } else if (salaryMax !== null) {
+            salary = `Up to ₱${salaryMax.toLocaleString()}`;
+          }
+
+          return {
+            id: row.job_vacancy_id,
+            title: row.position_title,
+            company: employer?.name || "Employer",
+            location: row.location || "Location not specified",
+            type: row.employment_type || "Type not specified",
+            salary,
+            description: row.description || "No description provided.",
+            imageUrl: row.image_url ?? null,
+          };
+        });
+
+        setJobs(availableJobs);
+      } catch (error) {
+        if (!active) return;
+
+        console.error("Error loading jobs for job seeker:", error);
+        setLoadError(
+          `Unable to load jobs: ${
+            error instanceof Error ? error.message : "Unexpected error."
+          }`
+        );
+        setJobs([]);
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
     };
 
     void loadJobs();
@@ -219,7 +243,7 @@ export default function JobsModule({
           </h2>
 
           <span className="text-sm text-gray-500">
-            {filteredJobs.length} job(s)
+            Showing {filteredJobs.length} of {jobs.length} open job(s)
           </span>
 
         </div>
@@ -234,6 +258,15 @@ export default function JobsModule({
             className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800"
           >
             {loadError}
+          </div>
+        ) : jobs.length === 0 ? (
+          <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center">
+            <h3 className="font-semibold text-gray-900">
+              No open jobs available
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              There are no open job posts in the database right now.
+            </p>
           </div>
         ) : filteredJobs.length === 0 ? (
 
