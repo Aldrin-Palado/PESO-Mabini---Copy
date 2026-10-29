@@ -138,28 +138,6 @@ function Login() {
     }
   };
 
-  const handleForgotPassword = async () => {
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail) {
-      alert("Enter your email address first, then click Forgot Password.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) throw error;
-      alert("If an account exists for that email, a password reset link will be sent.");
-    } catch (error) {
-      console.error("Password reset request error:", error);
-      alert(error instanceof Error ? error.message : "Unable to request a password reset. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="whirl-page-background min-h-screen">
       <main className="grid min-h-screen lg:grid-cols-2">
@@ -215,14 +193,12 @@ function Login() {
                   >
                     Password
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleForgotPassword}
-                    disabled={loading}
-                    className="text-sm font-medium text-[#315FEA] transition hover:text-[#123B70] disabled:opacity-60"
+                  <Link
+                    to="/forgot-password"
+                    className="text-sm font-medium text-[#315FEA] transition hover:text-[#123B70]"
                   >
                     Forgot Password?
-                  </button>
+                  </Link>
                 </div>
 
                 <div className="relative">

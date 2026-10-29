@@ -6,6 +6,8 @@ import About from "./pages/About";
 import JobVacancies from "./pages/JobVacancies";
 import Employers from "./pages/Employers";
 import Contact from "./pages/Contact";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 import Login from "./components/Login";
 import JobSeekerRegistration from "./components/JobSeekerRegistration";
@@ -28,6 +30,8 @@ function App() {
 
         {/* Authentication */}
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Shared Registration Page */}
         <Route path="/register" element={<JobSeekerRegistration />} />
