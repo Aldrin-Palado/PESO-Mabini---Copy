@@ -158,7 +158,7 @@ export default function JobsModule({
 
       return searchMatch && locationMatch && typeMatch;
     });
-  }, [search, location, type]);
+  }, [jobs, search, location, type]);
 
   const toggleSave = (jobId: string) => {
     setSavedJobs((current) =>
