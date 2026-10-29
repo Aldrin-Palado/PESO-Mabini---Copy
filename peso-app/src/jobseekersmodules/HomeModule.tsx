@@ -1,4 +1,5 @@
-import React from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "../services/supabase";
 
 type Seeker = {
   job_seeker_id: string;
@@ -14,6 +15,7 @@ type JobPost = {
   type: string;
   description: string;
   posted: string;
+  imageUrl: string | null;
 };
 
 type JobSeekerPage =
@@ -28,45 +30,81 @@ type Props = {
   onNavigate: (page: JobSeekerPage) => void;
 };
 
-const jobPosts: JobPost[] = [
-  {
-    id: "1",
-    company: "ABC Technology Solutions",
-    title: "Junior Web Developer",
-    location: "Lipa City, Batangas",
-    type: "Full-time",
-    description:
-      "We are looking for a motivated Junior Web Developer to join our development team.",
-    posted: "2 hours ago",
-  },
-  {
-    id: "2",
-    company: "Batangas Manufacturing Inc.",
-    title: "Production Staff",
-    location: "Batangas City",
-    type: "Full-time",
-    description:
-      "Hiring production staff with good communication skills and willingness to work in a team.",
-    posted: "5 hours ago",
-  },
-  {
-    id: "3",
-    company: "Mabini Business Center",
-    title: "Administrative Assistant",
-    location: "Mabini, Batangas",
-    type: "Full-time",
-    description:
-      "Seeking an organized and responsible administrative assistant.",
-    posted: "Yesterday",
-  },
-];
-
 export default function HomeModule({
   seeker,
   onNavigate,
 }: Props) {
+  const [jobPosts, setJobPosts] = useState<JobPost[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
+  const [jobsError, setJobsError] = useState("");
+
   const firstName =
     seeker.full_name?.trim().split(" ")[0] || "Job Seeker";
+
+  useEffect(() => {
+    let active = true;
+
+    const loadRecommendedJobs = async () => {
+      setJobsLoading(true);
+      setJobsError("");
+
+      const { data, error } = await supabase
+        .from("job_vacancy")
+        .select(`
+          job_vacancy_id,
+          position_title,
+          location,
+          employment_type,
+          description,
+          date_posted,
+          image_url,
+          employer (
+            name
+          )
+        `)
+        .eq("status", "open")
+        .order("date_posted", { ascending: false })
+        .limit(3);
+
+      if (!active) return;
+
+      if (error) {
+        console.error("Error loading recommended jobs:", error);
+        setJobsError(`Unable to load jobs: ${error.message}`);
+        setJobPosts([]);
+        setJobsLoading(false);
+        return;
+      }
+
+      setJobPosts(
+        (data ?? []).map((row) => {
+          const employer = Array.isArray(row.employer)
+            ? row.employer[0]
+            : row.employer;
+
+          return {
+            id: row.job_vacancy_id,
+            company: employer?.name || "Employer",
+            title: row.position_title,
+            location: row.location || "Location not specified",
+            type: row.employment_type || "Type not specified",
+            description: row.description || "No description provided.",
+            posted: row.date_posted
+              ? new Date(row.date_posted).toLocaleDateString()
+              : "Recently",
+            imageUrl: row.image_url ?? null,
+          };
+        })
+      );
+      setJobsLoading(false);
+    };
+
+    void loadRecommendedJobs();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="mx-auto max-w-4xl space-y-5">
@@ -233,13 +271,38 @@ export default function HomeModule({
 
         </div>
 
-        <div className="space-y-4">
-
+        {jobsLoading ? (
+          <p className="rounded-xl bg-gray-50 p-5 text-sm text-gray-500">
+            Loading recommended jobs...
+          </p>
+        ) : jobsError ? (
+          <p
+            role="alert"
+            className="rounded-xl bg-red-50 p-5 text-sm text-red-800"
+          >
+            {jobsError}
+          </p>
+        ) : jobPosts.length === 0 ? (
+          <p className="rounded-xl bg-gray-50 p-5 text-sm text-gray-500">
+            No open job posts are available right now. Check the Jobs page
+            again later.
+          </p>
+        ) : (
+          <div className="space-y-4">
           {jobPosts.map((job) => (
             <div
               key={job.id}
               className="rounded-xl border border-gray-200 p-4 transition hover:border-blue-200 hover:bg-blue-50/30"
             >
+
+              {job.imageUrl && (
+                <img
+                  src={job.imageUrl}
+                  alt={`${job.title} job`}
+                  className="mb-4 h-40 w-full rounded-lg object-cover"
+                  loading="lazy"
+                />
+              )}
 
               <div className="flex gap-4">
 
@@ -295,8 +358,8 @@ export default function HomeModule({
               </div>
             </div>
           ))}
-
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Profile Reminder */}
