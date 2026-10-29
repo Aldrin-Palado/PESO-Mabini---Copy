@@ -137,26 +137,9 @@ export default function HomeModule({
         </div>
       </div>
 
-      {/* Search / Quick Actions */}
+      {/* Quick Actions */}
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-
-        <div className="flex items-center gap-3">
-
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700">
-            {firstName.charAt(0).toUpperCase()}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => onNavigate("Jobs")}
-            className="flex-1 rounded-full bg-gray-100 px-5 py-3 text-left text-sm text-gray-500 transition hover:bg-gray-200"
-          >
-            Search for jobs, companies, or opportunities...
-          </button>
-
-        </div>
-
-        <div className="mt-4 flex border-t border-gray-100 pt-3">
+        <div className="flex">
 
           <button
             type="button"

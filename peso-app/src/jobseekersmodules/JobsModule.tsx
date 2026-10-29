@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../services/supabase";
+import AppIcon from "../components/AppIcon";
 
 type Seeker = {
   job_seeker_id: string;
@@ -22,6 +23,10 @@ type Job = {
   type: string;
   salary: string;
   description: string;
+  requirements: string;
+  vacanciesAvailable: number;
+  deadline: string | null;
+  datePosted: string | null;
   imageUrl: string | null;
 };
 
@@ -41,6 +46,7 @@ export default function JobsModule({
   const [location, setLocation] = useState("All");
   const [type, setType] = useState("All");
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -64,6 +70,10 @@ export default function JobsModule({
               salary_min,
               salary_max,
               description,
+              requirements,
+              vacancies_available,
+              deadline,
+              date_posted,
               image_url,
               employer (
                 name
@@ -113,6 +123,10 @@ export default function JobsModule({
             type: row.employment_type || "Type not specified",
             salary,
             description: row.description || "No description provided.",
+            requirements: row.requirements || "",
+            vacanciesAvailable: row.vacancies_available,
+            deadline: row.deadline,
+            datePosted: row.date_posted,
             imageUrl: row.image_url ?? null,
           };
         });
@@ -141,6 +155,19 @@ export default function JobsModule({
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!selectedJob) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSelectedJob(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedJob]);
 
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
@@ -362,7 +389,7 @@ export default function JobsModule({
 
                       <button
                         type="button"
-                        onClick={() => onNavigate("Applications")}
+                        onClick={() => setSelectedJob(job)}
                         className="rounded-lg bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800"
                       >
                         View Details
@@ -394,6 +421,110 @@ export default function JobsModule({
         )}
 
       </div>
+
+      {selectedJob && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setSelectedJob(null);
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`job-title-${selectedJob.id}`}
+            className="my-auto max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-blue-700">
+                  {selectedJob.company}
+                </p>
+                <h2
+                  id={`job-title-${selectedJob.id}`}
+                  className="mt-1 text-2xl font-bold text-gray-900"
+                >
+                  {selectedJob.title}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedJob(null)}
+                aria-label="Close job details"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-2xl leading-none text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+              >
+                ×
+              </button>
+            </div>
+
+            {selectedJob.imageUrl && (
+              <img
+                src={selectedJob.imageUrl}
+                alt={`${selectedJob.title} job`}
+                className="mt-6 max-h-[60vh] w-full rounded-xl bg-slate-50 object-contain"
+              />
+            )}
+
+            <dl className="mt-6 grid gap-4 rounded-xl bg-slate-50 p-4 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="font-semibold text-gray-500">Location</dt>
+                <dd className="mt-1 text-gray-900">{selectedJob.location}</dd>
+              </div>
+              <div>
+                <dt className="font-semibold text-gray-500">Employment type</dt>
+                <dd className="mt-1 text-gray-900">{selectedJob.type}</dd>
+              </div>
+              <div>
+                <dt className="font-semibold text-gray-500">Salary</dt>
+                <dd className="mt-1 text-gray-900">{selectedJob.salary}</dd>
+              </div>
+              <div>
+                <dt className="font-semibold text-gray-500">Available openings</dt>
+                <dd className="mt-1 text-gray-900">
+                  {selectedJob.vacanciesAvailable}
+                </dd>
+              </div>
+              {selectedJob.deadline && (
+                <div>
+                  <dt className="font-semibold text-gray-500">
+                    Application deadline
+                  </dt>
+                  <dd className="mt-1 text-gray-900">
+                    {new Date(`${selectedJob.deadline}T00:00:00`).toLocaleDateString()}
+                  </dd>
+                </div>
+              )}
+              {selectedJob.datePosted && (
+                <div>
+                  <dt className="font-semibold text-gray-500">Date posted</dt>
+                  <dd className="mt-1 text-gray-900">
+                    {new Date(selectedJob.datePosted).toLocaleDateString()}
+                  </dd>
+                </div>
+              )}
+            </dl>
+
+            <div className="mt-6 space-y-5">
+              <div>
+                <h3 className="font-bold text-gray-900">Job description</h3>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-600">
+                  {selectedJob.description}
+                </p>
+              </div>
+              {selectedJob.requirements && (
+                <div>
+                  <h3 className="font-bold text-gray-900">Requirements</h3>
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-600">
+                    {selectedJob.requirements}
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* Profile Reminder */}
       <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
@@ -432,4 +563,3 @@ export default function JobsModule({
     </div>
   );
 }
-import AppIcon from "../components/AppIcon";

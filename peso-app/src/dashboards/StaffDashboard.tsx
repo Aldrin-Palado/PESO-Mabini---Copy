@@ -76,7 +76,7 @@ export default function StaffDashboard() {
       .from("peso_staff")
       .update({
         full_name: values.full_name.trim(),
-        contact_no: values.contact_no.trim() || null,
+        contact_no: values.contact_no?.trim() || null,
       })
       .eq("peso_staff_id", staff.peso_staff_id)
       .select("full_name, contact_no")
