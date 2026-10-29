@@ -4,6 +4,12 @@ import AuthSideImage from "./AuthSideImage";
 import EmployerRegistration from "./EmployerRegistration";
 import PesoLogo from "./PesoLogo";
 import { supabase } from "../services/supabase";
+import {
+  RESUME_ACCEPT,
+  RESUME_FORMATS_LABEL,
+  RESUME_MIME_TYPES,
+  getResumeExtension,
+} from "../services/resumes";
 
 type RegistrationDetails = {
   middleName: string;
@@ -235,11 +241,10 @@ function Register() {
       return;
     }
 
-    const allowedExtensions = ["pdf", "doc", "docx"];
-    const fileExtension = resumeFile.name.split(".").pop()?.toLowerCase();
+    const fileExtension = getResumeExtension(resumeFile.name);
 
-    if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
-      alert("Please upload a PDF, DOC, or DOCX file.");
+    if (!RESUME_MIME_TYPES[fileExtension]) {
+      alert(`Please upload a ${RESUME_FORMATS_LABEL} file.`);
       return;
     }
 
@@ -319,7 +324,7 @@ function Register() {
         .from("Resume Files")
         .upload(resumePath, resumeFile, {
           upsert: false,
-          contentType: resumeFile.type || undefined,
+          contentType: RESUME_MIME_TYPES[fileExtension],
         });
 
       if (uploadError) {
@@ -672,13 +677,13 @@ function Register() {
                     </label>
                     <input
                       type="file"
-                      accept=".pdf,.doc,.docx"
+                      accept={RESUME_ACCEPT}
                       required
                       onChange={(e) => setResumeFile(e.target.files?.[0] ?? null)}
                       className="w-full rounded-2xl border border-[#D5DEEB] bg-white px-5 py-3.5 text-sm text-slate-700 file:mr-4 file:rounded-full file:border-0 file:bg-[#315FEA] file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-[#244FD4]"
                     />
                     <p className="mt-2 text-xs text-slate-500">
-                      Accepted formats: PDF, DOC, DOCX. Maximum file size: 5 MB.
+                      Accepted formats: {RESUME_FORMATS_LABEL}. Maximum file size: 5 MB.
                     </p>
                     {resumeFile && (
                       <p className="mt-2 text-sm font-medium text-green-600">

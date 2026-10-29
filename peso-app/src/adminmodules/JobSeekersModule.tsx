@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { supabase } from "../services/supabase";
+import { openStoredResume } from "../services/resumes";
 
 type JobSeeker = {
   id?: string;
@@ -77,17 +77,7 @@ export default function JobSeekersModule({
     setResumeError("");
 
     try {
-      const { data, error } = await supabase.storage
-        .from("Resume Files")
-        .createSignedUrl(resumePath, 60);
-
-      if (error) throw error;
-
-      const link = document.createElement("a");
-      link.href = data.signedUrl;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.click();
+      await openStoredResume(resumePath);
     } catch (openError) {
       console.error("Resume view error:", openError);
       setResumeError(

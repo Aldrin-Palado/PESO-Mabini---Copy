@@ -197,6 +197,9 @@ export default function AdminDashboard() {
   const [moduleLoading, setModuleLoading] =
     useState(false);
 
+  const [applicationsError, setApplicationsError] =
+    useState("");
+
   /* ============================================================
      SEARCH
   ============================================================ */
@@ -737,67 +740,74 @@ export default function AdminDashboard() {
 
   const loadApplications = async () => {
     setModuleLoading(true);
+    setApplicationsError("");
 
     try {
-      const { data, error } = await supabase
-        .from("application")
-        .select("*")
-        .order("date_applied", {
-          ascending: false,
-        });
+      const [applicationsResult, seekersResult] =
+        await Promise.all([
+          supabase.from("application").select("*"),
+          supabase
+            .from("job_seeker")
+            .select(
+              "job_seeker_id, full_name, email, contact_no, address, resume_url, created_at",
+            )
+            .order("created_at", {
+              ascending: false,
+            }),
+        ]);
 
-      if (error) {
+      const seekers = seekersResult.data ?? [];
+
+      if (seekersResult.error) {
+        console.error(
+          "Job seeker resumes error:",
+          seekersResult.error,
+        );
+        setApplicationsError(
+          `Resumes could not be loaded: ${seekersResult.error.message}`,
+        );
+      } else {
+        setJobSeekers(seekers);
+      }
+
+      if (applicationsResult.error) {
         console.error(
           "Applications error:",
-          error
+          applicationsResult.error,
+        );
+
+        setApplications([]);
+        setApplicationsError(
+          `Unable to load applications: ${applicationsResult.error.message}`,
         );
 
         return;
       }
 
-      const rows = data ?? [];
-      const seekerIds = [
-        ...new Set(
-          rows
-            .map((application) => application.job_seeker_id)
-            .filter(Boolean),
-        ),
-      ];
-      const seekersById = new Map<
-        string,
-        {
-          full_name: string | null;
-          email: string | null;
-          resume_url: string | null;
-        }
-      >();
+      const rows = [...(applicationsResult.data ?? [])].sort(
+        (first, second) => {
+          const firstDate = new Date(
+            first.date_applied ||
+              first.created_at ||
+              first.updated_at ||
+              0,
+          ).getTime();
+          const secondDate = new Date(
+            second.date_applied ||
+              second.created_at ||
+              second.updated_at ||
+              0,
+          ).getTime();
 
-      if (seekerIds.length > 0) {
-        const {
-          data: seekers,
-          error: seekerError,
-        } = await supabase
-          .from("job_seeker")
-          .select(
-            "job_seeker_id, full_name, email, resume_url",
-          )
-          .in("job_seeker_id", seekerIds);
-
-        if (seekerError) {
-          console.error(
-            "Applicant details error:",
-            seekerError,
-          );
-        } else {
-          (seekers ?? []).forEach((seeker) => {
-            seekersById.set(seeker.job_seeker_id, {
-              full_name: seeker.full_name,
-              email: seeker.email,
-              resume_url: seeker.resume_url,
-            });
-          });
-        }
-      }
+          return secondDate - firstDate;
+        },
+      );
+      const seekersById = new Map(
+        seekers.map((seeker) => [
+          seeker.job_seeker_id,
+          seeker,
+        ]),
+      );
 
       setApplications(
         rows.map((application) => {
@@ -1125,6 +1135,7 @@ export default function AdminDashboard() {
         return (
           <ApplicationsModule
             applications={filteredApplications}
+            loadError={applicationsError}
             search={applicationSearch}
             setSearch={setApplicationSearch}
             statusFilter={applicationStatusFilter}
