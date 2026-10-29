@@ -1,3 +1,12 @@
+DROP POLICY IF EXISTS "Employers can view their own job posts"
+ON public.job_vacancy;
+DROP POLICY IF EXISTS "Employers can create their own job posts"
+ON public.job_vacancy;
+DROP POLICY IF EXISTS "Employers can update their own job posts"
+ON public.job_vacancy;
+DROP POLICY IF EXISTS "Employers can delete their own job posts"
+ON public.job_vacancy;
+
 CREATE POLICY "Employers can view their own job posts"
 ON public.job_vacancy
 FOR SELECT

@@ -21,6 +21,15 @@ SET
   file_size_limit = EXCLUDED.file_size_limit,
   allowed_mime_types = EXCLUDED.allowed_mime_types;
 
+DROP POLICY IF EXISTS "Employers can upload images for their own job posts"
+ON storage.objects;
+DROP POLICY IF EXISTS "Employers can view their own job post images"
+ON storage.objects;
+DROP POLICY IF EXISTS "Employers can update their own job post images"
+ON storage.objects;
+DROP POLICY IF EXISTS "Employers can delete their own job post images"
+ON storage.objects;
+
 CREATE POLICY "Employers can upload images for their own job posts"
 ON storage.objects
 FOR INSERT
