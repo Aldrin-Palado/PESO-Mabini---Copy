@@ -415,92 +415,140 @@ export default function JobsModule({
             role="dialog"
             aria-modal="true"
             aria-labelledby={`job-title-${selectedJob.id}`}
-            className="my-auto max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8"
+            className="my-auto max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5"
           >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold text-blue-700">
-                  {selectedJob.company}
-                </p>
-                <h2
-                  id={`job-title-${selectedJob.id}`}
-                  className="mt-1 text-2xl font-bold text-gray-900"
+            <div className="max-h-[92vh] overflow-y-auto">
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur sm:px-8">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-lg font-black text-blue-700">
+                    {selectedJob.company.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-blue-700">
+                      {selectedJob.company}
+                    </p>
+                    <p className="text-xs text-slate-500">Job opportunity</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedJob(null)}
+                  aria-label="Close job details"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {selectedJob.title}
-                </h2>
+                  <AppIcon name="x" className="h-5 w-5" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setSelectedJob(null)}
-                aria-label="Close job details"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-2xl leading-none text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
-              >
-                ×
-              </button>
-            </div>
 
-            {selectedJob.imageUrl && (
-              <img
-                src={selectedJob.imageUrl}
-                alt={`${selectedJob.title} job`}
-                className="mt-6 max-h-[60vh] w-full rounded-xl bg-slate-50 object-contain"
-              />
-            )}
-
-            <dl className="mt-6 grid gap-4 rounded-xl bg-slate-50 p-4 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="font-semibold text-gray-500">Location</dt>
-                <dd className="mt-1 text-gray-900">{selectedJob.location}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-gray-500">Employment type</dt>
-                <dd className="mt-1 text-gray-900">{selectedJob.type}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-gray-500">Salary</dt>
-                <dd className="mt-1 text-gray-900">{selectedJob.salary}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-gray-500">Available openings</dt>
-                <dd className="mt-1 text-gray-900">
-                  {selectedJob.vacanciesAvailable}
-                </dd>
-              </div>
-              {selectedJob.deadline && (
+              <div className="space-y-7 px-5 py-6 sm:px-8 sm:py-8">
                 <div>
-                  <dt className="font-semibold text-gray-500">
-                    Application deadline
-                  </dt>
-                  <dd className="mt-1 text-gray-900">
-                    {new Date(`${selectedJob.deadline}T00:00:00`).toLocaleDateString()}
-                  </dd>
-                </div>
-              )}
-              {selectedJob.datePosted && (
-                <div>
-                  <dt className="font-semibold text-gray-500">Date posted</dt>
-                  <dd className="mt-1 text-gray-900">
-                    {new Date(selectedJob.datePosted).toLocaleDateString()}
-                  </dd>
-                </div>
-              )}
-            </dl>
-
-            <div className="mt-6 space-y-5">
-              <div>
-                <h3 className="font-bold text-gray-900">Job description</h3>
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-600">
-                  {selectedJob.description}
-                </p>
-              </div>
-              {selectedJob.requirements && (
-                <div>
-                  <h3 className="font-bold text-gray-900">Requirements</h3>
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-600">
-                    {selectedJob.requirements}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                      Open position
+                    </span>
+                    {selectedJob.datePosted && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                        <AppIcon name="clock" className="h-3.5 w-3.5" />
+                        Posted {new Date(selectedJob.datePosted).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                  <h2
+                    id={`job-title-${selectedJob.id}`}
+                    className="mt-4 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl"
+                  >
+                    {selectedJob.title}
+                  </h2>
+                  <p className="mt-2 text-sm text-slate-600">
+                    {selectedJob.company}
                   </p>
                 </div>
-              )}
+
+                {selectedJob.imageUrl && (
+                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-2">
+                    <img
+                      src={selectedJob.imageUrl}
+                      alt={`${selectedJob.title} job`}
+                      className="max-h-[55vh] w-full rounded-xl object-contain"
+                    />
+                  </div>
+                )}
+
+                <dl className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    {
+                      label: "Location",
+                      value: selectedJob.location,
+                      icon: "mapPin" as const,
+                    },
+                    {
+                      label: "Employment type",
+                      value: selectedJob.type,
+                      icon: "briefcase" as const,
+                    },
+                    {
+                      label: "Salary",
+                      value: selectedJob.salary,
+                      icon: "dollar" as const,
+                    },
+                    {
+                      label: "Available openings",
+                      value: String(selectedJob.vacanciesAvailable),
+                      icon: "users" as const,
+                    },
+                    ...(selectedJob.deadline
+                      ? [{
+                          label: "Application deadline",
+                          value: new Date(`${selectedJob.deadline}T00:00:00`).toLocaleDateString(),
+                          icon: "clock" as const,
+                        }]
+                      : []),
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4"
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+                        <AppIcon name={item.icon} className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          {item.label}
+                        </dt>
+                        <dd className="mt-1 break-words text-sm font-semibold text-slate-900">
+                          {item.value}
+                        </dd>
+                      </div>
+                    </div>
+                  ))}
+                </dl>
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="rounded-2xl bg-slate-50 p-5">
+                    <h3 className="font-bold text-slate-900">Job description</h3>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                      {selectedJob.description}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 p-5">
+                    <h3 className="font-bold text-slate-900">Requirements</h3>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                      {selectedJob.requirements || "No specific requirements provided."}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end border-t border-slate-100 pt-5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedJob(null)}
+                    className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    Close details
+                  </button>
+                </div>
+              </div>
             </div>
           </section>
         </div>
