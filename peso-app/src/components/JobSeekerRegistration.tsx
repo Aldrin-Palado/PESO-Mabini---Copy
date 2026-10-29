@@ -114,6 +114,14 @@ function Register() {
         return;
       }
 
+      if (!data.session) {
+        alert(
+          "Your account was created. Confirm your email and sign in, then upload your resume from My Profile.",
+        );
+        navigate("/login");
+        return;
+      }
+
       const userId = data.user.id;
 
       // STEP 2: Upload the resume to the private `resumes` bucket.
@@ -121,7 +129,7 @@ function Register() {
       const resumePath = `${userId}/${Date.now()}.${safeExtension}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("resumes")
+        .from("Resume Files")
         .upload(resumePath, resumeFile, {
           upsert: false,
           contentType: resumeFile.type || undefined,
@@ -130,8 +138,9 @@ function Register() {
       if (uploadError) {
         console.error("Resume upload error:", uploadError);
         alert(
-          `Account created, but resume upload failed: ${uploadError.message}. Please contact PESO staff or try uploading your resume again.`,
+          `Your account was created, but the resume could not be uploaded: ${uploadError.message}. Sign in and upload it from My Profile.`,
         );
+        navigate("/login");
         return;
       }
 
