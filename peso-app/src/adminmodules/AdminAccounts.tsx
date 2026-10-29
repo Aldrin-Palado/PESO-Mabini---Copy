@@ -448,8 +448,8 @@ export default function AdminAccounts() {
         {staff.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center sm:p-10">
 
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-2xl">
-              👤
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-700">
+                <AppIcon name="user" className="h-7 w-7" />
             </div>
 
             <p className="font-bold text-slate-600">
@@ -765,7 +765,7 @@ export default function AdminAccounts() {
                             : "border-slate-300"
                         }`}
                       >
-                        {checked ? "✓" : ""}
+                        {checked && <AppIcon name="check" className="h-4 w-4" />}
                       </span>
 
                       <span className="text-sm font-bold text-slate-700">
@@ -813,3 +813,4 @@ export default function AdminAccounts() {
     </div>
   );
 }
+import AppIcon from "../components/AppIcon";

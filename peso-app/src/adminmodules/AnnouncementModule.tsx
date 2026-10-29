@@ -49,7 +49,7 @@ export default function AnnouncementModule({
 
       <ModuleHeader
         title="Announcement"
-        description="Create and manage PESO-Hub announcements."
+        description="Create and manage PESO MABINI announcements."
       />
 
       {/* CREATE ANNOUNCEMENT */}

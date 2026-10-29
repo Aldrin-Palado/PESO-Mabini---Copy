@@ -201,7 +201,7 @@ export default function ApplicationsModule({
           <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-sm">
 
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-2xl">
-              📄
+              <AppIcon name="file" className="h-7 w-7 text-blue-700" />
             </div>
 
             <h3 className="mt-4 font-semibold text-gray-900">
@@ -248,6 +248,13 @@ export default function ApplicationsModule({
                   <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-500">
 
                     <span>
+<<<<<<< HEAD
+=======
+                      <AppIcon name="mapPin" className="mr-1 inline h-4 w-4" /> {application.location}
+                    </span>
+
+                    <span>
+>>>>>>> 516ecd93c0d25d674d275de75206569a89c63321
                       Applied: {application.date}
                     </span>
 
@@ -312,3 +319,4 @@ export default function ApplicationsModule({
     </div>
   );
 }
+import AppIcon from "../components/AppIcon";

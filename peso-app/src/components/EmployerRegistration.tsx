@@ -185,7 +185,7 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
                 disabled={loading}
                 className="inline-flex items-center rounded-full border border-[#D5DEEB] bg-white px-4 py-2 text-sm font-semibold text-[#3156A2] transition hover:border-[#315FEA] hover:bg-[#EEF3FF] hover:text-[#102A4C] disabled:opacity-60"
               >
-                ← Change account type
+                <AppIcon name="arrowLeft" className="mr-1 inline h-4 w-4" /> Change account type
               </button>
               <Link
                 to="/"
@@ -237,7 +237,7 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
                               : "border-slate-300 text-slate-500"
                           }`}
                         >
-                          {isComplete ? "✓" : index + 1}
+                          {isComplete ? <AppIcon name="check" className="h-4 w-4" /> : index + 1}
                         </span>
                         <span className="min-w-0">
                           <span className="block text-[0.68rem] font-bold sm:text-xs">
@@ -604,7 +604,7 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
                 disabled={loading}
                 className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
               >
-                ← {step === 0 ? "Back to account type" : "Back"}
+                <AppIcon name="arrowLeft" className="mr-1 inline h-4 w-4" /> {step === 0 ? "Back to account type" : "Back"}
               </button>
 
               {step < registrationSteps.length - 1 ? (
@@ -614,7 +614,7 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
                   disabled={loading}
                   className="rounded-full bg-[#0759AE] px-6 py-2.5 text-sm font-bold text-white transition hover:bg-[#064A91] disabled:opacity-60"
                 >
-                  Continue →
+                  Continue <AppIcon name="arrowRight" className="ml-1 inline h-4 w-4" />
                 </button>
               ) : (
                 <button
@@ -644,3 +644,4 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
 }
 
 export default EmployerRegistration;
+import AppIcon from "./AppIcon";

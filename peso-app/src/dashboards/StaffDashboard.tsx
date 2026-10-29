@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import SidebarToggle from "../components/SidebarToggle";
+import AppIcon, { type AppIconName } from "../components/AppIcon";
 import ProfileAvatar from "../components/ProfileAvatar";
 import { supabase } from "../services/supabase";
 
@@ -417,7 +418,7 @@ export default function StaffDashboard() {
 
           <div className="min-w-0">
             <h1 className="text-xl font-black sm:text-2xl">
-              PESO-Hub
+              PESO MABINI
             </h1>
 
             <p className="mt-1 text-sm text-blue-100">
@@ -694,7 +695,7 @@ function DashboardOverview() {
         </h2>
 
         <p className="mt-1 text-slate-500">
-          Overview of the PESO-Hub employment system.
+          Overview of the PESO MABINI employment system.
         </p>
 
       </div>
@@ -704,25 +705,25 @@ function DashboardOverview() {
         <StatCard
           title="Job Posts"
           value={counts.jobs}
-          icon="▤"
+          icon="briefcase"
         />
 
         <StatCard
           title="Applications"
           value={counts.applications}
-          icon="▥"
+          icon="file"
         />
 
         <StatCard
           title="Employers"
           value={counts.employers}
-          icon="◆"
+          icon="building"
         />
 
         <StatCard
           title="Job Seekers"
           value={counts.seekers}
-          icon="♙"
+          icon="users"
         />
 
       </div>
@@ -1036,7 +1037,7 @@ function MyProfile({
         </h2>
 
         <p className="mt-1 text-slate-500">
-          Your PESO-Hub staff account information.
+          Your PESO MABINI staff account information.
         </p>
 
       </div>
@@ -1149,7 +1150,7 @@ function StatCard({
 }: {
   title: string;
   value: number;
-  icon: string;
+  icon: AppIconName;
 }) {
 
   return (
@@ -1170,7 +1171,7 @@ function StatCard({
         </div>
 
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-xl text-[#0446A7]">
-          {icon}
+          <AppIcon name={icon} className="h-6 w-6" />
         </div>
 
       </div>

@@ -120,7 +120,7 @@ export default function DashboardModule({
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#3156A2]">
-            PESO-Hub administration
+            PESO MABINI administration
           </p>
           <h3 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
             Dashboard
@@ -141,7 +141,7 @@ export default function DashboardModule({
         </button>
       </section>
 
-      <section aria-label="PESO-Hub service totals" className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+      <section aria-label="PESO MABINI service totals" className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
         {metrics.map((metric) => (
           <article
             key={metric.key}
@@ -171,7 +171,7 @@ export default function DashboardModule({
             <div>
               <h4 className="font-bold text-slate-900">Super Admin Control Center</h4>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-blue-700">
-                Review administrator accounts and monitor activity across the PESO-Hub platform.
+                Review administrator accounts and monitor activity across the PESO MABINI platform.
               </p>
             </div>
           </div>

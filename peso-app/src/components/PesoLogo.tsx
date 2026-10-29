@@ -13,17 +13,17 @@ const pesoLogo = new URL(
 ).href;
 
 const sizes = {
-  sm: "h-10 w-10",
-  md: "h-12 w-12",
-  auth: "h-16 w-16",
-  lg: "h-16 w-16",
+  sm: "h-11 w-11",
+  md: "h-[3.25rem] w-[3.25rem]",
+  auth: "h-[4.5rem] w-[4.5rem]",
+  lg: "h-[4.5rem] w-[4.5rem]",
 } as const;
 
 export type PesoLogoSize = keyof typeof sizes;
 
 type PesoLogoProps = {
   size?: PesoLogoSize;
-  /** Render the "PESO-Hub" wordmark beside the mark. */
+  /** Render the "PESO MABINI" wordmark beside the mark. */
   showName?: boolean;
   /** Smaller line under the wordmark. */
   subtitle?: string;
@@ -37,7 +37,7 @@ type PesoLogoProps = {
 };
 
 /**
- * The PESO-Hub brand mark, sized consistently everywhere it appears
+ * The PESO MABINI brand mark, sized consistently everywhere it appears
  * (navbar, login, register, footer).
  *
  * `width`/`height` are the intrinsic pixel size so the browser reserves the
@@ -71,7 +71,7 @@ export default function PesoLogo({
     >
       <img
         src={pesoLogo}
-        alt="PESO-Hub logo"
+        alt="PESO MABINI logo"
         width={453}
         height={449}
         className="h-full w-full object-contain"
@@ -80,7 +80,7 @@ export default function PesoLogo({
   ) : (
     <img
       src={pesoLogo}
-      alt="PESO-Hub logo"
+      alt="PESO MABINI logo"
       width={453}
       height={449}
       className={`${sizes[size]} shrink-0 object-contain`}
@@ -93,15 +93,16 @@ export default function PesoLogo({
 
       <span className="min-w-0">
         <span
-          className={`block truncate font-black leading-tight ${
+          className={`block min-w-0 font-black leading-tight ${
             size === "lg"
-              ? "text-2xl"
+              ? "text-[1.65rem]"
               : size === "auth"
-                ? "text-2xl"
-                : "text-xl"
+                ? "text-[1.65rem]"
+                : "text-[1.35rem]"
           } ${nameColor}`}
         >
-          PESO-Hub
+          <span className="block whitespace-nowrap">PESO</span>
+          <span className="block whitespace-nowrap text-red-600">MABINI</span>
         </span>
 
         {subtitle && (

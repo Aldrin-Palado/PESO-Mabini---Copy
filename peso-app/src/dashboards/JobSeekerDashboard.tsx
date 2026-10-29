@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import AppIcon from "../components/AppIcon";
 
 import { supabase } from "../services/supabase";
 
@@ -479,7 +480,7 @@ export default function JobSeekerDashboard() {
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Sign out of your PESO-Hub Job Seeker
+            Sign out of your PESO MABINI Job Seeker
             account.
           </p>
 
@@ -766,7 +767,7 @@ export default function JobSeekerDashboard() {
               </button>
               <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                PESO-Hub
+                PESO MABINI
               </p>
 
               <h1 className="truncate text-xl font-black text-[#123B70]">
@@ -783,9 +784,7 @@ export default function JobSeekerDashboard() {
 
               <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
 
-                <span className="text-slate-400">
-                  🔎
-                </span>
+                <AppIcon name="search" className="h-5 w-5 text-slate-400" />
 
                 <input
                   type="text"
@@ -816,7 +815,7 @@ export default function JobSeekerDashboard() {
                 className="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100"
                 aria-label="Messages"
               >
-                ✉
+                <AppIcon name="mail" className="h-5 w-5" />
 
                 <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
               </button>

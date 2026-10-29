@@ -1,5 +1,6 @@
 import React from "react";
 import PesoLogo from "./PesoLogo";
+import AppIcon from "./AppIcon";
 
 const Footer: React.FC = () => {
   return (
@@ -44,16 +45,16 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="font-bold text-white">Contact Us</h3>
             <div className="mt-4 space-y-3 text-sm">
-              <p>📍 Public Employment Service Office</p>
-              <p>📍 Mabini, Batangas</p>
-              <p>📞 Contact information</p>
-              <p>✉️ PESO email address</p>
+              <p className="flex items-center gap-2"><AppIcon name="building" className="h-4 w-4" /> Public Employment Service Office</p>
+              <p className="flex items-center gap-2"><AppIcon name="mapPin" className="h-4 w-4" /> Mabini, Batangas</p>
+              <p className="flex items-center gap-2"><AppIcon name="phone" className="h-4 w-4" /> Contact information</p>
+              <p className="flex items-center gap-2"><AppIcon name="mail" className="h-4 w-4" /> PESO email address</p>
             </div>
           </div>
         </div>
 
         <div className="mt-10 border-t border-white/20 pt-6 text-xs">
-          © 2026 PESO-Hub. All rights reserved.
+          © 2026 PESO MABINI. All rights reserved.
         </div>
       </div>
     </footer>

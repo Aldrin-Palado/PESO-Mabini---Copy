@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Footer from "../components/Footer";
 import JobCard from "../components/JobCard";
 import Navbar from "../components/Navbar";
+import AppIcon from "../components/AppIcon";
 import type { JobVacancy } from "../types/JobVacancy";
 import { supabase } from "../services/supabase";
 
@@ -178,7 +179,7 @@ function JobVacancies() {
 
               <div className="relative">
                 <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                  🔍
+                  <AppIcon name="search" />
                 </span>
 
                 <input
@@ -260,9 +261,7 @@ function JobVacancies() {
               <div className="px-4 py-14 text-center sm:px-6 sm:py-20">
 
                 <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-sky-50">
-                  <span className="text-3xl">
-                    💼
-                  </span>
+                  <AppIcon name="briefcase" className="h-9 w-9 text-sky-700" />
                 </div>
 
                 <h3 className="mt-6 text-2xl font-bold text-slate-800">

@@ -2,6 +2,7 @@ import React from "react";
 import Footer from "../components/Footer";
 import LocationMap, { MABINI_LOCATION_QUERY } from "../components/LocationMap";
 import Navbar from "../components/Navbar";
+import AppIcon from "../components/AppIcon";
 
 interface ContactMethod {
   title: string;
@@ -160,7 +161,7 @@ const Contact: React.FC = () => {
                       className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-sky-600 transition hover:text-sky-700"
                     >
                       Open in Google Maps
-                      <span aria-hidden="true">→</span>
+                      <AppIcon name="arrowRight" className="h-4 w-4" />
                     </a>
                   )}
 
@@ -378,8 +379,8 @@ const Contact: React.FC = () => {
                   Public Employment Service Office
                 </p>
 
-                <p className="mt-4 text-sm text-slate-600">
-                  📍 Mabini, Batangas, Philippines
+                <p className="mt-4 flex items-center gap-2 text-sm text-slate-600">
+                  <AppIcon name="mapPin" className="h-4 w-4 text-sky-700" /> Mabini, Batangas, Philippines
                 </p>
 
                 <a

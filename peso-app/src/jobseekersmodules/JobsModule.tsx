@@ -172,7 +172,7 @@ export default function JobsModule({
           <div className="relative flex-1">
 
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-              🔍
+              <AppIcon name="search" />
             </span>
 
             <input
@@ -240,7 +240,7 @@ export default function JobsModule({
           <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center">
 
             <div className="text-4xl">
-              🔍
+              <AppIcon name="search" className="mx-auto h-10 w-10 text-slate-400" />
             </div>
 
             <h3 className="mt-3 font-semibold text-gray-900">
@@ -307,15 +307,15 @@ export default function JobsModule({
                     <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-500">
 
                       <span className="rounded-full bg-gray-100 px-3 py-1">
-                        📍 {job.location}
+                        <AppIcon name="mapPin" className="mr-1 inline h-3.5 w-3.5" /> {job.location}
                       </span>
 
                       <span className="rounded-full bg-gray-100 px-3 py-1">
-                        💼 {job.type}
+                        <AppIcon name="briefcase" className="mr-1 inline h-3.5 w-3.5" /> {job.type}
                       </span>
 
                       <span className="rounded-full bg-green-50 px-3 py-1 text-green-700">
-                        💰 {job.salary}
+                        <AppIcon name="dollar" className="mr-1 inline h-3.5 w-3.5" /> {job.salary}
                       </span>
 
                     </div>
@@ -344,7 +344,11 @@ export default function JobsModule({
                             : "border-blue-200 text-blue-700 hover:bg-blue-50"
                         }`}
                       >
-                        {isSaved ? "★ Saved" : "☆ Save"}
+                        <AppIcon
+                          name="star"
+                          className={`mr-1 inline h-4 w-4 ${isSaved ? "fill-current" : ""}`}
+                        />
+                        {isSaved ? "Saved" : "Save"}
                       </button>
 
                     </div>
@@ -364,7 +368,7 @@ export default function JobsModule({
         <div className="flex gap-3">
 
           <div className="text-xl">
-            💡
+            <AppIcon name="lightbulb" className="h-6 w-6 text-yellow-700" />
           </div>
 
           <div className="flex-1">
@@ -383,7 +387,7 @@ export default function JobsModule({
               onClick={() => onNavigate("Profile")}
               className="mt-3 text-sm font-bold text-yellow-900 underline hover:text-yellow-700"
             >
-              Update My Profile →
+              Update My Profile <AppIcon name="arrowRight" className="ml-1 inline h-4 w-4" />
             </button>
 
           </div>
@@ -395,3 +399,4 @@ export default function JobsModule({
     </div>
   );
 }
+import AppIcon from "../components/AppIcon";

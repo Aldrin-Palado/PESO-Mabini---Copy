@@ -201,7 +201,7 @@ function Register() {
                 Create your account
               </h2>
               <p className="mt-3 text-sm leading-6 text-slate-500 sm:text-base">
-                Join PESO-Hub and access employment services in Mabini.
+                Join PESO MABINI and access employment services in Mabini.
               </p>
             </div>
 
@@ -435,7 +435,7 @@ function Register() {
                   className="mt-1 h-4 w-4 rounded border-slate-300 accent-[#315FEA] focus:ring-[#315FEA]"
                 />
                 <p className="text-sm text-slate-500">
-                  I agree to the PESO-Hub terms and conditions and understand that
+                  I agree to the PESO MABINI terms and conditions and understand that
                   my information will be used for employment services.
                 </p>
               </div>
@@ -471,7 +471,7 @@ function Register() {
               to="/"
               className="mx-auto mt-5 inline-flex items-center justify-center gap-2 rounded-full border border-[#D5DEEB] bg-white px-6 py-3 text-sm font-semibold text-[#3156A2] shadow-sm transition hover:border-[#315FEA]/40 hover:text-[#244FD4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#315FEA]"
             >
-              <span aria-hidden="true">←</span>
+              <AppIcon name="arrowLeft" className="h-4 w-4" />
               Return to Home
             </Link>
           </div>
@@ -482,3 +482,4 @@ function Register() {
 }
 
 export default Register;
+import AppIcon from "./AppIcon";

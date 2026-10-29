@@ -1,5 +1,6 @@
 
 import type { ReactNode } from "react";
+import AppIcon, { type AppIconName } from "../components/AppIcon";
 
 interface EmployerProfile {
   name?: string | null;
@@ -36,7 +37,7 @@ function StatCard({
   title: string;
   value: number;
   description: string;
-  icon: string;
+  icon: AppIconName;
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -44,7 +45,7 @@ function StatCard({
         <p className="text-sm font-semibold text-slate-500">{title}</p>
 
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-lg text-[#0446A7]">
-          {icon}
+          <AppIcon name={icon} className="h-5 w-5" />
         </div>
       </div>
 
@@ -213,28 +214,28 @@ export default function DashboardModule({
           title="Active Job Posts"
           value={activeJobs}
           description={`${jobs.length} total job posts`}
-          icon="▤"
+          icon="briefcase"
         />
 
         <StatCard
           title="Applications"
           value={applications.length}
           description="Total received"
-          icon="✓"
+          icon="check"
         />
 
         <StatCard
           title="Shortlisted"
           value={countStatus("shortlisted")}
           description="Applicants shortlisted"
-          icon="★"
+          icon="star"
         />
 
         <StatCard
           title="Hired"
           value={countStatus("hired")}
           description="Successful hires"
-          icon="♙"
+          icon="users"
         />
       </section>
 
