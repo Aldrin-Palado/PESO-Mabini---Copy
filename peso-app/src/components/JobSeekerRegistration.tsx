@@ -5,6 +5,58 @@ import EmployerRegistration from "./EmployerRegistration";
 import PesoLogo from "./PesoLogo";
 import { supabase } from "../services/supabase";
 
+type RegistrationDetails = {
+  middleName: string;
+  dateOfBirth: string;
+  sex: string;
+  permanentAddress: string;
+  civilStatus: string;
+  fatherName: string;
+  motherName: string;
+  parentsCivilStatus: string;
+  governmentIdType: string;
+  governmentIdNumber: string;
+  heightCm: string;
+  weightKg: string;
+  disability: string;
+  employmentStatus: string;
+  unemploymentDurationMonths: string;
+  unemploymentReason: string;
+  isOfw: string;
+  isFormerOfw: string;
+  is4PsBeneficiary: string;
+  preferredOccupation: string;
+  companyApplyingFor: string;
+  preferredWorkLocation: string;
+  otherWorkLocation: string;
+  languages: string[];
+  otherLanguage: string;
+  educationLevel: string;
+  elementaryEducation: string;
+  secondaryEducation: string;
+  tertiaryEducation: string;
+  graduateStudies: string;
+  undergraduateLevel: string;
+  training1: string;
+  training2: string;
+  training3: string;
+  eligibility1: string;
+  eligibility2: string;
+  workExperience1: string;
+  workExperience2: string;
+  workExperience3: string;
+  noWorkExperience: boolean;
+  otherSkills: string;
+  spesGipHistory: string;
+  engagementPeriod: string;
+  spesGipId: string;
+  signature: string;
+  signatureDate: string;
+};
+
+const fieldClassName =
+  "w-full rounded-2xl border border-[#D5DEEB] bg-white px-5 py-3.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#315FEA] focus:ring-4 focus:ring-[#315FEA]/10";
+
 function Register() {
   const navigate = useNavigate();
 
@@ -23,6 +75,55 @@ function Register() {
     password: "",
     confirmPassword: "",
   });
+  const [details, setDetails] = useState<RegistrationDetails>({
+    middleName: "",
+    dateOfBirth: "",
+    sex: "",
+    permanentAddress: "",
+    civilStatus: "",
+    fatherName: "",
+    motherName: "",
+    parentsCivilStatus: "",
+    governmentIdType: "",
+    governmentIdNumber: "",
+    heightCm: "",
+    weightKg: "",
+    disability: "",
+    employmentStatus: "",
+    unemploymentDurationMonths: "",
+    unemploymentReason: "",
+    isOfw: "",
+    isFormerOfw: "",
+    is4PsBeneficiary: "",
+    preferredOccupation: "",
+    companyApplyingFor: "",
+    preferredWorkLocation: "",
+    otherWorkLocation: "",
+    languages: [],
+    otherLanguage: "",
+    educationLevel: "",
+    elementaryEducation: "",
+    secondaryEducation: "",
+    tertiaryEducation: "",
+    graduateStudies: "",
+    undergraduateLevel: "",
+    training1: "",
+    training2: "",
+    training3: "",
+    eligibility1: "",
+    eligibility2: "",
+    workExperience1: "",
+    workExperience2: "",
+    workExperience3: "",
+    noWorkExperience: false,
+    otherSkills: "",
+    spesGipHistory: "",
+    engagementPeriod: "",
+    spesGipId: "",
+    signature: "",
+    signatureDate: new Date().toISOString().slice(0, 10),
+  });
+  const [privacyConsent, setPrivacyConsent] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((previous) => ({
@@ -30,6 +131,67 @@ function Register() {
       [e.target.name]: e.target.value,
     }));
   };
+
+  const updateDetail = <K extends keyof RegistrationDetails>(
+    key: K,
+    value: RegistrationDetails[K],
+  ) => {
+    setDetails((previous) => ({ ...previous, [key]: value }));
+  };
+
+  const textField = (
+    key: keyof RegistrationDetails,
+    label: string,
+    options: {
+      required?: boolean;
+      type?: "text" | "number" | "date";
+      min?: string;
+      max?: string;
+      placeholder?: string;
+    } = {},
+  ) => (
+    <label key={key} className="block text-sm font-medium text-slate-800">
+      {label}{options.required && <span className="text-red-600"> *</span>}
+      <input
+        type={options.type ?? "text"}
+        value={String(details[key])}
+        onChange={(event) => updateDetail(key, event.target.value)}
+        required={options.required}
+        min={options.min}
+        max={options.max}
+        step={options.type === "number" ? "any" : undefined}
+        placeholder={options.placeholder ?? "Enter your answer"}
+        className={`${fieldClassName} mt-2`}
+      />
+    </label>
+  );
+
+  const selectField = (
+    key: keyof RegistrationDetails,
+    label: string,
+    options: string[],
+    required = false,
+  ) => (
+    <label key={key} className="block text-sm font-medium text-slate-800">
+      {label}{required && <span className="text-red-600"> *</span>}
+      <select
+        value={String(details[key])}
+        onChange={(event) => updateDetail(key, event.target.value)}
+        required={required}
+        className={`${fieldClassName} mt-2`}
+      >
+        <option value="">Choose</option>
+        {options.map((option) => (
+          <option key={option} value={option}>{option}</option>
+        ))}
+      </select>
+    </label>
+  );
+
+  const sectionClassName =
+    "space-y-5 rounded-2xl border border-[#D5DEEB] bg-white p-5 sm:p-6";
+  const sectionHeadingClassName =
+    "border-b border-slate-100 pb-3 text-lg font-bold text-[#123B70]";
 
   if (accountType === "employer") {
     return <EmployerRegistration onBack={() => setAccountType("jobseeker")} />;
@@ -55,6 +217,11 @@ function Register() {
 
     if (!formData.address.trim()) {
       alert("Please enter your address.");
+      return;
+    }
+
+    if (details.languages.length === 0 && !details.otherLanguage.trim()) {
+      alert("Select at least one language or enter a language under Other.");
       return;
     }
 
@@ -84,7 +251,25 @@ function Register() {
       const email = formData.email.trim().toLowerCase();
       const firstName = formData.firstName.trim();
       const lastName = formData.lastName.trim();
-      const fullName = `${firstName} ${lastName}`.trim();
+      const middleName = details.middleName.trim();
+      const fullName = `${firstName} ${middleName} ${lastName}`
+        .replace(/\s+/g, " ")
+        .trim();
+      const registrationDetails = {
+        ...details,
+        middleName,
+        dateOfBirth: details.dateOfBirth || null,
+        contactNumber: formData.contactNumber.trim(),
+        email,
+        presentAddress: formData.address.trim(),
+        permanentAddress: details.permanentAddress.trim(),
+        preferredWorkLocation:
+          details.preferredWorkLocation === "Other"
+            ? details.otherWorkLocation.trim()
+            : details.preferredWorkLocation,
+        privacyConsent,
+        privacyConsentAt: new Date().toISOString(),
+      };
 
       // STEP 1: Create the Supabase Auth account.
       // The database trigger creates the initial job_seeker profile.
@@ -99,6 +284,8 @@ function Register() {
             role: "jobseeker",
             contact_no: formData.contactNumber.trim(),
             address: formData.address.trim(),
+            birth_date: details.dateOfBirth || null,
+            registration_details: registrationDetails,
           },
         },
       });
@@ -153,15 +340,55 @@ function Register() {
         .update({
           contact_no: formData.contactNumber.trim(),
           address: formData.address.trim(),
+          birth_date: details.dateOfBirth || null,
+          registration_details: registrationDetails,
           resume_url: resumePath,
         })
         .eq("user_id", userId);
 
       if (profileError) {
-        console.error("Job seeker profile update error:", profileError);
-        alert(
-          `Account and resume were created, but your profile could not be updated: ${profileError.message}. Please contact the administrator.`,
+        const missingRegistrationDetailsColumn =
+          profileError.code === "PGRST204" &&
+          profileError.message.includes("registration_details") &&
+          profileError.message.toLowerCase().includes("schema cache");
+
+        if (!missingRegistrationDetailsColumn) {
+          console.error("Job seeker profile update error:", profileError);
+          alert(
+            `Account and resume were created, but your profile could not be updated: ${profileError.message}. Please contact the administrator.`,
+          );
+          return;
+        }
+
+        console.warn(
+          "The registration_details column is not available yet. Retrying with existing profile fields; submitted registration details remain in the Auth user metadata.",
         );
+
+        const { error: fallbackProfileError } = await supabase
+          .from("job_seeker")
+          .update({
+            contact_no: formData.contactNumber.trim(),
+            address: formData.address.trim(),
+            birth_date: details.dateOfBirth || null,
+            resume_url: resumePath,
+          })
+          .eq("user_id", userId);
+
+        if (fallbackProfileError) {
+          console.error(
+            "Job seeker profile fallback update error:",
+            fallbackProfileError,
+          );
+          alert(
+            `Your account and resume were created, but your profile could not be updated: ${fallbackProfileError.message}. Your submitted details are retained with your account. Please contact the administrator.`,
+          );
+          return;
+        }
+
+        alert(
+          "Your account and resume were created. Your registration details are saved with your account, but the profile database update is still needed. Please ask the administrator to apply the registration-details migration, then log in.",
+        );
+        navigate("/login");
         return;
       }
 
@@ -275,42 +502,27 @@ function Register() {
                 </div>
               </div>
 
-              {/* First and Last Name */}
-              <div className="grid gap-5 sm:grid-cols-2">
+              {/* Name */}
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-slate-800">
-                    First Name
+                    Surname <span className="text-red-600">*</span>
                   </label>
-                  <input
-                    type="text"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    placeholder="Enter first name"
-                    required
-                    className="w-full rounded-2xl border border-[#D5DEEB] bg-white px-5 py-3.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#315FEA] focus:ring-4 focus:ring-[#315FEA]/10"
-                  />
+                  <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} placeholder="Enter surname" required className={fieldClassName} />
                 </div>
                 <div>
                   <label className="mb-2 block text-sm font-medium text-slate-800">
-                    Last Name
+                    First Name <span className="text-red-600">*</span>
                   </label>
-                  <input
-                    type="text"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    placeholder="Enter last name"
-                    required
-                    className="w-full rounded-2xl border border-[#D5DEEB] bg-white px-5 py-3.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#315FEA] focus:ring-4 focus:ring-[#315FEA]/10"
-                  />
+                  <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} placeholder="Enter first name" required className={fieldClassName} />
                 </div>
+                {textField("middleName", "Middle Name", { required: true })}
               </div>
 
               {/* Email */}
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-800">
-                  Email address
+                  Email address <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="email"
@@ -323,43 +535,175 @@ function Register() {
                 />
               </div>
 
-              {/* Job Seeker Contact, Address, Resume */}
+              {/* Job Seeker registration details and resume */}
               {accountType === "jobseeker" && (
                 <>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-800">
-                      Contact Number
-                    </label>
-                    <input
-                      type="tel"
-                      name="contactNumber"
-                      value={formData.contactNumber}
-                      onChange={handleChange}
-                      placeholder="Enter contact number"
-                      required
-                      className="w-full rounded-2xl border border-[#D5DEEB] bg-white px-5 py-3.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#315FEA] focus:ring-4 focus:ring-[#315FEA]/10"
-                    />
-                  </div>
+                  <section className={sectionClassName}>
+                    <h3 className={sectionHeadingClassName}>I. Personal Information</h3>
+                    <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+                      <h4 className="font-bold text-slate-900">Data Privacy Statement / Consent</h4>
+                      <p>
+                        The Public Employment Service Office (PESO) of the Municipality of Mabini, Batangas recognizes its responsibilities under Republic Act No. 10173, the Data Privacy Act of 2012. Information collected in this form will be stored in the office&apos;s authorized information system, accessed only by authorized PESO Mabini personnel, and protected using appropriate organizational, technical, and physical safeguards.
+                      </p>
+                      <p>The information will be used for job application and referral services, reporting to the Department of Labor and Employment (DOLE), and Labor Market Information (LMI) data collection. PESO Mabini will not disclose personal information without consent and may retain it for up to ten years for LMI purposes.</p>
+                      <label className="flex items-start gap-3 rounded-lg bg-white p-3 font-medium">
+                        <input
+                          type="checkbox"
+                          checked={privacyConsent}
+                          onChange={(event) => setPrivacyConsent(event.target.checked)}
+                          required
+                          className="mt-1 h-4 w-4 accent-[#315FEA]"
+                        />
+                        <span>I have read and agree to the Data Privacy Statement and consent to the collection, use, storage, and processing of my information for the purposes stated above. <span className="text-red-600">*</span></span>
+                      </label>
+                    </div>
 
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-800">
-                      Address
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      {textField("dateOfBirth", "Date of Birth", { type: "date", required: true })}
+                      {selectField("sex", "Sex", ["Female", "Male", "Prefer not to say"], true)}
+                      <label className="block text-sm font-medium text-slate-800">
+                        Contact Number <span className="text-red-600">*</span>
+                        <input type="tel" name="contactNumber" value={formData.contactNumber} onChange={handleChange} placeholder="Enter contact number" required className={`${fieldClassName} mt-2`} />
+                      </label>
+                      <label className="block text-sm font-medium text-slate-800">
+                        Present Address <span className="text-red-600">*</span>
+                        <textarea name="address" value={formData.address} onChange={(event) => setFormData((previous) => ({ ...previous, address: event.target.value }))} placeholder="House/Unit, street, barangay, municipality, province" required rows={2} className={`${fieldClassName} mt-2`} />
+                      </label>
+                      {textField("permanentAddress", "Permanent Address", { required: true })}
+                      {selectField("civilStatus", "Civil Status", ["Single", "Married", "Widowed", "Separated", "Annulled", "Others"], true)}
+                      {textField("fatherName", "Father's Name", { required: true })}
+                      {textField("motherName", "Mother's Name", { required: true })}
+                      {selectField("parentsCivilStatus", "Parents' Civil Status", ["Single", "Married", "Widowed", "Separated", "Annulled", "Others"], true)}
+                      {selectField("governmentIdType", "Type of Government ID", ["Philippine Identification (PhilID)", "SSS", "GSIS", "UMID", "Driver's License", "Passport", "Voter's ID", "PRC ID", "PhilHealth", "Postal ID", "Other"], true)}
+                      {textField("governmentIdNumber", "Government ID Number", { required: true })}
+                      {textField("heightCm", "Height (cm)", { type: "number", min: "1", required: true })}
+                      {textField("weightKg", "Weight (kg)", { type: "number", min: "1", required: true })}
+                      {selectField("disability", "Disability", ["Visual", "Hearing", "Speech", "Physical", "Mental", "Other", "N/A"], true)}
+                    </div>
+                  </section>
+
+                  <section className={sectionClassName}>
+                    <h3 className={sectionHeadingClassName}>II. Employment Information</h3>
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      {selectField("employmentStatus", "Employment Status", ["Employed", "Wage Employed", "Self-employed", "Fisherman/Fisherfolk", "Vendor/Retailer", "Home-based Worker", "Transport", "Domestic Worker", "Freelancer", "Artisan/Craft Worker", "Unemployed", "N/A"], true)}
+                      {(details.employmentStatus === "Unemployed" || details.employmentStatus === "N/A") && (
+                        <>
+                          {textField("unemploymentDurationMonths", "How long have you been looking for work? (months)", { type: "number", min: "0", required: true })}
+                          {selectField("unemploymentReason", "Reason for unemployment", ["New entrant/Fresh graduate", "Finished contract", "Resigned", "Retired", "Terminated/Laid off due to calamity", "Terminated/Laid off (local)", "Terminated/Laid off (abroad)", "Other"], true)}
+                        </>
+                      )}
+                      {selectField("isOfw", "Are you an OFW?", ["Yes", "No"], true)}
+                      {selectField("isFormerOfw", "Are you a former OFW?", ["Yes", "No"], true)}
+                      {selectField("is4PsBeneficiary", "Are you a 4Ps beneficiary?", ["Yes", "No"], true)}
+                      {textField("preferredOccupation", "Preferred Occupation", { required: true })}
+                      {textField("companyApplyingFor", "Company Applying For (as posted on PESO Mabini FB page)", { required: true })}
+                      {selectField("preferredWorkLocation", "Preferred Work Location", ["Mabini", "Batangas Province", "Anywhere in the Philippines", "Other"], true)}
+                      {details.preferredWorkLocation === "Other" && textField("otherWorkLocation", "Specify Preferred Work Location", { required: true })}
+                    </div>
+                  </section>
+
+                  <section className={sectionClassName}>
+                    <h3 className={sectionHeadingClassName}>III. Language / Dialect Proficiency</h3>
+                    <fieldset>
+                      <legend className="mb-3 text-sm font-medium text-slate-800">
+                        Select all languages you can use <span className="text-red-600">*</span>
+                      </legend>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {["Filipino", "English", "Mandarin"].map((language) => (
+                          <label key={language} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={details.languages.includes(language)}
+                              onChange={(event) => updateDetail(
+                                "languages",
+                                event.target.checked
+                                  ? [...details.languages, language]
+                                  : details.languages.filter((item) => item !== language),
+                              )}
+                              className="h-4 w-4 accent-[#315FEA]"
+                            />
+                            {language}
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                    {textField("otherLanguage", "Other Language / Dialect")}
+                    {details.languages.length === 0 && (
+                      <p className="text-xs text-slate-500">Choose at least one language or enter one under Other.</p>
+                    )}
+                  </section>
+
+                  <section className={sectionClassName}>
+                    <h3 className={sectionHeadingClassName}>IV. Educational Background</h3>
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      {selectField("educationLevel", "Highest Educational Attainment", ["Elementary", "High School", "Senior High School", "Technical/Vocational", "College", "Postgraduate", "Undergraduate", "No formal education"], true)}
+                      {textField("elementaryEducation", "Elementary (school / year graduated)", { required: true })}
+                      {textField("secondaryEducation", "Secondary (school / K-12 / strand / year graduated)", { required: true })}
+                      {textField("tertiaryEducation", "Tertiary (university / course / year graduated)", { required: true })}
+                      {textField("graduateStudies", "Graduate Studies / Postgraduate (university / degree / year graduated)")}
+                      {textField("undergraduateLevel", "If undergraduate (level reached / year last attended)")}
+                    </div>
+                  </section>
+
+                  <section className={sectionClassName}>
+                    <h3 className={sectionHeadingClassName}>V. Technical / Vocational and Other Training</h3>
+                    <p className="text-sm text-slate-600">Include course, hours, training institution, skills acquired, and certificate received. Enter N/A if none.</p>
+                    <div className="grid gap-5">
+                      {textField("training1", "Training / Course 1", { required: true })}
+                      {textField("training2", "Training / Course 2", { required: true })}
+                      {textField("training3", "Training / Course 3", { required: true })}
+                    </div>
+                  </section>
+
+                  <section className={sectionClassName}>
+                    <h3 className={sectionHeadingClassName}>VI. Eligibility / Professional License</h3>
+                    <p className="text-sm text-slate-600">Enter eligibility or license, date taken, and validity date. Enter N/A if none.</p>
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      {textField("eligibility1", "Eligibility / Professional License 1", { required: true })}
+                      {textField("eligibility2", "Eligibility / Professional License 2", { required: true })}
+                    </div>
+                  </section>
+
+                  <section className={sectionClassName}>
+                    <h3 className={sectionHeadingClassName}>VII. Work Experience</h3>
+                    <p className="text-sm text-slate-600">List work experience within the last 10 years, starting with the most recent. Include company/address, position, months, and employment status.</p>
+                    <label className="flex items-start gap-3 rounded-xl bg-slate-50 p-3 text-sm">
+                      <input type="checkbox" checked={details.noWorkExperience} onChange={(event) => updateDetail("noWorkExperience", event.target.checked)} className="mt-1 h-4 w-4 accent-[#315FEA]" />
+                      I have no previous work experience.
                     </label>
-                    <textarea
-                      name="address"
-                      value={formData.address}
-                      onChange={(e) =>
-                        setFormData((previous) => ({
-                          ...previous,
-                          address: e.target.value,
-                        }))
-                      }
-                      placeholder="Enter your complete address"
-                      required
-                      rows={3}
-                      className="w-full rounded-2xl border border-[#D5DEEB] bg-white px-5 py-3.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#315FEA] focus:ring-4 focus:ring-[#315FEA]/10"
-                    />
-                  </div>
+                    {!details.noWorkExperience && (
+                      <div className="grid gap-5">
+                        {textField("workExperience1", "Most Recent Work Experience", { required: true })}
+                        {textField("workExperience2", "Previous Work Experience 2")}
+                        {textField("workExperience3", "Previous Work Experience 3")}
+                      </div>
+                    )}
+                  </section>
+
+                  <section className={sectionClassName}>
+                    <h3 className={sectionHeadingClassName}>VIII. Other Skills Acquired Without Certificate</h3>
+                    {textField("otherSkills", "Other Skills", { required: true })}
+                  </section>
+
+                  <section className={sectionClassName}>
+                    <h3 className={sectionHeadingClassName}>IX. History of SPES / GIP Engagement</h3>
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      {selectField("spesGipHistory", "Have you participated in SPES / GIP?", ["Yes", "No"], true)}
+                      {textField("engagementPeriod", "Period of Engagement (mm/yyyy)", { required: details.spesGipHistory === "Yes" })}
+                      {textField("spesGipId", "SPES / GIP ID Number", { required: details.spesGipHistory === "Yes" })}
+                    </div>
+                  </section>
+
+                  <section className={sectionClassName}>
+                    <h3 className={sectionHeadingClassName}>Certification / Authorization</h3>
+                    <p className="text-sm leading-6 text-slate-700">
+                      I certify that the information I provided is true and correct to the best of my knowledge. I authorize PESO Mabini to include my profile in its employment information system and use my personal information for employment facilitation in accordance with Republic Act No. 10173. I understand that DOLE/PESO is not obligated to seek employment on my behalf.
+                    </p>
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      {textField("signature", "Signature (type your full name)", { required: true })}
+                      {textField("signatureDate", "Date Signed", { type: "date", required: true })}
+                    </div>
+                  </section>
 
                   <div>
                     <label className="mb-2 block text-sm font-medium text-slate-800">
