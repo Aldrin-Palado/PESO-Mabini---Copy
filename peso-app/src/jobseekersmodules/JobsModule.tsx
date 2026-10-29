@@ -281,7 +281,7 @@ export default function JobsModule({
                   <img
                     src={job.imageUrl}
                     alt={`${job.title} job`}
-                    className="mb-5 h-48 w-full rounded-xl object-cover"
+                    className="mb-5 h-64 w-full rounded-xl bg-slate-50 object-contain sm:h-80"
                     loading="lazy"
                   />
                 )}

@@ -46,7 +46,7 @@ function JobCard({ job, index }: JobCardProps) {
         <img
           src={job.image_url}
           alt={`${job.position_title} job`}
-          className="mb-5 h-44 w-full rounded-xl object-cover"
+          className="mb-5 h-56 w-full rounded-xl bg-slate-50 object-contain sm:h-64"
           loading="lazy"
         />
       )}
@@ -164,7 +164,7 @@ function JobCard({ job, index }: JobCardProps) {
               <img
                 src={job.image_url}
                 alt={`${job.position_title} job`}
-                className="mt-6 max-h-80 w-full rounded-xl object-cover"
+                className="mt-6 max-h-[70vh] w-full rounded-xl bg-slate-50 object-contain"
               />
             )}
 
