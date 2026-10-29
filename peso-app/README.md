@@ -1,16 +1,46 @@
-# React + Vite
+# PESO-Hub
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Setup
 
-Currently, two official plugins are available:
+1. Copy `.env.example` to `.env` and set the Supabase URL and publishable key.
+2. Install dependencies and start the app:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+   ```sh
+   npm install
+   npm run dev
+   ```
 
-## React Compiler
+## Gemini AI features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The public homepage chat and job-seeker AI assistant and job matching call the `peso-ai`
+Supabase Edge Function. Public chat is limited to 20 requests per IP per hour. The Gemini API key is used only in that function; do not put it in `.env`, a `VITE_*`
+variable, or React code. Gemini model settings are also Edge Function secrets; setting them
+in the frontend `.env` does not configure the deployed function.
 
-## Expanding the ESLint configuration
+Apply the database migration and deploy the function. Keep `GEMINI_API_KEY` configured in
+Supabase Function Secrets; it does not need to be exposed to the client:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```sh
+supabase db push
+supabase functions deploy peso-ai
+```
+
+Set `GEMINI_MODEL` and `GEMINI_FALLBACK_MODEL` in Supabase Dashboard → Edge Functions →
+Secrets. Use `gemini-3.6-flash` as the primary model and `gemini-3.5-flash` as the fallback.
+Both are supported by the Gemini API key and respond well within the 20-second timeout;
+`gemini-3.8-flash` and `gemini-flash-latest` currently hang and trigger `DEADLINE_EXCEEDED`.
+The fallback must be different from the primary to provide a backup; the function warns in
+its logs if both settings resolve to the same model. The retired `gemini-2.5-flash` value is
+ignored for both settings. If the primary model returns
+not-found or a transient service error, the function switches to the fallback, with at most
+three Gemini calls per invocation. Each Gemini request has a 20-second timeout. The function
+sends up to six chat messages, uses a short cache for public vacancy data, and limits
+matching input to 12 recent vacancies, 4,000 profile characters, or a 500 KB PDF resume.
+The Supabase and Gemini SDKs are loaded only for requests that need them, allowing CORS
+preflight requests to return without initializing those clients.
+
+Job-seeker messages, profile summaries, and resumes submitted for job matching are sent to
+Google Gemini for processing. Use these features only when authorized and with any required
+consent. AI recommendations may be incomplete or inaccurate. Homepage chat is available to
+visitors without signing in; do not include passwords or sensitive personal information in
+chat messages.
