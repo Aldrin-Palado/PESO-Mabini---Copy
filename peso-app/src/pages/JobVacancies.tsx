@@ -11,50 +11,6 @@ function JobVacancies() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
-  // Temporary local data
-  // Replace this with Supabase later.
-  const temporaryJobs: JobVacancy[] = [
-    {
-      job_vacancy_id: "JOB-001",
-      position_title: "Web Developer",
-      location: "Mabini, Batangas",
-      employment_type: "Full-time",
-      salary: "₱25,000 - ₱65,000",
-      description:
-        "Responsible for developing and maintaining web applications for the company.",
-      date_posted: "2026-09-20",
-      employer: {
-        name: "Mabini Tech Solutions",
-      },
-    },
-    {
-      job_vacancy_id: "JOB-002",
-      position_title: "Administrative Assistant",
-      location: "Batangas City",
-      employment_type: "Full-time",
-      salary: "₱18,000 - ₱22,000",
-      description:
-        "Provides administrative support, manages documents, and assists with daily office operations.",
-      date_posted: "2026-09-18",
-      employer: {
-        name: "Batangas Business Center",
-      },
-    },
-    {
-      job_vacancy_id: "JOB-003",
-      position_title: "Sales Representative",
-      location: "Lipa City, Batangas",
-      employment_type: "Full-time",
-      salary: "₱20,000 - ₱28,000",
-      description:
-        "Handles customer inquiries, promotes products, and maintains good relationships with clients.",
-      date_posted: "2026-09-15",
-      employer: {
-        name: "Batangas Trading Corporation",
-      },
-    },
-  ];
-
   useEffect(() => {
     const loadJobs = async () => {
       setLoading(true);

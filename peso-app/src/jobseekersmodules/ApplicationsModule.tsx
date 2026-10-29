@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../services/supabase";
 
 type Seeker = {
   job_seeker_id: string;
@@ -14,12 +15,11 @@ type JobSeekerPage =
   | "Profile";
 
 type Application = {
-  id: number;
+  id: string;
   job: string;
   company: string;
-  location: string;
   date: string;
-  status: "Pending" | "Under Review" | "Approved" | "Rejected";
+  status: string;
 };
 
 type Props = {
@@ -27,50 +27,31 @@ type Props = {
   onNavigate: (page: JobSeekerPage) => void;
 };
 
-const applications: Application[] = [
-  {
-    id: 1,
-    job: "Junior Web Developer",
-    company: "ABC Technology Solutions",
-    location: "Lipa City, Batangas",
-    date: "October 1, 2026",
-    status: "Under Review",
-  },
-  {
-    id: 2,
-    job: "Administrative Assistant",
-    company: "Mabini Business Center",
-    location: "Mabini, Batangas",
-    date: "September 28, 2026",
-    status: "Pending",
-  },
-  {
-    id: 3,
-    job: "Production Staff",
-    company: "Batangas Manufacturing Inc.",
-    location: "Batangas City",
-    date: "September 20, 2026",
-    status: "Approved",
-  },
-];
-
 function StatusBadge({
   status,
 }: {
-  status: Application["status"];
+  status: string;
 }) {
-  const styles = {
-    Pending: "bg-yellow-50 text-yellow-700",
-    "Under Review": "bg-blue-50 text-blue-700",
-    Approved: "bg-green-50 text-green-700",
-    Rejected: "bg-red-50 text-red-700",
-  };
+  const normalizedStatus = status.toLowerCase();
+  const styles =
+    normalizedStatus === "pending"
+      ? "bg-yellow-50 text-yellow-700"
+      : normalizedStatus === "under_review" ||
+          normalizedStatus === "interview"
+        ? "bg-blue-50 text-blue-700"
+        : normalizedStatus === "hired"
+          ? "bg-green-50 text-green-700"
+          : normalizedStatus === "rejected"
+            ? "bg-red-50 text-red-700"
+            : "bg-gray-100 text-gray-700";
+
+  const label = status.replace(/_/g, " ");
 
   return (
     <span
-      className={`rounded-full px-3 py-1 text-xs font-semibold ${styles[status]}`}
+      className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${styles}`}
     >
-      {status}
+      {label}
     </span>
   );
 }
@@ -80,13 +61,79 @@ export default function ApplicationsModule({
   onNavigate,
 }: Props) {
   const [filter, setFilter] = useState("All");
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
-  const filtered =
-    filter === "All"
-      ? applications
-      : applications.filter(
-          (application) => application.status === filter
-        );
+  useEffect(() => {
+    let active = true;
+
+    const loadApplications = async () => {
+      setLoading(true);
+      setLoadError("");
+
+      const { data, error } = await supabase
+        .from("application")
+        .select(`
+          application_id,
+          position_title,
+          status,
+          date_applied,
+          employer (
+            name
+          )
+        `)
+        .eq("job_seeker_id", seeker.job_seeker_id)
+        .order("date_applied", { ascending: false });
+
+      if (!active) return;
+
+      if (error) {
+        console.error("Error loading job seeker applications:", error);
+        setLoadError(`Unable to load applications: ${error.message}`);
+        setApplications([]);
+        setLoading(false);
+        return;
+      }
+
+      setApplications(
+        (data ?? []).map((row) => {
+          const employer = Array.isArray(row.employer)
+            ? row.employer[0]
+            : row.employer;
+
+          return {
+            id: row.application_id,
+            job: row.position_title || "Position not specified",
+            company: employer?.name || "Employer",
+            date: new Date(row.date_applied).toLocaleDateString("en-PH", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            }),
+            status: row.status,
+          };
+        })
+      );
+      setLoading(false);
+    };
+
+    void loadApplications();
+
+    return () => {
+      active = false;
+    };
+  }, [seeker.job_seeker_id]);
+
+  const filtered = useMemo(
+    () =>
+      applications.filter(
+        (application) =>
+          filter === "All" ||
+          application.status.toLowerCase() === filter.toLowerCase()
+      ),
+    [applications, filter]
+  );
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">
@@ -112,10 +159,12 @@ export default function ApplicationsModule({
       <div className="flex flex-wrap gap-2">
         {[
           "All",
-          "Pending",
-          "Under Review",
-          "Approved",
-          "Rejected",
+          "pending",
+          "under_review",
+          "interview",
+          "hired",
+          "rejected",
+          "withdrawn",
         ].map((item) => (
           <button
             key={item}
@@ -127,7 +176,9 @@ export default function ApplicationsModule({
                 : "border border-gray-200 bg-white text-gray-600 hover:bg-blue-50"
             }`}
           >
-            {item}
+            {item === "All"
+              ? item
+              : item.replace(/_/g, " ")}
           </button>
         ))}
       </div>
@@ -135,7 +186,18 @@ export default function ApplicationsModule({
       {/* Applications */}
       <div className="space-y-4">
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-sm text-sm text-gray-500">
+            Loading your applications...
+          </div>
+        ) : loadError ? (
+          <div
+            role="alert"
+            className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800"
+          >
+            {loadError}
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-sm">
 
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-2xl">
@@ -184,10 +246,6 @@ export default function ApplicationsModule({
                   </p>
 
                   <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-500">
-
-                    <span>
-                      📍 {application.location}
-                    </span>
 
                     <span>
                       Applied: {application.date}
