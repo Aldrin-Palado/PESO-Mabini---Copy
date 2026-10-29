@@ -182,3 +182,27 @@
     border-right-color: var(--border);
   }
 }
+
+/* About page styles */
+.about-container {
+  max-width: 1100px;
+  margin: 36px auto;
+  padding: 24px;
+  background: var(--card-bg, #fff);
+  border-radius: 10px;
+  box-shadow: var(--shadow, 0 6px 20px rgba(0,0,0,0.06));
+}
+.about-hero { text-align: center; margin-bottom: 20px; }
+.about-hero h1 { font-size: 2.2rem; margin-bottom: 8px; }
+.about-hero .lead { color: var(--muted,#555); max-width: 800px; margin: 0 auto; }
+.about-mission, .about-vision, .about-values, .about-programs, .about-cta { margin: 28px 0; }
+.about-values ul { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 12px; }
+.programs-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 16px; }
+.program-card { background: var(--bg-elev, #fafafa); padding: 16px; border-radius: 8px; border: 1px solid var(--border); }
+.about-cta { text-align: center; }
+.btn-primary { display: inline-block; padding: 10px 18px; border-radius: 8px; background: var(--accent,#0052cc); color: #fff; text-decoration: none; }
+
+@media (max-width: 700px) {
+  .about-container { padding: 16px; margin: 16px; }
+  .about-hero h1 { font-size: 1.6rem; }
+}

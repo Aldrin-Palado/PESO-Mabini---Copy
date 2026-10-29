@@ -15,17 +15,21 @@ const maxChatHistoryMessages = 6;
 const maxVacanciesForAI = 12;
 const maxGenerationDurationMs = 20_000;
 const vacancyCacheTtlMs = 30_000;
-const defaultModel = "gemini-3.8-flash";
+const defaultModel = "gemini-3.6-flash";
+const defaultFallbackModel = "gemini-3.5-flash";
 
-function getConfiguredModel(value: string | undefined) {
+function getConfiguredModel(value: string | undefined, fallback: string) {
   const configuredModel = value?.trim();
   return configuredModel && configuredModel !== "gemini-2.5-flash"
     ? configuredModel
-    : defaultModel;
+    : fallback;
 }
 
-const model = getConfiguredModel(Deno.env.get("GEMINI_MODEL"));
-const fallbackModel = getConfiguredModel(Deno.env.get("GEMINI_FALLBACK_MODEL"));
+const model = getConfiguredModel(Deno.env.get("GEMINI_MODEL"), defaultModel);
+const fallbackModel = getConfiguredModel(
+  Deno.env.get("GEMINI_FALLBACK_MODEL"),
+  defaultFallbackModel,
+);
 const maxGenerationAttempts = 3;
 
 type ChatMessage = {

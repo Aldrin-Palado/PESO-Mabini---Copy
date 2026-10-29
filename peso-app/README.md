@@ -26,10 +26,12 @@ supabase functions deploy peso-ai
 ```
 
 Set `GEMINI_MODEL` and `GEMINI_FALLBACK_MODEL` in Supabase Dashboard → Edge Functions →
-Secrets. Use `gemini-3.8-flash` as the primary model and a different model supported by your
-Gemini API key as the fallback. The fallback must be different from the primary to provide
-a backup; the function warns in its logs if both settings resolve to the same model. The
-retired `gemini-2.5-flash` value is ignored for both settings. If the primary model returns
+Secrets. Use `gemini-3.6-flash` as the primary model and `gemini-3.5-flash` as the fallback.
+Both are supported by the Gemini API key and respond well within the 20-second timeout;
+`gemini-3.8-flash` and `gemini-flash-latest` currently hang and trigger `DEADLINE_EXCEEDED`.
+The fallback must be different from the primary to provide a backup; the function warns in
+its logs if both settings resolve to the same model. The retired `gemini-2.5-flash` value is
+ignored for both settings. If the primary model returns
 not-found or a transient service error, the function switches to the fallback, with at most
 three Gemini calls per invocation. Each Gemini request has a 20-second timeout. The function
 sends up to six chat messages, uses a short cache for public vacancy data, and limits

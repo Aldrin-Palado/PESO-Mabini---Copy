@@ -1,70 +1,40 @@
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-
-import Home from "./pages/Home";
 import About from "./pages/About";
-import JobVacancies from "./pages/JobVacancies";
-import Employers from "./pages/Employers";
 import Contact from "./pages/Contact";
-
-import Login from "./components/Login";
-import JobSeekerRegistration from "./components/JobSeekerRegistration";
+import Employers from "./pages/Employers";
+import Home from "./pages/Home";
+import JobVacancies from "./pages/JobVacancies";
 import ForgotPassword from "./components/ForgotPassword";
+import JobSeekerRegistration from "./components/JobSeekerRegistration";
+import Login from "./components/Login";
 import ResetPassword from "./components/ResetPassword";
-
 import AdminDashboard from "./dashboards/AdminDashboard";
-import StaffDashboard from "./dashboards/StaffDashboard";
 import EmployerDashboard from "./dashboards/EmployerDashboard";
 import JobSeekerDashboard from "./dashboards/JobSeekerDashboard";
+import StaffDashboard from "./dashboards/StaffDashboard";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Pages */}
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
         <Route path="/jobs" element={<JobVacancies />} />
         <Route path="/employers" element={<Employers />} />
         <Route path="/contact" element={<Contact />} />
-
-        {/* Authentication */}
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-
-        {/* Shared Registration Page */}
         <Route path="/register" element={<JobSeekerRegistration />} />
         <Route
           path="/jobseekerregistration"
           element={<JobSeekerRegistration />}
         />
-
-        {/* Superadmin */}
-        <Route
-          path="/superadmin"
-          element={<AdminDashboard />}
-        />
-
-        {/* Staff */}
-        <Route
-          path="/staff"
-          element={<StaffDashboard />}
-        />
-
-        {/* Employer */}
-        <Route
-          path="/employer"
-          element={<EmployerDashboard />}
-        />
-
-        {/* Job Seeker */}
-        <Route
-          path="/jobseeker"
-          element={<JobSeekerDashboard />}
-        />
-
-        {/* Unknown URL */}
+        <Route path="/superadmin" element={<AdminDashboard />} />
+        <Route path="/staff" element={<StaffDashboard />} />
+        <Route path="/employer" element={<EmployerDashboard />} />
+        <Route path="/jobseeker" element={<JobSeekerDashboard />} />
         <Route path="*" element={<Home />} />
       </Routes>
     </BrowserRouter>
