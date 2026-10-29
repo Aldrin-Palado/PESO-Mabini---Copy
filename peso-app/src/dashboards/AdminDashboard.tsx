@@ -1204,7 +1204,7 @@ export default function AdminDashboard() {
       <main className="min-h-screen lg:ml-56">
 
         {/* HEADER */}
-        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3 sm:px-6 sm:pt-[calc(env(safe-area-inset-top)+1rem)] sm:pb-4 lg:px-8">
+        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white px-4 pl-20 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3 sm:px-6 sm:pl-20 sm:pt-[calc(env(safe-area-inset-top)+1rem)] sm:pb-4 lg:px-8">
 
           <div className="flex items-center justify-between gap-3">
 

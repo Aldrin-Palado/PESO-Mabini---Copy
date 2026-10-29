@@ -37,6 +37,7 @@ export default function JobSeekerDashboard() {
 
   const [activePage, setActivePage] =
     useState<JobSeekerPage>("Home");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [seeker, setSeeker] = useState<Seeker | null>(null);
 
@@ -60,6 +61,17 @@ export default function JobSeekerDashboard() {
   useEffect(() => {
     loadCurrentSeeker();
   }, []);
+
+  useEffect(() => {
+    if (!isSidebarOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsSidebarOpen(false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isSidebarOpen]);
 
   const loadCurrentSeeker = async () => {
     try {
@@ -138,6 +150,7 @@ export default function JobSeekerDashboard() {
 
   const handlePageChange = (page: JobSeekerPage) => {
     setActivePage(page);
+    setIsSidebarOpen(false);
   };
 
   const startProfileEdit = () => {
@@ -706,6 +719,8 @@ export default function JobSeekerDashboard() {
       <JobSeekerSidebar
         activePage={activePage}
         setActivePage={handlePageChange}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
         onLogout={handleLogout}
       />
 
@@ -725,8 +740,31 @@ export default function JobSeekerDashboard() {
 
             {/* PAGE TITLE */}
 
-            <div className="min-w-0">
-
+            <div className="flex min-w-0 items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsSidebarOpen((open) => !open)}
+                aria-label={isSidebarOpen ? "Close navigation menu" : "Open navigation menu"}
+                aria-expanded={isSidebarOpen}
+                aria-controls="job-seeker-sidebar"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-[#123B70] transition hover:bg-slate-50 lg:hidden"
+              >
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              </button>
+              <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
                 PESO-Hub
               </p>
@@ -736,7 +774,7 @@ export default function JobSeekerDashboard() {
                   ? "Applications"
                   : activePage}
               </h1>
-
+              </div>
             </div>
 
             {/* SEARCH BAR */}

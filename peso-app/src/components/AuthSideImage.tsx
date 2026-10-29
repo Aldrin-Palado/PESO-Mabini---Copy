@@ -15,7 +15,8 @@ function AuthSideImage({ variant = "login" }: AuthSideImageProps) {
         alt="Public Employment Service Office in Mabini, Batangas"
         className="absolute inset-0 h-full w-full object-cover object-center"
       />
-      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-[#09244A]/55 via-[#09244A]/10 to-[#071A33]/90" />
+      <div aria-hidden="true" className="absolute inset-0 bg-[#0446A7]/35" />
+      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-sky-950/45 via-[#123B70]/30 to-[#071A33]/85" />
 
       <div className="relative z-20 max-w-xl pb-2 sm:pb-6">
         <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#F1D58A] sm:text-sm">

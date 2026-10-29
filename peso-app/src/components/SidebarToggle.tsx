@@ -9,7 +9,7 @@ type SidebarToggleProps = {
  * phones and tablets. Hidden from `lg` up, where the sidebar is a permanent
  * column and the dashboards' `lg:ml-*` offset already reserves the space.
  *
- * Anchored top-right within the device safe area so it stays reachable even
+ * Anchored top-left within the device safe area so it stays reachable even
  * while the drawer is open.
  */
 export default function SidebarToggle({
@@ -23,7 +23,7 @@ export default function SidebarToggle({
       onClick={onClick}
       aria-expanded={open}
       aria-label={label}
-      className="fixed right-4 top-[calc(env(safe-area-inset-top)+1rem)] z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#0446A7] text-white shadow-lg shadow-slate-900/20 transition hover:bg-[#023a8c] active:scale-95 lg:hidden"
+      className="fixed left-4 top-[calc(env(safe-area-inset-top)+1rem)] z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#0446A7] text-white shadow-lg shadow-slate-900/20 transition hover:bg-[#023a8c] active:scale-95 lg:hidden"
     >
       <svg
         className="h-6 w-6"
