@@ -49,6 +49,11 @@ export default function JobSeekerDashboard() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState("");
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [openingResume, setOpeningResume] = useState(false);
+  const [resumeError, setResumeError] = useState("");
+  const [resumeSuccess, setResumeSuccess] = useState("");
   const [profileForm, setProfileForm] = useState({
     full_name: "",
     contact_no: "",
@@ -200,6 +205,129 @@ export default function JobSeekerDashboard() {
       );
     } finally {
       setSavingProfile(false);
+    }
+  };
+
+  const saveResume = async () => {
+    if (!seeker || !resumeFile || uploadingResume) return;
+
+    const extension = resumeFile.name.split(".").pop()?.toLowerCase();
+    const mimeTypes: Record<string, string> = {
+      pdf: "application/pdf",
+      doc: "application/msword",
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    };
+
+    if (!extension || !mimeTypes[extension]) {
+      setResumeError("Please choose a PDF, DOC, or DOCX file.");
+      return;
+    }
+
+    if (resumeFile.size > 5 * 1024 * 1024) {
+      setResumeError("Resume must not exceed 5 MB.");
+      return;
+    }
+
+    setUploadingResume(true);
+    setResumeError("");
+    setResumeSuccess("");
+
+    const resumePath = `${seeker.user_id}/${Date.now()}.${extension}`;
+
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from("Resume Files")
+        .upload(resumePath, resumeFile, {
+          upsert: false,
+          contentType: mimeTypes[extension],
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data, error: profileError } = await supabase
+        .from("job_seeker")
+        .update({ resume_url: resumePath })
+        .eq("user_id", seeker.user_id)
+        .select("resume_url")
+        .maybeSingle();
+
+      if (profileError) {
+        const { error: cleanupError } = await supabase.storage
+          .from("Resume Files")
+          .remove([resumePath]);
+        if (cleanupError) {
+          console.error("Could not remove unlinked resume upload:", cleanupError);
+        }
+        throw profileError;
+      }
+
+      if (!data) {
+        const { error: cleanupError } = await supabase.storage
+          .from("Resume Files")
+          .remove([resumePath]);
+        if (cleanupError) {
+          console.error("Could not remove unlinked resume upload:", cleanupError);
+        }
+        throw new Error(
+          "Your profile could not be updated. Please sign in again and try once more.",
+        );
+      }
+
+      const previousResumePath = seeker.resume_url;
+      setSeeker({ ...seeker, resume_url: data.resume_url });
+      setResumeFile(null);
+      setResumeSuccess("Your resume has been uploaded.");
+
+      if (previousResumePath && previousResumePath !== resumePath) {
+        const { error: removeError } = await supabase.storage
+          .from("Resume Files")
+          .remove([previousResumePath]);
+        if (removeError) {
+          console.error("Previous resume could not be removed:", removeError);
+          setResumeSuccess(
+            "Your resume was updated, but the previous file could not be removed.",
+          );
+        }
+      }
+    } catch (uploadError) {
+      console.error("Resume upload error:", uploadError);
+      setResumeError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : "Unable to upload your resume. Please try again.",
+      );
+    } finally {
+      setUploadingResume(false);
+    }
+  };
+
+  const openResume = async () => {
+    if (!seeker?.resume_url || openingResume) return;
+
+    setOpeningResume(true);
+    setResumeError("");
+
+    try {
+      const { data, error: signedUrlError } = await supabase.storage
+        .from("Resume Files")
+        .createSignedUrl(seeker.resume_url, 60, { download: true });
+
+      if (signedUrlError) throw signedUrlError;
+
+      const link = document.createElement("a");
+      link.href = data.signedUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.click();
+    } catch (openError) {
+      console.error("Resume download error:", openError);
+      setResumeError(
+        openError instanceof Error
+          ? openError.message
+          : "Unable to open your resume. Please try again.",
+      );
+    } finally {
+      setOpeningResume(false);
     }
   };
 
@@ -382,7 +510,7 @@ export default function JobSeekerDashboard() {
                       {seeker.resume_url ? "Resume uploaded" : "No resume uploaded"}
                     </p>
                     <p className="mt-1 text-xs font-normal text-slate-500">
-                      Manage your resume from AI Job Matches.
+                      Use the resume controls below to upload or replace your resume.
                     </p>
                   </div>
                 </>
@@ -431,6 +559,62 @@ export default function JobSeekerDashboard() {
             </div>
           </form>
 
+        </div>
+
+        {/* RESUME */}
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-black text-[#123B70]">Resume / CV</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Upload a PDF, DOC, or DOCX file up to 5 MB. Your resume is stored privately.
+          </p>
+
+          {resumeError && (
+            <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              {resumeError}
+            </p>
+          )}
+          {resumeSuccess && (
+            <p role="status" className="mt-4 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+              {resumeSuccess}
+            </p>
+          )}
+
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={(event) => {
+                setResumeFile(event.target.files?.[0] ?? null);
+                setResumeError("");
+                setResumeSuccess("");
+              }}
+              disabled={uploadingResume}
+              className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:font-semibold file:text-blue-700"
+            />
+            <button
+              type="button"
+              onClick={() => void saveResume()}
+              disabled={!resumeFile || uploadingResume}
+              className="rounded-full bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#064A91] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {uploadingResume ? "Uploading..." : seeker.resume_url ? "Replace Resume" : "Upload Resume"}
+            </button>
+            {seeker.resume_url && (
+              <button
+                type="button"
+                onClick={() => void openResume()}
+                disabled={openingResume}
+                className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                {openingResume ? "Preparing..." : "Download Current"}
+              </button>
+            )}
+          </div>
+          {resumeFile && (
+            <p className="mt-2 text-sm text-slate-600">
+              Selected: {resumeFile.name}
+            </p>
+          )}
         </div>
 
         {/* ACCOUNT INFORMATION */}
