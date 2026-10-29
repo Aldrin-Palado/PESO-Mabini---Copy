@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../services/supabase";
 import AppIcon from "../components/AppIcon";
+import type { OpenJobVacancyRow } from "../types/JobVacancy";
 
 type Seeker = {
   job_seeker_id: string;
@@ -57,29 +58,11 @@ export default function JobsModule({
 
       try {
         const pageSize = 500;
-        const allRows = [];
+        const allRows: OpenJobVacancyRow[] = [];
 
         for (let offset = 0; ; offset += pageSize) {
           const { data, error } = await supabase
-            .from("job_vacancy")
-            .select(`
-              job_vacancy_id,
-              position_title,
-              location,
-              employment_type,
-              salary_min,
-              salary_max,
-              description,
-              requirements,
-              vacancies_available,
-              deadline,
-              date_posted,
-              image_url,
-              employer (
-                name
-              )
-            `)
-            .eq("status", "open")
+            .rpc("get_open_job_vacancies")
             .order("date_posted", { ascending: false })
             .order("job_vacancy_id", { ascending: false })
             .range(offset, offset + pageSize - 1);
@@ -88,7 +71,7 @@ export default function JobsModule({
             throw new Error(error.message);
           }
 
-          allRows.push(...(data ?? []));
+          allRows.push(...((data ?? []) as OpenJobVacancyRow[]));
 
           if (!data || data.length < pageSize) {
             break;
@@ -98,9 +81,6 @@ export default function JobsModule({
         if (!active) return;
 
         const availableJobs: Job[] = allRows.map((row) => {
-          const employer = Array.isArray(row.employer)
-            ? row.employer[0]
-            : row.employer;
           const salaryMin =
             row.salary_min == null ? null : Number(row.salary_min);
           const salaryMax =
@@ -118,7 +98,7 @@ export default function JobsModule({
           return {
             id: row.job_vacancy_id,
             title: row.position_title,
-            company: employer?.name || "Employer",
+            company: row.employer_name || "Company name not provided",
             location: row.location || "Location not specified",
             type: row.employment_type || "Type not specified",
             salary,
