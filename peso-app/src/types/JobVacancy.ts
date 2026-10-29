@@ -12,6 +12,7 @@ export interface OpenJobVacancyRow {
   deadline: string | null;
   image_url: string | null;
   employer_name: string | null;
+  job_classification: "local" | "international";
 }
 
 export interface JobVacancy {
@@ -26,6 +27,7 @@ export interface JobVacancy {
   deadline?: string;
   date_posted?: string;
   image_url?: string | null;
+  job_classification?: "local" | "international";
 
   employer?: {
     name?: string;

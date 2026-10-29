@@ -41,6 +41,7 @@ interface JobPost {
   requirements: string | null;
   location: string;
   employment_type: string;
+  job_classification: "local" | "international";
   salary_min: number | null;
   salary_max: number | null;
   vacancies_available: number;
@@ -182,7 +183,7 @@ export default function EmployerDashboard() {
       await supabase
         .from("job_vacancy")
         .select(
-          "job_vacancy_id, employer_id, position_title, description, requirements, location, employment_type, salary_min, salary_max, vacancies_available, status, date_posted, deadline, image_url"
+          "job_vacancy_id, employer_id, position_title, description, requirements, location, employment_type, job_classification, salary_min, salary_max, vacancies_available, status, date_posted, deadline, image_url"
         )
         .eq("employer_id", employer.employer_id)
         .order("date_posted", { ascending: false });

@@ -86,6 +86,13 @@ function JobCard({ job, index }: JobCardProps) {
           </div>
         )}
 
+        {job.job_classification && (
+          <div className="flex items-center gap-3">
+            <AppIcon name="building" className="h-4 w-4 text-sky-700" />
+            <span className="capitalize">{job.job_classification}</span>
+          </div>
+        )}
+
         {job.salary && (
           <div className="flex items-center gap-3">
             <AppIcon name="dollar" className="h-4 w-4 text-sky-700" />
@@ -196,7 +203,11 @@ function JobCard({ job, index }: JobCardProps) {
                   </div>
                 )}
 
-                <dl className="grid gap-3 sm:grid-cols-2">
+                <section aria-label="Job overview">
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                    Job overview
+                  </h3>
+                  <dl className="grid gap-3 sm:grid-cols-2">
                   {[
                     {
                       label: "Location",
@@ -208,6 +219,13 @@ function JobCard({ job, index }: JobCardProps) {
                       value: job.employment_type || "Not specified",
                       icon: "briefcase" as const,
                     },
+                    ...(job.job_classification
+                      ? [{
+                          label: "Classification",
+                          value: job.job_classification,
+                          icon: "building" as const,
+                        }]
+                      : []),
                     {
                       label: "Salary",
                       value: job.salary || "Not specified",
@@ -230,33 +248,50 @@ function JobCard({ job, index }: JobCardProps) {
                   ].map((item) => (
                     <div
                       key={item.label}
-                      className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4"
+                      className={`flex items-start gap-3 rounded-2xl border p-4 ${
+                        item.label === "Salary"
+                          ? "border-sky-200 bg-gradient-to-br from-sky-50 to-white sm:col-span-2"
+                          : "border-slate-200 bg-white"
+                      }`}
                     >
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
+                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                        item.label === "Salary"
+                          ? "bg-sky-700 text-white"
+                          : "bg-sky-50 text-sky-700"
+                      }`}>
                         <AppIcon name={item.icon} className="h-4 w-4" />
                       </span>
                       <div className="min-w-0">
-                        <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <dt className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
                           {item.label}
                         </dt>
-                        <dd className="mt-1 break-words text-sm font-semibold text-slate-900">
+                        <dd className={`mt-1 break-words font-bold capitalize ${
+                          item.label === "Salary"
+                            ? "text-lg text-sky-900"
+                            : "text-sm text-slate-900"
+                        }`}>
                           {item.value}
                         </dd>
                       </div>
                     </div>
                   ))}
-                </dl>
+                  </dl>
+                </section>
 
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <div className="rounded-2xl bg-slate-50 p-5">
-                    <h3 className="font-bold text-slate-900">Job description</h3>
+                <div className="grid gap-4">
+                  <div className="rounded-2xl border border-slate-200 border-l-4 border-l-sky-600 bg-white p-5">
+                    <h3 className="text-sm font-bold uppercase tracking-wide text-slate-800">
+                      Job description
+                    </h3>
                     <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
                       {job.description || "No description provided."}
                     </p>
                   </div>
                   {job.requirements && (
-                    <div className="rounded-2xl bg-slate-50 p-5">
-                      <h3 className="font-bold text-slate-900">Requirements</h3>
+                    <div className="rounded-2xl border border-slate-200 border-l-4 border-l-indigo-500 bg-white p-5">
+                      <h3 className="text-sm font-bold uppercase tracking-wide text-slate-800">
+                        Requirements
+                      </h3>
                       <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
                         {job.requirements}
                       </p>

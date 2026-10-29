@@ -14,6 +14,7 @@ type JobPost = {
   title: string;
   location: string;
   type: string;
+  classification: "local" | "international";
   description: string;
   posted: string;
   imageUrl: string | null;
@@ -72,6 +73,7 @@ export default function HomeModule({
             title: row.position_title,
             location: row.location || "Location not specified",
             type: row.employment_type || "Type not specified",
+            classification: row.job_classification,
             description: row.description || "No description provided.",
             posted: row.date_posted
               ? new Date(row.date_posted).toLocaleDateString()
@@ -247,6 +249,10 @@ export default function HomeModule({
 
                     <span className="rounded-full bg-gray-100 px-3 py-1">
                       <AppIcon name="briefcase" className="mr-1 inline h-3.5 w-3.5" /> {job.type}
+                    </span>
+
+                    <span className="rounded-full bg-indigo-50 px-3 py-1 capitalize text-indigo-700">
+                      {job.classification}
                     </span>
 
                   </div>

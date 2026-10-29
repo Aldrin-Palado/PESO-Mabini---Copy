@@ -10,6 +10,7 @@ type JobPost = {
   requirements: string | null;
   location: string;
   employment_type: string;
+  job_classification: "local" | "international";
   salary_min: number | null;
   salary_max: number | null;
   vacancies_available: number;
@@ -31,6 +32,7 @@ type JobForm = {
   requirements: string;
   location: string;
   employment_type: string;
+  job_classification: "local" | "international";
   salary_min: string;
   salary_max: string;
   vacancies_available: string;
@@ -43,6 +45,7 @@ const emptyForm: JobForm = {
   requirements: "",
   location: "",
   employment_type: "Full-time",
+  job_classification: "local",
   salary_min: "",
   salary_max: "",
   vacancies_available: "1",
@@ -108,6 +111,7 @@ export default function MyJobPostModule({
       requirements: job.requirements ?? "",
       location: job.location ?? "",
       employment_type: job.employment_type ?? "Full-time",
+      job_classification: job.job_classification ?? "local",
       salary_min:
         job.salary_min === null ? "" : String(job.salary_min),
       salary_max:
@@ -297,6 +301,7 @@ export default function MyJobPostModule({
             requirements: form.requirements.trim() || null,
             location: form.location.trim(),
             employment_type: form.employment_type,
+            job_classification: form.job_classification,
             salary_min:
               form.salary_min === ""
                 ? null
@@ -333,6 +338,7 @@ export default function MyJobPostModule({
             requirements: form.requirements.trim() || null,
             location: form.location.trim(),
             employment_type: form.employment_type,
+            job_classification: form.job_classification,
             salary_min:
               form.salary_min === ""
                 ? null
@@ -672,6 +678,25 @@ export default function MyJobPostModule({
               </select>
             </label>
 
+            <label className="text-sm font-semibold text-slate-700">
+              Job Classification *
+
+              <select
+                required
+                value={form.job_classification}
+                onChange={(event) =>
+                  updateField(
+                    "job_classification",
+                    event.target.value as JobForm["job_classification"]
+                  )
+                }
+                className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal"
+              >
+                <option value="local">Local</option>
+                <option value="international">International</option>
+              </select>
+            </label>
+
             {/* VACANCIES */}
 
             <label className="text-sm font-semibold text-slate-700">
@@ -844,6 +869,9 @@ export default function MyJobPostModule({
                   <p className="mt-1 text-sm text-slate-500">
                     {job.employment_type}
                   </p>
+                  <span className="mt-3 inline-flex w-fit rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold capitalize text-indigo-700">
+                    {job.job_classification}
+                  </span>
                 </div>
 
                 <span className="w-fit rounded-full bg-blue-50 px-3 py-1 text-xs font-bold capitalize text-blue-700">

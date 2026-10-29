@@ -59,6 +59,7 @@ function JobVacancies() {
           deadline: job.deadline ?? undefined,
           date_posted: job.date_posted ?? undefined,
           image_url: job.image_url ?? null,
+          job_classification: job.job_classification,
           employer: {
             name: job.employer_name ?? undefined,
           },

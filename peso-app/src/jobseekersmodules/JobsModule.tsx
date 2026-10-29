@@ -22,6 +22,7 @@ type Job = {
   company: string;
   location: string;
   type: string;
+  classification: "local" | "international";
   salary: string;
   description: string;
   requirements: string;
@@ -101,6 +102,7 @@ export default function JobsModule({
             company: row.employer_name || "Company name not provided",
             location: row.location || "Location not specified",
             type: row.employment_type || "Type not specified",
+            classification: row.job_classification,
             salary,
             description: row.description || "No description provided.",
             requirements: row.requirements || "",
@@ -354,6 +356,10 @@ export default function JobsModule({
                         <AppIcon name="briefcase" className="mr-1 inline h-3.5 w-3.5" /> {job.type}
                       </span>
 
+                      <span className="rounded-full bg-indigo-50 px-3 py-1 capitalize text-indigo-700">
+                        {job.classification}
+                      </span>
+
                       <span className="rounded-full bg-green-50 px-3 py-1 text-green-700">
                         <AppIcon name="dollar" className="mr-1 inline h-3.5 w-3.5" /> {job.salary}
                       </span>
@@ -475,7 +481,11 @@ export default function JobsModule({
                   </div>
                 )}
 
-                <dl className="grid gap-3 sm:grid-cols-2">
+                <section aria-label="Job overview">
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                    Job overview
+                  </h3>
+                  <dl className="grid gap-3 sm:grid-cols-2">
                   {[
                     {
                       label: "Location",
@@ -486,6 +496,11 @@ export default function JobsModule({
                       label: "Employment type",
                       value: selectedJob.type,
                       icon: "briefcase" as const,
+                    },
+                    {
+                      label: "Classification",
+                      value: selectedJob.classification,
+                      icon: "building" as const,
                     },
                     {
                       label: "Salary",
@@ -507,32 +522,49 @@ export default function JobsModule({
                   ].map((item) => (
                     <div
                       key={item.label}
-                      className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4"
+                      className={`flex items-start gap-3 rounded-2xl border p-4 ${
+                        item.label === "Salary"
+                          ? "border-blue-200 bg-gradient-to-br from-blue-50 to-white sm:col-span-2"
+                          : "border-slate-200 bg-white"
+                      }`}
                     >
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                        item.label === "Salary"
+                          ? "bg-blue-700 text-white"
+                          : "bg-blue-50 text-blue-700"
+                      }`}>
                         <AppIcon name={item.icon} className="h-4 w-4" />
                       </span>
                       <div className="min-w-0">
-                        <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <dt className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
                           {item.label}
                         </dt>
-                        <dd className="mt-1 break-words text-sm font-semibold text-slate-900">
+                        <dd className={`mt-1 break-words font-bold capitalize ${
+                          item.label === "Salary"
+                            ? "text-lg text-blue-900"
+                            : "text-sm text-slate-900"
+                        }`}>
                           {item.value}
                         </dd>
                       </div>
                     </div>
                   ))}
-                </dl>
+                  </dl>
+                </section>
 
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <div className="rounded-2xl bg-slate-50 p-5">
-                    <h3 className="font-bold text-slate-900">Job description</h3>
+                <div className="grid gap-4">
+                  <div className="rounded-2xl border border-slate-200 border-l-4 border-l-blue-600 bg-white p-5">
+                    <h3 className="text-sm font-bold uppercase tracking-wide text-slate-800">
+                      Job description
+                    </h3>
                     <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
                       {selectedJob.description}
                     </p>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 p-5">
-                    <h3 className="font-bold text-slate-900">Requirements</h3>
+                  <div className="rounded-2xl border border-slate-200 border-l-4 border-l-indigo-500 bg-white p-5">
+                    <h3 className="text-sm font-bold uppercase tracking-wide text-slate-800">
+                      Requirements
+                    </h3>
                     <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
                       {selectedJob.requirements || "No specific requirements provided."}
                     </p>
