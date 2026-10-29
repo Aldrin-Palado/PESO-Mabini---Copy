@@ -4,6 +4,12 @@ import AppIcon from "../components/AppIcon";
 import ProfileAvatar from "../components/ProfileAvatar";
 
 import { supabase } from "../services/supabase";
+import {
+  RESUME_ACCEPT,
+  RESUME_FORMATS_LABEL,
+  RESUME_MIME_TYPES,
+  getResumeExtension,
+} from "../services/resumes";
 
 import JobSeekerSidebar, {
   type JobSeekerPage,
@@ -213,15 +219,10 @@ export default function JobSeekerDashboard() {
   const saveResume = async () => {
     if (!seeker || !resumeFile || uploadingResume) return;
 
-    const extension = resumeFile.name.split(".").pop()?.toLowerCase();
-    const mimeTypes: Record<string, string> = {
-      pdf: "application/pdf",
-      doc: "application/msword",
-      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    };
+    const extension = getResumeExtension(resumeFile.name);
 
-    if (!extension || !mimeTypes[extension]) {
-      setResumeError("Please choose a PDF, DOC, or DOCX file.");
+    if (!RESUME_MIME_TYPES[extension]) {
+      setResumeError(`Please choose a ${RESUME_FORMATS_LABEL} file.`);
       return;
     }
 
@@ -241,7 +242,7 @@ export default function JobSeekerDashboard() {
         .from("Resume Files")
         .upload(resumePath, resumeFile, {
           upsert: false,
-          contentType: mimeTypes[extension],
+          contentType: RESUME_MIME_TYPES[extension],
         });
 
       if (uploadError) throw uploadError;
@@ -576,7 +577,7 @@ export default function JobSeekerDashboard() {
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-black text-[#123B70]">Resume / CV</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Upload a PDF, DOC, or DOCX file up to 5 MB. Your resume is stored privately.
+            Upload a {RESUME_FORMATS_LABEL} file up to 5 MB. Your resume is stored privately.
           </p>
 
           {resumeError && (
@@ -593,7 +594,7 @@ export default function JobSeekerDashboard() {
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
             <input
               type="file"
-              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              accept={RESUME_ACCEPT}
               onChange={(event) => {
                 setResumeFile(event.target.files?.[0] ?? null);
                 setResumeError("");

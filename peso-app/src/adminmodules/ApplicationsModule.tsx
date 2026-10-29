@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { supabase } from "../services/supabase";
+import { openStoredResume } from "../services/resumes";
 
 type Application = {
   id?: string;
@@ -20,6 +20,8 @@ type Application = {
 
 type Props = {
   applications: Application[];
+
+  loadError?: string;
 
   search: string;
   setSearch: (value: string) => void;
@@ -60,6 +62,7 @@ type Props = {
 
 export default function ApplicationsModule({
   applications,
+  loadError,
   search,
   setSearch,
   statusFilter,
@@ -78,13 +81,11 @@ export default function ApplicationsModule({
   const [resumeError, setResumeError] = useState("");
 
   const openResume = async (
-    application: Application,
+    resumeValue: string | null | undefined,
     rowId: string,
   ) => {
     const resumePath =
-      typeof application.resume_url === "string"
-        ? application.resume_url
-        : "";
+      typeof resumeValue === "string" ? resumeValue : "";
 
     if (!resumePath) return;
 
@@ -92,17 +93,7 @@ export default function ApplicationsModule({
     setResumeError("");
 
     try {
-      const { data, error } = await supabase.storage
-        .from("Resume Files")
-        .createSignedUrl(resumePath, 60);
-
-      if (error) throw error;
-
-      const link = document.createElement("a");
-      link.href = data.signedUrl;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.click();
+      await openStoredResume(resumePath);
     } catch (openError) {
       console.error("Resume view error:", openError);
       setResumeError(
@@ -123,6 +114,20 @@ export default function ApplicationsModule({
         description="View submitted applications and open each applicant's resume to assess their qualifications."
         onRefresh={onRefresh}
       />
+
+      {loadError && (
+        <p
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+        >
+          {loadError}
+        </p>
+      )}
+
+      <p className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-900">
+        Uploaded resumes appear under <strong>Job Seekers</strong>. Applications
+        appear on this page only after a job seeker applies to a job.
+      </p>
 
       {/* SEARCH AND FILTER */}
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -195,7 +200,7 @@ export default function ApplicationsModule({
         {loading ? (
           <LoadingMessage />
         ) : applications.length === 0 ? (
-          <EmptyMessage message="No applications found." />
+          <EmptyMessage message="No applications found. Job seekers must apply to a job before an application appears here. To review uploaded resumes, open Admin > Job Seekers." />
         ) : (
           <div className="overflow-x-auto">
 
@@ -289,7 +294,7 @@ export default function ApplicationsModule({
                               type="button"
                               onClick={() =>
                                 void openResume(
-                                  application,
+                                  application.resume_url,
                                   rowId,
                                 )
                               }
