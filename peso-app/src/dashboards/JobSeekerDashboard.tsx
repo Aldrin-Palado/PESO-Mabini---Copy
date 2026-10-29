@@ -989,7 +989,7 @@ export default function JobSeekerDashboard() {
 
             <div className="flex shrink-0 items-center gap-3">
 
-              {/* MESSAGES */}
+              {/* MESSAGE NOTIFICATIONS */}
 
               <button
                 type="button"
@@ -997,9 +997,9 @@ export default function JobSeekerDashboard() {
                   handlePageChange("Messages")
                 }
                 className="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100"
-                aria-label="Messages"
+                aria-label="Message notifications"
               >
-                <AppIcon name="mail" className="h-5 w-5" />
+                <AppIcon name="bell" className="h-5 w-5" />
 
                 <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
               </button>
