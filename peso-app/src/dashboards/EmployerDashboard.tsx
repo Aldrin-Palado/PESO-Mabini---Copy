@@ -573,8 +573,6 @@ export default function EmployerDashboard() {
         setActiveMenu={navigate}
         isSidebarOpen={isSidebarOpen}
         setIsSidebarOpen={setIsSidebarOpen}
-        displayName={displayName}
-        email={profile.email}
         onSignOut={signOut}
       />
 

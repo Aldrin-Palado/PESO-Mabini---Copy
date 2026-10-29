@@ -12,8 +12,6 @@ interface EmployersSidebarProps {
   setActiveMenu: (menu: EmployerMenuName) => void;
   isSidebarOpen: boolean;
   setIsSidebarOpen: Dispatch<SetStateAction<boolean>>;
-  displayName: string;
-  email: string | null;
   onSignOut: () => void;
 }
 
@@ -32,12 +30,8 @@ function EmployersSidebar({
   setActiveMenu,
   isSidebarOpen,
   setIsSidebarOpen,
-  displayName,
-  email,
   onSignOut,
 }: EmployersSidebarProps) {
-  const initial = displayName.trim().charAt(0).toUpperCase() || "E";
-
   const handleNavigation = (menu: EmployerMenuName) => {
     setActiveMenu(menu);
     setIsSidebarOpen(false);
@@ -86,25 +80,6 @@ function EmployersSidebar({
           >
             ×
           </button>
-        </div>
-
-        {/* Employer information */}
-        <div className="border-b border-white/10 px-5 py-5">
-          <div className="flex items-center gap-3 rounded-2xl bg-white/10 p-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#FED442] font-black text-[#123B70]">
-              {initial}
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold">
-                {displayName}
-              </p>
-
-              <p className="truncate text-xs text-blue-100">
-                {email || "Employer"}
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Navigation */}
