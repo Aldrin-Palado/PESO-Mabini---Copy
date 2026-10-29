@@ -9,6 +9,7 @@ export interface JobVacancy {
   vacancies_available?: number;
   deadline?: string;
   date_posted?: string;
+  image_url?: string | null;
 
   employer?: {
     name?: string;

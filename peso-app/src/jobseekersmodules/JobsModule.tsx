@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../services/supabase";
 
 type Seeker = {
   job_seeker_id: string;
@@ -14,13 +15,14 @@ type JobSeekerPage =
   | "Profile";
 
 type Job = {
-  id: number;
+  id: string;
   title: string;
   company: string;
   location: string;
   type: string;
   salary: string;
   description: string;
+  imageUrl: string | null;
 };
 
 type Props = {
@@ -28,57 +30,93 @@ type Props = {
   onNavigate: (page: JobSeekerPage) => void;
 };
 
-const jobs: Job[] = [
-  {
-    id: 1,
-    title: "Junior Web Developer",
-    company: "ABC Technology Solutions",
-    location: "Lipa City, Batangas",
-    type: "Full-time",
-    salary: "₱18,000 - ₱25,000",
-    description:
-      "Develop and maintain web applications while working with the development team.",
-  },
-  {
-    id: 2,
-    title: "Production Staff",
-    company: "Batangas Manufacturing Inc.",
-    location: "Batangas City",
-    type: "Full-time",
-    salary: "₱15,000 - ₱20,000",
-    description:
-      "Assist in production operations and maintain workplace safety standards.",
-  },
-  {
-    id: 3,
-    title: "Administrative Assistant",
-    company: "Mabini Business Center",
-    location: "Mabini, Batangas",
-    type: "Full-time",
-    salary: "₱16,000 - ₱22,000",
-    description:
-      "Handle administrative tasks, documents, scheduling, and office coordination.",
-  },
-  {
-    id: 4,
-    title: "Customer Service Representative",
-    company: "Batangas Business Services",
-    location: "Batangas",
-    type: "Full-time",
-    salary: "₱17,000 - ₱24,000",
-    description:
-      "Assist customers and provide support through different communication channels.",
-  },
-];
-
 export default function JobsModule({
   seeker,
   onNavigate,
 }: Props) {
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("All");
   const [type, setType] = useState("All");
-  const [savedJobs, setSavedJobs] = useState<number[]>([]);
+  const [savedJobs, setSavedJobs] = useState<string[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadJobs = async () => {
+      setLoading(true);
+      setLoadError("");
+
+      const { data, error } = await supabase
+        .from("job_vacancy")
+        .select(`
+          job_vacancy_id,
+          position_title,
+          location,
+          employment_type,
+          salary_min,
+          salary_max,
+          description,
+          image_url,
+          employer (
+            name
+          )
+        `)
+        .eq("status", "open")
+        .order("date_posted", { ascending: false });
+
+      if (!active) return;
+
+      if (error) {
+        console.error("Error loading jobs for job seeker:", error);
+        setLoadError(`Unable to load jobs: ${error.message}`);
+        setJobs([]);
+        setLoading(false);
+        return;
+      }
+
+      const availableJobs: Job[] = (data ?? []).map((row) => {
+        const employer = Array.isArray(row.employer)
+          ? row.employer[0]
+          : row.employer;
+        const salaryMin =
+          row.salary_min == null ? null : Number(row.salary_min);
+        const salaryMax =
+          row.salary_max == null ? null : Number(row.salary_max);
+
+        let salary = "Salary not specified";
+        if (salaryMin !== null && salaryMax !== null) {
+          salary = `₱${salaryMin.toLocaleString()} - ₱${salaryMax.toLocaleString()}`;
+        } else if (salaryMin !== null) {
+          salary = `From ₱${salaryMin.toLocaleString()}`;
+        } else if (salaryMax !== null) {
+          salary = `Up to ₱${salaryMax.toLocaleString()}`;
+        }
+
+        return {
+          id: row.job_vacancy_id,
+          title: row.position_title,
+          company: employer?.name || "Employer",
+          location: row.location || "Location not specified",
+          type: row.employment_type || "Type not specified",
+          salary,
+          description: row.description || "No description provided.",
+          imageUrl: row.image_url ?? null,
+        };
+      });
+
+      setJobs(availableJobs);
+      setLoading(false);
+    };
+
+    void loadJobs();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
@@ -98,7 +136,7 @@ export default function JobsModule({
     });
   }, [search, location, type]);
 
-  const toggleSave = (jobId: number) => {
+  const toggleSave = (jobId: string) => {
     setSavedJobs((current) =>
       current.includes(jobId)
         ? current.filter((id) => id !== jobId)
@@ -186,7 +224,18 @@ export default function JobsModule({
 
         </div>
 
-        {filteredJobs.length === 0 ? (
+        {loading ? (
+          <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center text-sm text-gray-500">
+            Loading available jobs...
+          </div>
+        ) : loadError ? (
+          <div
+            role="alert"
+            className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800"
+          >
+            {loadError}
+          </div>
+        ) : filteredJobs.length === 0 ? (
 
           <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center">
 
@@ -227,6 +276,15 @@ export default function JobsModule({
                 key={job.id}
                 className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-blue-200"
               >
+
+                {job.imageUrl && (
+                  <img
+                    src={job.imageUrl}
+                    alt={`${job.title} job`}
+                    className="mb-5 h-48 w-full rounded-xl object-cover"
+                    loading="lazy"
+                  />
+                )}
 
                 <div className="flex gap-4">
 

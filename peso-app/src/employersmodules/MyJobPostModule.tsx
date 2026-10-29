@@ -136,9 +136,13 @@ export default function MyJobPostModule({
 
     setMessage("");
 
-    // Allow only image files.
-    if (!file.type.startsWith("image/")) {
-      setMessage("Please select a valid image file.");
+    // Keep accepted formats aligned with the Storage bucket's MIME allowlist.
+    if (
+      !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(
+        file.type
+      )
+    ) {
+      setMessage("Please select a JPEG, PNG, WebP, or GIF image.");
       event.target.value = "";
       return;
     }
@@ -177,14 +181,25 @@ export default function MyJobPostModule({
     file: File,
     jobId: string
   ): Promise<string | null> => {
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      throw new Error(
+        authError?.message || "Please sign in again before uploading an image."
+      );
+    }
+
     const fileExtension =
       file.name.split(".").pop()?.toLowerCase() || "jpg";
 
     const filePath =
-      `${employerId}/${jobId}/${Date.now()}.${fileExtension}`;
+      `${user.id}/${jobId}/${Date.now()}.${fileExtension}`;
 
     const { error: uploadError } = await supabase.storage
-      .from("job-images")
+      .from(STORAGE_BUCKET)
       .upload(filePath, file, {
         cacheControl: "3600",
         upsert: true,
@@ -263,12 +278,16 @@ export default function MyJobPostModule({
     setSaving(true);
     setMessage("");
 
+    let saveStage = "preparing the job post";
+
     try {
       let jobId = editingId;
 
       // CREATE JOB FIRST IF NEW
 
       if (!jobId) {
+        saveStage = "creating the job post";
+
         const { data, error } = await supabase
           .from("job_vacancy")
           .insert({
@@ -303,6 +322,8 @@ export default function MyJobPostModule({
         jobId = data.job_vacancy_id;
       } else {
         // UPDATE EXISTING JOB
+
+        saveStage = "updating the job details";
 
         const { error } = await supabase
           .from("job_vacancy")
@@ -351,12 +372,15 @@ export default function MyJobPostModule({
       // UPLOAD NEW IMAGE IF SELECTED
 
       if (selectedImage && jobId) {
+        saveStage = "uploading the image to Supabase Storage";
         imageUrl = await uploadJobImage(selectedImage, jobId);
       }
 
       // SAVE IMAGE URL TO DATABASE
 
       if (jobId) {
+        saveStage = "saving the image URL to the job post";
+
         const { error } = await supabase
           .from("job_vacancy")
           .update({
@@ -394,8 +418,8 @@ export default function MyJobPostModule({
     } catch (error) {
       setMessage(
         error instanceof Error
-          ? `Failed to save job posting: ${error.message}`
-          : "Failed to save job posting."
+          ? `Failed while ${saveStage}: ${error.message}`
+          : `Failed while ${saveStage}.`
       );
     } finally {
       setSaving(false);
@@ -558,7 +582,7 @@ export default function MyJobPostModule({
             </label>
 
             <p className="mt-1 text-xs text-slate-500">
-              Upload a job banner or image. Maximum size: 5 MB.
+              Upload a JPEG, PNG, WebP, or GIF job image. Maximum size: 5 MB.
             </p>
 
             {imagePreview && (
@@ -575,7 +599,7 @@ export default function MyJobPostModule({
               <input
                 ref={imageInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/gif"
                 onChange={handleImageChange}
                 className="block w-full text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:font-semibold file:text-[#0446A7] hover:file:bg-blue-100"
               />

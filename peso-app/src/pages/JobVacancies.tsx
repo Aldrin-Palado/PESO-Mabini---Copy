@@ -75,6 +75,7 @@ function JobVacancies() {
           vacancies_available,
           deadline,
           date_posted,
+          image_url,
           employer (
             name
           )
@@ -118,6 +119,7 @@ function JobVacancies() {
           vacancies_available: job.vacancies_available ?? undefined,
           deadline: job.deadline ?? undefined,
           date_posted: job.date_posted ?? undefined,
+          image_url: job.image_url ?? null,
           employer: employer
             ? {
                 name: employer.name ?? undefined,

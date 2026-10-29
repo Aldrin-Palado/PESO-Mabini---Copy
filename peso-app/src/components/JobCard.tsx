@@ -42,6 +42,15 @@ function JobCard({ job, index }: JobCardProps) {
         className={`group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 before:absolute before:inset-y-0 before:left-0 before:w-1.5 before:content-[''] before:transition-colors motion-reduce:before:transition-none hover:-translate-y-1 hover:shadow-lg ${accent}`}
       >
 
+      {job.image_url && (
+        <img
+          src={job.image_url}
+          alt={`${job.position_title} job`}
+          className="mb-5 h-44 w-full rounded-xl object-cover"
+          loading="lazy"
+        />
+      )}
+
       <div className="mb-3 flex items-center gap-3">
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-100 font-bold text-sky-600">
           {job.employer?.name?.charAt(0).toUpperCase() || "E"}
@@ -150,6 +159,14 @@ function JobCard({ job, index }: JobCardProps) {
                 ×
               </button>
             </div>
+
+            {job.image_url && (
+              <img
+                src={job.image_url}
+                alt={`${job.position_title} job`}
+                className="mt-6 max-h-80 w-full rounded-xl object-cover"
+              />
+            )}
 
             <dl className="mt-6 grid gap-4 rounded-xl bg-slate-50 p-4 text-sm sm:grid-cols-2">
               <div>
