@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../services/supabase";
 
-const IDLE_TIMEOUT_MS = 5 * 60 * 60 * 1000;
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const STORAGE_KEY_PREFIX = "peso:last-activity:";
 const STORAGE_WRITE_INTERVAL_MS = 15 * 1000;
 
@@ -16,6 +16,8 @@ function SessionTimeout() {
     let expirationTimer: number | undefined;
     let expiring = false;
     let disposed = false;
+    let skippedUserId: string | null = null;
+    let sessionCheckVersion = 0;
 
     const getStorageKey = (id: string) => `${STORAGE_KEY_PREFIX}${id}`;
 
@@ -85,11 +87,94 @@ function SessionTimeout() {
       }
     };
 
-    const activateSession = (id: string, resetActivity: boolean) => {
-      if (!resetActivity && userId === id) return;
+    const activateSession = async (
+      id: string,
+      resetActivity: boolean,
+    ) => {
+      if (
+        !resetActivity &&
+        (userId === id || skippedUserId === id)
+      ) {
+        return;
+      }
+
+      if (userId && userId !== id) {
+        clearSession();
+      }
+
+      const checkVersion = ++sessionCheckVersion;
+
+      const { data: admin, error: adminError } = await supabase
+        .from("peso_admin")
+        .select("admin_id")
+        .eq("user_id", id)
+        .maybeSingle();
+
+      if (adminError) {
+        console.error("Could not check the Admin profile for session timeout:", adminError);
+        return;
+      }
+
+      if (admin) {
+        if (checkVersion === sessionCheckVersion) {
+          skippedUserId = id;
+          clearSession();
+        }
+        return;
+      }
+
+      const { data: staff, error: staffError } = await supabase
+        .from("peso_staff")
+        .select("peso_staff_id")
+        .eq("user_id", id)
+        .maybeSingle();
+
+      if (staffError) {
+        console.error("Could not check the Staff profile for session timeout:", staffError);
+        return;
+      }
+
+      if (staff) {
+        if (checkVersion === sessionCheckVersion) {
+          skippedUserId = id;
+          clearSession();
+        }
+        return;
+      }
+
+      const { data: jobSeeker, error: jobSeekerError } = await supabase
+        .from("job_seeker")
+        .select("job_seeker_id")
+        .eq("user_id", id)
+        .maybeSingle();
+
+      if (jobSeekerError) {
+        console.error("Could not check the Job Seeker profile for session timeout:", jobSeekerError);
+        return;
+      }
+
+      const { data: employer, error: employerError } = await supabase
+        .from("employer")
+        .select("employer_id")
+        .eq("user_id", id)
+        .maybeSingle();
+
+      if (employerError) {
+        console.error("Could not check the Employer profile for session timeout:", employerError);
+        return;
+      }
+
+      if (checkVersion !== sessionCheckVersion) return;
+
+      if (!jobSeeker && !employer) {
+        skippedUserId = id;
+        clearSession();
+        return;
+      }
 
       userId = id;
       expiring = false;
+      skippedUserId = null;
 
       if (resetActivity) {
         lastActivityAt = Date.now();
@@ -125,6 +210,7 @@ function SessionTimeout() {
     };
 
     const clearSession = () => {
+      sessionCheckVersion += 1;
       clearTimer();
       if (userId) {
         try {
@@ -177,9 +263,10 @@ function SessionTimeout() {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (event === "SIGNED_OUT") {
+          skippedUserId = null;
           clearSession();
         } else if (session?.user) {
-          activateSession(session.user.id, event === "SIGNED_IN");
+          void activateSession(session.user.id, event === "SIGNED_IN");
         }
       },
     );
@@ -191,7 +278,7 @@ function SessionTimeout() {
         return;
       }
       if (data.session?.user) {
-        activateSession(data.session.user.id, false);
+        void activateSession(data.session.user.id, false);
       }
     });
 

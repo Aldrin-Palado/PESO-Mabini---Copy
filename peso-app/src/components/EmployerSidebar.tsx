@@ -5,6 +5,7 @@ export type EmployerMenuName =
   | "Dashboard"
   | "My Job Posts"
   | "Applications"
+  | "Messages"
   | "Company Profile";
 
 interface EmployersSidebarProps {
@@ -22,6 +23,7 @@ const menuItems: {
   { name: "Dashboard", icon: "▦" },
   { name: "My Job Posts", icon: "▤" },
   { name: "Applications", icon: "✓" },
+  { name: "Messages", icon: "✉" },
   { name: "Company Profile", icon: "▣" },
 ];
 

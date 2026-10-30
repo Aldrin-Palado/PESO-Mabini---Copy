@@ -9,6 +9,7 @@ export type AdminModule =
   | "Employers"
   | "Job Seekers"
   | "Applications"
+  | "Messages"
   | "Announcement"
   | "Analytics & Reports"
   | "Admin Accounts"
@@ -55,6 +56,7 @@ export default function AdminSidebar({
     "Employers",
     "Job Seekers",
     "Applications",
+    "Messages",
     "Announcement",
     "Analytics & Reports",
   ];
@@ -72,6 +74,10 @@ export default function AdminSidebar({
       module === "Admin Audit Logs"
     ) {
       return isSuperadmin;
+    }
+
+    if (module === "Messages") {
+      return true;
     }
 
     // Admin has access to all regular modules

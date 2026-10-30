@@ -3,6 +3,8 @@ import SidebarToggle from "../components/SidebarToggle";
 import AppIcon, { type AppIconName } from "../components/AppIcon";
 import ProfileAvatar from "../components/ProfileAvatar";
 import { supabase } from "../services/supabase";
+import { openStoredResume } from "../services/resumes";
+import DirectMessages from "../components/DirectMessages";
 
 type StaffPermission = {
   dashboard_overview: boolean;
@@ -29,7 +31,11 @@ type ModuleName =
   | "Job Application"
   | "Employers"
   | "Job Seekers"
+  | "Messages"
   | "Notifications";
+
+type StaffRecordPage = "Job Posts" | "Employers" | "Job Seekers";
+type StaffRecord = Record<string, unknown>;
 
 export default function StaffDashboard() {
   const [staff, setStaff] =
@@ -45,6 +51,11 @@ export default function StaffDashboard() {
 
   const [loading, setLoading] =
     useState(true);
+
+  const [records, setRecords] = useState<StaffRecord[]>([]);
+  const [recordsLoading, setRecordsLoading] = useState(false);
+  const [recordsError, setRecordsError] = useState("");
+  const [recordsRefresh, setRecordsRefresh] = useState(0);
 
   // Off-canvas below `lg`: a permanent 288px column leaves no room for
   // content on a 320px phone.
@@ -205,6 +216,101 @@ export default function StaffDashboard() {
     }
   };
 
+  useEffect(() => {
+    if (
+      activePage !== "Job Posts" &&
+      activePage !== "Employers" &&
+      activePage !== "Job Seekers"
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadRecords = async () => {
+      setRecordsLoading(true);
+      setRecordsError("");
+      setRecords([]);
+
+      try {
+        let rows: StaffRecord[] = [];
+
+        if (activePage === "Job Posts") {
+          const [jobsResult, employersResult] = await Promise.all([
+            supabase
+              .from("job_vacancy")
+              .select(
+                "job_vacancy_id, employer_id, position_title, description, requirements, location, employment_type, salary_min, salary_max, vacancies_available, status, date_posted, deadline",
+              )
+              .order("date_posted", { ascending: false }),
+            supabase.from("employer").select("employer_id, name"),
+          ]);
+
+          if (jobsResult.error) throw jobsResult.error;
+          if (employersResult.error) {
+            console.error("Employer names could not be loaded:", employersResult.error);
+            if (!cancelled) {
+              setRecordsError(
+                `Job posts loaded, but employer names could not be loaded: ${employersResult.error.message}`,
+              );
+            }
+          }
+
+          const employerNames = new Map(
+            (employersResult.data ?? []).map((employer) => [
+              employer.employer_id,
+              employer.name,
+            ]),
+          );
+          rows = (jobsResult.data ?? []).map((job) => ({
+            ...job,
+            employer_name:
+              employerNames.get(job.employer_id) || job.employer_id,
+          }));
+        } else if (activePage === "Employers") {
+          const { data, error } = await supabase
+            .from("employer")
+            .select(
+              "employer_id, name, contact_person, email, contact_no, address, is_verified, created_at",
+            )
+            .order("created_at", { ascending: false });
+
+          if (error) throw error;
+          rows = data ?? [];
+        } else {
+          const { data, error } = await supabase
+            .from("job_seeker")
+            .select(
+              "job_seeker_id, full_name, email, contact_no, address, birth_date, resume_url, created_at",
+            )
+            .order("created_at", { ascending: false });
+
+          if (error) throw error;
+          rows = data ?? [];
+        }
+
+        if (!cancelled) setRecords(rows);
+      } catch (error) {
+        console.error(`${activePage} could not be loaded:`, error);
+        if (!cancelled) {
+          setRecordsError(
+            error instanceof Error
+              ? error.message
+              : `Unable to load ${activePage.toLowerCase()}.`,
+          );
+        }
+      } finally {
+        if (!cancelled) setRecordsLoading(false);
+      }
+    };
+
+    void loadRecords();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activePage, recordsRefresh]);
+
   /* =====================================================
      CHECK WHETHER MODULE IS ASSIGNED
   ===================================================== */
@@ -212,6 +318,10 @@ export default function StaffDashboard() {
   const isAssigned = (
     module: ModuleName
   ): boolean => {
+
+    if (module === "Messages") {
+      return true;
+    }
 
     if (!permissions) {
       return false;
@@ -276,6 +386,10 @@ export default function StaffDashboard() {
     {
       name: "Job Seekers",
       icon: "♙",
+    },
+    {
+      name: "Messages",
+      icon: "✉",
     },
     {
       name: "Notifications",
@@ -358,16 +472,43 @@ export default function StaffDashboard() {
         return <Analytics />;
 
       case "Job Posts":
-        return <JobPosts />;
+        return (
+          <StaffRecordsModule
+            page="Job Posts"
+            records={records}
+            loading={recordsLoading}
+            error={recordsError}
+            onRefresh={() => setRecordsRefresh((value) => value + 1)}
+          />
+        );
 
       case "Job Application":
         return <JobApplications />;
 
       case "Employers":
-        return <Employers />;
+        return (
+          <StaffRecordsModule
+            page="Employers"
+            records={records}
+            loading={recordsLoading}
+            error={recordsError}
+            onRefresh={() => setRecordsRefresh((value) => value + 1)}
+          />
+        );
 
       case "Job Seekers":
-        return <JobSeekers />;
+        return (
+          <StaffRecordsModule
+            page="Job Seekers"
+            records={records}
+            loading={recordsLoading}
+            error={recordsError}
+            onRefresh={() => setRecordsRefresh((value) => value + 1)}
+          />
+        );
+
+      case "Messages":
+        return <DirectMessages mode="staff" />;
 
       case "Notifications":
         return <Notifications />;
@@ -768,37 +909,233 @@ function Analytics() {
 }
 
 
-/* =========================================================
-   JOB POSTS
-========================================================= */
+function StaffRecordsModule({
+  page,
+  records,
+  loading,
+  error,
+  onRefresh,
+}: {
+  page: StaffRecordPage;
+  records: StaffRecord[];
+  loading: boolean;
+  error: string;
+  onRefresh: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [openingResumeId, setOpeningResumeId] = useState<string | null>(null);
+  const [resumeError, setResumeError] = useState("");
 
-function JobPosts() {
+  const columns: {
+    label: string;
+    value: (record: StaffRecord) => string;
+  }[] =
+    page === "Job Posts"
+      ? [
+          { label: "Job Title", value: (record) => textValue(record.position_title) },
+          { label: "Employer", value: (record) => textValue(record.employer_name) },
+          { label: "Location", value: (record) => textValue(record.location) },
+          { label: "Employment Type", value: (record) => textValue(record.employment_type) },
+          {
+            label: "Salary Range",
+            value: (record) =>
+              record.salary_min != null || record.salary_max != null
+                ? `${textValue(record.salary_min, "-")} – ${textValue(record.salary_max, "-")}`
+                : "-",
+          },
+          { label: "Openings", value: (record) => textValue(record.vacancies_available) },
+          {
+            label: "Status",
+            value: (record) =>
+              record.status === "open"
+                ? "Active"
+                : record.status === "draft"
+                  ? "Inactive"
+                  : record.status === "closed"
+                    ? "Closed"
+                    : textValue(record.status),
+          },
+          { label: "Date Posted", value: (record) => dateValue(record.date_posted) },
+          { label: "Deadline", value: (record) => dateValue(record.deadline) },
+          { label: "Description", value: (record) => textValue(record.description) },
+          { label: "Requirements", value: (record) => textValue(record.requirements) },
+        ]
+      : page === "Employers"
+        ? [
+            { label: "Company / Employer", value: (record) => textValue(record.name) },
+            { label: "Contact Person", value: (record) => textValue(record.contact_person) },
+            { label: "Email", value: (record) => textValue(record.email) },
+            { label: "Contact Number", value: (record) => textValue(record.contact_no) },
+            { label: "Address", value: (record) => textValue(record.address) },
+            {
+              label: "Verification",
+              value: (record) => record.is_verified === true ? "Verified" : "Pending verification",
+            },
+            { label: "Registered", value: (record) => dateValue(record.created_at) },
+          ]
+        : [
+            { label: "Name", value: (record) => textValue(record.full_name) },
+            { label: "Email", value: (record) => textValue(record.email) },
+            { label: "Contact Number", value: (record) => textValue(record.contact_no) },
+            { label: "Address", value: (record) => textValue(record.address) },
+            { label: "Birth Date", value: (record) => dateValue(record.birth_date) },
+            {
+              label: "Resume",
+              value: (record) => record.resume_url ? "Uploaded" : "Not uploaded",
+            },
+            { label: "Registered", value: (record) => dateValue(record.created_at) },
+          ];
+
+  const filteredRecords = records.filter((record) =>
+    columns
+      .map((column) => column.value(record))
+      .join(" ")
+      .toLowerCase()
+      .includes(search.toLowerCase()),
+  );
+
+  const handleOpenResume = async (record: StaffRecord, index: number) => {
+    const resumePath = textValue(record.resume_url, "");
+    if (!resumePath) return;
+
+    const rowId = textValue(record.job_seeker_id, String(index));
+    setOpeningResumeId(rowId);
+    setResumeError("");
+
+    try {
+      await openStoredResume(resumePath);
+    } catch (error) {
+      console.error("Could not open job seeker resume:", error);
+      setResumeError(
+        error instanceof Error
+          ? error.message
+          : "Unable to open this resume. Please try again.",
+      );
+    } finally {
+      setOpeningResumeId(null);
+    }
+  };
 
   return (
-    <div>
-
-      <h2 className="text-2xl font-black text-[#123B70]">
-        Job Posts
-      </h2>
-
-      <p className="mt-2 text-slate-500">
-        Manage employer job vacancies.
-      </p>
-
-      <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-8">
-
-        <p className="font-bold text-slate-700">
-          Job Vacancy Management
-        </p>
-
-        <p className="mt-2 text-sm text-slate-500">
-          Job vacancy management interface.
-        </p>
-
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-black text-[#123B70]">{page}</h2>
+          <p className="mt-2 text-slate-500">
+            View complete {page.toLowerCase()} information.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={loading}
+          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+        >
+          {loading ? "Loading..." : "Refresh"}
+        </button>
       </div>
 
+      <input
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        placeholder={`Search ${page.toLowerCase()}...`}
+        aria-label={`Search ${page.toLowerCase()}`}
+        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-500"
+      />
+
+      {error && (
+        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          Could not load {page.toLowerCase()}: {error}
+        </p>
+      )}
+      {resumeError && (
+        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          {resumeError}
+        </p>
+      )}
+
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        {loading ? (
+          <p className="p-8 text-center text-sm text-slate-500">Loading records...</p>
+        ) : filteredRecords.length === 0 ? (
+          <p className="p-8 text-center text-sm text-slate-500">
+            {error ? "Records are unavailable until the load issue is fixed." : `No ${page.toLowerCase()} found.`}
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-max text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  {columns.map((column) => (
+                    <th key={column.label} className="px-4 py-3 font-bold">
+                      {column.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredRecords.map((record, index) => (
+                  <tr
+                    key={textValue(
+                      record.job_vacancy_id ||
+                        record.employer_id ||
+                        record.job_seeker_id,
+                      String(index),
+                    )}
+                    className="align-top hover:bg-slate-50"
+                  >
+                    {columns.map((column, columnIndex) => (
+                      <td
+                        key={column.label}
+                        className={`max-w-sm px-4 py-3 text-slate-700 ${
+                          columnIndex === 0 ? "font-semibold text-slate-900" : ""
+                        } ${column.label === "Description" || column.label === "Requirements" ? "whitespace-normal" : "whitespace-nowrap"}`}
+                      >
+                        {page === "Job Seekers" && column.label === "Resume" ? (
+                          record.resume_url ? (
+                            <button
+                              type="button"
+                              onClick={() => void handleOpenResume(record, index)}
+                              disabled={
+                                openingResumeId ===
+                                textValue(record.job_seeker_id, String(index))
+                              }
+                              className="rounded-full border border-[#203F8B] px-3 py-1.5 text-xs font-semibold text-[#203F8B] hover:bg-blue-50 disabled:opacity-60"
+                            >
+                              {openingResumeId ===
+                              textValue(record.job_seeker_id, String(index))
+                                ? "Opening..."
+                                : "View Resume"}
+                            </button>
+                          ) : (
+                            "Not uploaded"
+                          )
+                        ) : (
+                          column.value(record)
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
+}
+
+function textValue(value: unknown, fallback = "-"): string {
+  if (typeof value === "string" && value.trim()) return value;
+  if (typeof value === "number") return String(value);
+  return fallback;
+}
+
+function dateValue(value: unknown): string {
+  if (typeof value !== "string" || !value) return "-";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
 }
 
 
@@ -828,74 +1165,6 @@ function JobApplications() {
         <p className="mt-2 text-sm text-slate-500">
           Applications assigned to this module
           can be managed here.
-        </p>
-
-      </div>
-
-    </div>
-  );
-}
-
-
-/* =========================================================
-   EMPLOYERS
-========================================================= */
-
-function Employers() {
-
-  return (
-    <div>
-
-      <h2 className="text-2xl font-black text-[#123B70]">
-        Employers
-      </h2>
-
-      <p className="mt-2 text-slate-500">
-        Manage registered employers.
-      </p>
-
-      <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-8">
-
-        <p className="font-bold text-slate-700">
-          Employer Management
-        </p>
-
-        <p className="mt-2 text-sm text-slate-500">
-          Employer records will appear here.
-        </p>
-
-      </div>
-
-    </div>
-  );
-}
-
-
-/* =========================================================
-   JOB SEEKERS
-========================================================= */
-
-function JobSeekers() {
-
-  return (
-    <div>
-
-      <h2 className="text-2xl font-black text-[#123B70]">
-        Job Seekers
-      </h2>
-
-      <p className="mt-2 text-slate-500">
-        Manage registered job seekers.
-      </p>
-
-      <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-8">
-
-        <p className="font-bold text-slate-700">
-          Job Seeker Management
-        </p>
-
-        <p className="mt-2 text-sm text-slate-500">
-          Job seeker records will appear here.
         </p>
 
       </div>

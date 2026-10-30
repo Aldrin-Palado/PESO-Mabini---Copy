@@ -10,11 +10,16 @@ import AdminAccounts from "../adminmodules/AdminAccounts";
 
 import DashboardModule from "../adminmodules/DashboardModule";
 import JobPostsModule from "../adminmodules/JobPostsModule";
-import EmployersModule from "../adminmodules/EmployersModule";
-import JobSeekersModule from "../adminmodules/JobSeekersModule";
+import EmployersModule, {
+  type EmployerFormValues,
+} from "../adminmodules/EmployersModule";
+import JobSeekersModule, {
+  type JobSeekerFormValues,
+} from "../adminmodules/JobSeekersModule";
 import ApplicationsModule from "../adminmodules/ApplicationsModule";
 import AnnouncementModule from "../adminmodules/AnnouncementModule";
 import AnalyticsModule from "../adminmodules/AnalyticsModule";
+import MessagesModule from "../adminmodules/MessagesModule";
 
 /* ============================================================
    TYPES
@@ -59,6 +64,8 @@ type JobPost = {
   title?: string;
   job_title?: string;
   position?: string;
+  position_title?: string;
+  employer_id?: string;
   company_name?: string;
   employer_name?: string;
   location?: string;
@@ -66,6 +73,7 @@ type JobPost = {
   status?: string;
   description?: string;
   created_at?: string;
+  date_posted?: string;
   [key: string]: any;
 };
 
@@ -75,6 +83,7 @@ type Employer = {
   company_name?: string;
   business_name?: string;
   full_name?: string;
+  name?: string;
   email?: string;
   contact_no?: string;
   phone?: string;
@@ -196,6 +205,8 @@ export default function AdminDashboard() {
 
   const [moduleLoading, setModuleLoading] =
     useState(false);
+
+  const [moduleError, setModuleError] = useState("");
 
   const [applicationsError, setApplicationsError] =
     useState("");
@@ -381,6 +392,7 @@ export default function AdminDashboard() {
           "Employers",
           "Job Seekers",
           "Applications",
+          "Messages",
           "Announcement",
           "Analytics & Reports",
           "Admin Accounts",
@@ -576,6 +588,10 @@ export default function AdminDashboard() {
       return true;
     }
 
+    if (page === "Messages") {
+      return account?.role === "staff";
+    }
+
     if (
       page === "Admin Accounts" ||
       page === "Admin Audit Logs"
@@ -650,25 +666,50 @@ export default function AdminDashboard() {
 
   const loadJobPosts = async () => {
     setModuleLoading(true);
+    setModuleError("");
 
     try {
-      const { data, error } = await supabase
+      const [jobsResult, employersResult] = await Promise.all([
+        supabase
         .from("job_vacancy")
         .select("*")
         .order("created_at", {
           ascending: false,
-        });
+        }),
+        supabase
+          .from("employer")
+          .select("employer_id, name"),
+      ]);
 
-      if (error) {
+      if (jobsResult.error) {
         console.error(
           "Job posts error:",
-          error
+          jobsResult.error
         );
-
+        setJobPosts([]);
+        setModuleError(`Job posts could not be loaded: ${jobsResult.error.message}`);
         return;
       }
 
-      setJobPosts(data ?? []);
+      if (employersResult.error) {
+        console.error("Job post employer names error:", employersResult.error);
+        setModuleError(
+          `Job posts loaded, but employer names could not be loaded: ${employersResult.error.message}`,
+        );
+      }
+
+      const employersById = new Map(
+        (employersResult.data ?? []).map((employer) => [
+          employer.employer_id,
+          employer.name,
+        ]),
+      );
+      setJobPosts(
+        (jobsResult.data ?? []).map((job) => ({
+          ...job,
+          company_name: employersById.get(job.employer_id) || "",
+        })),
+      );
     } finally {
       setModuleLoading(false);
     }
@@ -680,6 +721,7 @@ export default function AdminDashboard() {
 
   const loadEmployers = async () => {
     setModuleLoading(true);
+    setModuleError("");
 
     try {
       const { data, error } = await supabase
@@ -694,7 +736,8 @@ export default function AdminDashboard() {
           "Employers error:",
           error
         );
-
+        setEmployers([]);
+        setModuleError(`Employers could not be loaded: ${error.message}`);
         return;
       }
 
@@ -710,6 +753,7 @@ export default function AdminDashboard() {
 
   const loadJobSeekers = async () => {
     setModuleLoading(true);
+    setModuleError("");
 
     try {
       const { data, error } = await supabase
@@ -724,7 +768,8 @@ export default function AdminDashboard() {
           "Job seekers error:",
           error
         );
-
+        setJobSeekers([]);
+        setModuleError(`Job seekers could not be loaded: ${error.message}`);
         return;
       }
 
@@ -732,6 +777,130 @@ export default function AdminDashboard() {
     } finally {
       setModuleLoading(false);
     }
+  };
+
+  const updateEmployer = async (
+    employerId: string,
+    values: EmployerFormValues,
+  ) => {
+    const { data, error } = await supabase
+      .from("employer")
+      .update({
+        name: values.name.trim(),
+        email: values.email.trim() || null,
+        contact_person: values.contact_person.trim() || null,
+        contact_no: values.contact_no.trim() || null,
+        address: values.address.trim() || null,
+        is_verified: values.is_verified,
+      })
+      .eq("employer_id", employerId)
+      .select("*")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Employer update error:", error);
+      throw new Error(`Employer could not be updated: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error("Employer was not updated because the record no longer exists.");
+    }
+
+    setEmployers((current) =>
+      current.map((employer) =>
+        employer.employer_id === employerId ? data : employer,
+      ),
+    );
+  };
+
+  const deleteEmployer = async (employerId: string) => {
+    const { data, error } = await supabase
+      .from("employer")
+      .delete()
+      .eq("employer_id", employerId)
+      .select("employer_id")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Employer deletion error:", error);
+      throw new Error(`Employer could not be deleted: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error("Employer was not deleted because the record no longer exists.");
+    }
+
+    setEmployers((current) =>
+      current.filter((employer) => employer.employer_id !== employerId),
+    );
+    setJobPosts((current) =>
+      current.filter((job) => job.employer_id !== employerId),
+    );
+    setApplications((current) =>
+      current.filter((application) => application.employer_id !== employerId),
+    );
+    setCounts((current) => ({
+      ...current,
+      employers: Math.max(0, current.employers - 1),
+    }));
+  };
+
+  const updateJobSeeker = async (
+    jobSeekerId: string,
+    values: JobSeekerFormValues,
+  ) => {
+    const { data, error } = await supabase
+      .from("job_seeker")
+      .update({
+        full_name: values.full_name.trim(),
+        email: values.email.trim() || null,
+        contact_no: values.contact_no.trim() || null,
+        address: values.address.trim() || null,
+        birth_date: values.birth_date || null,
+      })
+      .eq("job_seeker_id", jobSeekerId)
+      .select("*")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Job seeker update error:", error);
+      throw new Error(`Job seeker could not be updated: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error("Job seeker was not updated because the record no longer exists.");
+    }
+
+    setJobSeekers((current) =>
+      current.map((jobSeeker) =>
+        jobSeeker.job_seeker_id === jobSeekerId ? data : jobSeeker,
+      ),
+    );
+  };
+
+  const deleteJobSeeker = async (jobSeekerId: string) => {
+    const { data, error } = await supabase
+      .from("job_seeker")
+      .delete()
+      .eq("job_seeker_id", jobSeekerId)
+      .select("job_seeker_id")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Job seeker deletion error:", error);
+      throw new Error(`Job seeker could not be deleted: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error("Job seeker was not deleted because the record no longer exists.");
+    }
+
+    setJobSeekers((current) =>
+      current.filter((jobSeeker) => jobSeeker.job_seeker_id !== jobSeekerId),
+    );
+    setApplications((current) =>
+      current.filter((application) => application.job_seeker_id !== jobSeekerId),
+    );
+    setCounts((current) => ({
+      ...current,
+      jobSeekers: Math.max(0, current.jobSeekers - 1),
+    }));
   };
 
   /* ============================================================
@@ -873,14 +1042,17 @@ export default function AdminDashboard() {
   const filteredJobs = useMemo(() => {
     return jobPosts.filter((job) => {
       const title =
+        job.position_title ||
         job.title ||
         job.job_title ||
         job.position ||
         "";
 
       const employer =
+        job.name ||
         job.company_name ||
         job.employer_name ||
+        job.employer_id ||
         "";
 
       const searchMatch =
@@ -888,8 +1060,13 @@ export default function AdminDashboard() {
           .toLowerCase()
           .includes(jobSearch.toLowerCase());
 
+      const rawStatus = (job.status || "Unknown").toLowerCase();
       const status =
-        job.status || "Unknown";
+        rawStatus === "open"
+          ? "active"
+          : rawStatus === "draft"
+            ? "inactive"
+            : rawStatus;
 
       const statusMatch =
         jobStatusFilter === "All" ||
@@ -911,6 +1088,7 @@ export default function AdminDashboard() {
   const filteredEmployers = useMemo(() => {
     return employers.filter((employer) => {
       const name =
+        employer.name ||
         employer.company_name ||
         employer.business_name ||
         employer.full_name ||
@@ -1069,6 +1247,7 @@ export default function AdminDashboard() {
         return (
           <JobPostsModule
             jobs={filteredJobs}
+            loadError={moduleError}
             search={jobSearch}
             setSearch={setJobSearch}
             statusFilter={jobStatusFilter}
@@ -1093,10 +1272,13 @@ export default function AdminDashboard() {
         return (
           <EmployersModule
             employers={filteredEmployers}
+            loadError={moduleError}
             search={employerSearch}
             setSearch={setEmployerSearch}
             loading={moduleLoading}
             onRefresh={loadEmployers}
+            onUpdate={updateEmployer}
+            onDelete={deleteEmployer}
             ModuleHeader={ModuleHeader}
             TableHeader={TableHeader}
             TableCell={TableCell}
@@ -1114,10 +1296,13 @@ export default function AdminDashboard() {
         return (
           <JobSeekersModule
             jobSeekers={filteredJobSeekers}
+            loadError={moduleError}
             search={jobSeekerSearch}
             setSearch={setJobSeekerSearch}
             loading={moduleLoading}
             onRefresh={loadJobSeekers}
+            onUpdate={updateJobSeeker}
+            onDelete={deleteJobSeeker}
             ModuleHeader={ModuleHeader}
             TableHeader={TableHeader}
             TableCell={TableCell}
@@ -1151,6 +1336,9 @@ export default function AdminDashboard() {
             formatDate={formatDate}
           />
         );
+
+      case "Messages":
+        return <MessagesModule />;
 
       /* ========================================================
          ANNOUNCEMENT
