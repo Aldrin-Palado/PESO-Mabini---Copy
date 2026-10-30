@@ -204,6 +204,9 @@ export default function AdminDashboard() {
   const [jobSeekers, setJobSeekers] =
     useState<JobSeeker[]>([]);
 
+  const [jobSeekerApplicationCounts, setJobSeekerApplicationCounts] =
+    useState<Record<string, number>>({});
+
   const [applications, setApplications] =
     useState<Application[]>([]);
 
@@ -760,24 +763,40 @@ export default function AdminDashboard() {
     setModuleError("");
 
     try {
-      const { data, error } = await supabase
-        .from("job_seeker")
-        .select("*")
-        .order("created_at", {
-          ascending: false,
-        });
+      const [seekersResult, applicationsResult] = await Promise.all([
+        supabase
+          .from("job_seeker")
+          .select("*")
+          .order("created_at", { ascending: false }),
+        supabase.from("application").select("job_seeker_id"),
+      ]);
 
-      if (error) {
+      if (seekersResult.error) {
         console.error(
           "Job seekers error:",
-          error
+          seekersResult.error
         );
         setJobSeekers([]);
-        setModuleError(`Job seekers could not be loaded: ${error.message}`);
+        setModuleError(`Job seekers could not be loaded: ${seekersResult.error.message}`);
         return;
       }
 
-      setJobSeekers(data ?? []);
+      setJobSeekers(seekersResult.data ?? []);
+      if (applicationsResult.error) {
+        console.error("Job seeker application counts error:", applicationsResult.error);
+        setJobSeekerApplicationCounts({});
+        setModuleError(
+          `Job seekers loaded, but application counts could not be loaded: ${applicationsResult.error.message}`,
+        );
+        return;
+      }
+
+      const counts: Record<string, number> = {};
+      for (const application of applicationsResult.data ?? []) {
+        counts[application.job_seeker_id] =
+          (counts[application.job_seeker_id] ?? 0) + 1;
+      }
+      setJobSeekerApplicationCounts(counts);
     } finally {
       setModuleLoading(false);
     }
@@ -901,6 +920,11 @@ export default function AdminDashboard() {
     setApplications((current) =>
       current.filter((application) => application.job_seeker_id !== jobSeekerId),
     );
+    setJobSeekerApplicationCounts((current) => {
+      const nextCounts = { ...current };
+      delete nextCounts[jobSeekerId];
+      return nextCounts;
+    });
     setCounts((current) => ({
       ...current,
       jobSeekers: Math.max(0, current.jobSeekers - 1),
@@ -922,7 +946,7 @@ export default function AdminDashboard() {
           supabase
             .from("job_seeker")
             .select(
-              "job_seeker_id, full_name, email, contact_no, address, resume_url, created_at",
+              "job_seeker_id, full_name, email, contact_no, address, resume_url, created_at, registration_details, birth_date, is_active",
             )
             .order("created_at", {
               ascending: false,
@@ -1304,9 +1328,6 @@ export default function AdminDashboard() {
             onUpdate={updateEmployer}
             onDelete={deleteEmployer}
             ModuleHeader={ModuleHeader}
-            TableHeader={TableHeader}
-            TableCell={TableCell}
-            StatusBadge={StatusBadge}
             LoadingMessage={LoadingMessage}
             EmptyMessage={EmptyMessage}
           />
@@ -1320,6 +1341,7 @@ export default function AdminDashboard() {
         return (
           <JobSeekersModule
             jobSeekers={filteredJobSeekers}
+            applicationCounts={jobSeekerApplicationCounts}
             loadError={moduleError}
             search={jobSeekerSearch}
             setSearch={setJobSeekerSearch}
@@ -1328,9 +1350,6 @@ export default function AdminDashboard() {
             onUpdate={updateJobSeeker}
             onDelete={deleteJobSeeker}
             ModuleHeader={ModuleHeader}
-            TableHeader={TableHeader}
-            TableCell={TableCell}
-            StatusBadge={StatusBadge}
             LoadingMessage={LoadingMessage}
             EmptyMessage={EmptyMessage}
           />

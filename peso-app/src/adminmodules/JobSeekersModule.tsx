@@ -19,6 +19,7 @@ type JobSeeker = {
 
 type Props = {
   jobSeekers: JobSeeker[];
+  applicationCounts: Record<string, number>;
   loadError?: string;
   search: string;
   setSearch: (value: string) => void;
@@ -35,19 +36,6 @@ type Props = {
     title: string;
     description: string;
     onRefresh?: () => void;
-  }>;
-
-  TableHeader: React.ComponentType<{
-    children: React.ReactNode;
-  }>;
-
-  TableCell: React.ComponentType<{
-    children: React.ReactNode;
-    bold?: boolean;
-  }>;
-
-  StatusBadge: React.ComponentType<{
-    status: string;
   }>;
 
   LoadingMessage: React.ComponentType;
@@ -209,6 +197,7 @@ function getSeekerName(jobSeeker: JobSeeker): string {
 
 export default function JobSeekersModule({
   jobSeekers,
+  applicationCounts,
   loadError,
   search,
   setSearch,
@@ -217,9 +206,6 @@ export default function JobSeekersModule({
   onUpdate,
   onDelete,
   ModuleHeader,
-  TableHeader,
-  TableCell,
-  StatusBadge,
   LoadingMessage,
   EmptyMessage,
 }: Props) {
@@ -231,6 +217,23 @@ export default function JobSeekersModule({
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [genderFilter, setGenderFilter] = useState("all");
+  const [appliedStatusFilter, setAppliedStatusFilter] = useState("all");
+  const [appliedGenderFilter, setAppliedGenderFilter] = useState("all");
+
+  const visibleJobSeekers = jobSeekers.filter((jobSeeker) => {
+    const registration = getRegistrationDetails(jobSeeker);
+    const gender = String(registration.sex || jobSeeker.sex || "").toLowerCase();
+    const activeStatus =
+      jobSeeker.is_active === undefined || jobSeeker.is_active
+        ? "active"
+        : "inactive";
+    return (
+      (appliedStatusFilter === "all" || activeStatus === appliedStatusFilter) &&
+      (appliedGenderFilter === "all" || gender === appliedGenderFilter)
+    );
+  });
 
   const startEditing = (jobSeeker: JobSeeker) => {
     setActionError("");
@@ -311,11 +314,11 @@ export default function JobSeekersModule({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
 
       <ModuleHeader
-        title="Job Seekers"
-        description="Review the information each job seeker submitted at registration and open their uploaded resumes to assess their qualifications."
+        title="Job Seekers Management"
+        description="View and manage registered job seekers of PESO Mabini."
         onRefresh={onRefresh}
       />
 
@@ -331,18 +334,73 @@ export default function JobSeekersModule({
         </p>
       )}
 
-      {/* SEARCH */}
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-
-        <input
-          value={search}
-          onChange={(e) =>
-            setSearch(e.target.value)
-          }
-          placeholder="Search job seekers..."
-          className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-blue-500"
-        />
-
+      <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(140px,0.8fr)_minmax(140px,0.8fr)_auto] lg:items-end">
+        <label className="block text-[11px] font-semibold text-slate-600">
+          Search (Name / Email / Phone)
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="e.g. name, phone, or email"
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-xs font-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          />
+        </label>
+        <label className="block text-[11px] font-semibold text-slate-600">
+          Status
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-xs font-normal text-slate-800"
+          >
+            <option value="all">All</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </label>
+        <label className="block text-[11px] font-semibold text-slate-600">
+          Gender
+          <select
+            value={genderFilter}
+            onChange={(event) => setGenderFilter(event.target.value)}
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-xs font-normal text-slate-800"
+          >
+            <option value="all">All</option>
+            <option value="female">Female</option>
+            <option value="male">Male</option>
+            <option value="prefer not to say">Prefer not to say</option>
+          </select>
+        </label>
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setSearch("");
+              setStatusFilter("all");
+              setGenderFilter("all");
+              setAppliedStatusFilter("all");
+              setAppliedGenderFilter("all");
+            }}
+            className="rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+          >
+            Clear
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAppliedStatusFilter(statusFilter);
+              setAppliedGenderFilter(genderFilter);
+            }}
+            className="rounded-md border border-blue-200 px-3 py-2 text-xs font-semibold text-[#0759AE] hover:bg-blue-50"
+          >
+            Apply Filters
+          </button>
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="rounded-md bg-[#0759AE] px-3 py-2 text-xs font-bold text-white hover:bg-[#064A91]"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
       {resumeError && (
@@ -354,76 +412,61 @@ export default function JobSeekersModule({
         </p>
       )}
 
-      {/* TABLE */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+          <h2 className="text-sm font-bold text-slate-800">Job Seekers</h2>
+          <span className="text-[11px] text-slate-400">
+            {visibleJobSeekers.length} record{visibleJobSeekers.length === 1 ? "" : "s"}
+          </span>
+        </div>
         {loading ? (
           <LoadingMessage />
         ) : jobSeekers.length === 0 ? (
           <EmptyMessage message="No job seekers found." />
+        ) : visibleJobSeekers.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm text-slate-500">
+            No job seekers match these filters.
+          </div>
         ) : (
           <div className="overflow-x-auto">
-
-            <table className="w-full">
-
-              <thead className="bg-slate-50">
-
+            <table className="w-full min-w-[1150px] table-fixed">
+              <thead className="bg-slate-50 text-left">
                 <tr>
-
-                  <TableHeader>
-                    Name
-                  </TableHeader>
-
-                  <TableHeader>
-                    Email
-                  </TableHeader>
-
-                  <TableHeader>
-                    Contact
-                  </TableHeader>
-
-                  <TableHeader>
-                    Address
-                  </TableHeader>
-
-                  <TableHeader>
-                    Birth Date
-                  </TableHeader>
-
-                  <TableHeader>
-                    Resume
-                  </TableHeader>
-
-                  <TableHeader>
-                    Screening
-                  </TableHeader>
-
-                  <TableHeader>
-                    Status
-                  </TableHeader>
-
-                  <TableHeader>
-                    Actions
-                  </TableHeader>
-
+                  {[
+                    ["Name", "w-[15%]"],
+                    ["Email", "w-[15%]"],
+                    ["Phone", "w-[10%]"],
+                    ["Gender", "w-[7%]"],
+                    ["Education", "w-[10%]"],
+                    ["Location", "w-[10%]"],
+                    ["Status", "w-[7%]"],
+                    ["Applications", "w-[7%]"],
+                    ["Created", "w-[8%]"],
+                    ["Actions", "w-[11%]"],
+                  ].map(([label, width]) => (
+                    <th key={label} className={`${width} px-2.5 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500`}>
+                      {label}
+                    </th>
+                  ))}
                 </tr>
-
               </thead>
-
               <tbody className="divide-y divide-slate-100">
-
-                {jobSeekers.map(
-                  (jobSeeker, index) => {
+                {visibleJobSeekers.map((jobSeeker, index) => {
 
                     const name = getSeekerName(jobSeeker);
 
-                    const status =
-                      jobSeeker.status ||
-                      (jobSeeker.is_active === undefined
-                        ? "Registered"
-                        : jobSeeker.is_active
-                          ? "Active"
-                          : "Inactive");
+                    const registrationDetails = getRegistrationDetails(jobSeeker);
+                    const gender = registrationDetails.sex || jobSeeker.sex || "-";
+                    const education =
+                      registrationDetails.educationLevel ||
+                      jobSeeker.education_level ||
+                      "-";
+                    const location =
+                      registrationDetails.presentAddress ||
+                      jobSeeker.address ||
+                      "-";
+                    const isActive = jobSeeker.is_active !== false;
+                    const status = isActive ? "Active" : "Inactive";
 
                     const rowId = String(
                       jobSeeker.id ||
@@ -434,105 +477,82 @@ export default function JobSeekersModule({
                     return (
                       <tr
                         key={rowId}
-                        className="hover:bg-slate-50"
+                        className="align-middle hover:bg-slate-50"
                       >
-
-                        <TableCell bold>
+                        <td className="truncate px-2.5 py-2.5 text-[10px] font-semibold text-slate-800" title={name}>
                           {name}
-                        </TableCell>
-
-                        <TableCell>
+                        </td>
+                        <td className="truncate px-2.5 py-2.5 text-[10px] text-slate-600" title={jobSeeker.email || ""}>
                           {jobSeeker.email || "-"}
-                        </TableCell>
-
-                        <TableCell>
-                          {jobSeeker.contact_no ||
-                            jobSeeker.phone ||
-                            "-"}
-                        </TableCell>
-
-                        <TableCell>
-                          {jobSeeker.address || "-"}
-                        </TableCell>
-
-                        <TableCell>
-                          {jobSeeker.birth_date || "-"}
-                        </TableCell>
-
-                        <TableCell>
-                          {jobSeeker.resume_url ? (
+                        </td>
+                        <td className="truncate px-2.5 py-2.5 text-[10px] text-slate-600">
+                          {jobSeeker.contact_no || jobSeeker.phone || "-"}
+                        </td>
+                        <td className="truncate px-2.5 py-2.5 text-[10px] text-slate-600">{gender}</td>
+                        <td className="truncate px-2.5 py-2.5 text-[10px] text-slate-600" title={String(education)}>{education}</td>
+                        <td className="truncate px-2.5 py-2.5 text-[10px] text-slate-600" title={String(location)}>{location}</td>
+                        <td className="px-2.5 py-2.5">
+                          <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${
+                            isActive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+                          }`}>{status}</span>
+                        </td>
+                        <td className="px-2.5 py-2.5 text-center text-[10px] text-slate-600">
+                          {applicationCounts[jobSeeker.job_seeker_id || ""] ?? 0}
+                        </td>
+                        <td className="px-2.5 py-2.5 text-[10px] text-slate-500">
+                          {jobSeeker.created_at
+                            ? new Date(jobSeeker.created_at).toLocaleDateString()
+                            : "-"}
+                        </td>
+                        <td className="px-2.5 py-2.5">
+                          <div className="flex flex-wrap items-center gap-1">
                             <button
                               type="button"
-                              onClick={() =>
-                                void openResume(
-                                  jobSeeker,
-                                  rowId,
-                                )
-                              }
-                              disabled={
-                                openingResumeId === rowId
-                              }
-                              className="rounded-full border border-[#203F8B] px-3 py-1.5 text-xs font-semibold text-[#203F8B] transition hover:bg-blue-50 disabled:cursor-wait disabled:opacity-60"
+                              onClick={() => setScreeningSeeker(jobSeeker)}
+                              title="View screening details"
+                              className="rounded-md border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-50"
                             >
-                              {openingResumeId === rowId
-                                ? "Opening..."
-                                : "View Resume"}
+                              Details
                             </button>
-                          ) : (
-                            <span className="text-xs text-slate-400">
-                              Not uploaded
-                            </span>
-                          )}
-                        </TableCell>
-
-                        <TableCell>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setScreeningSeeker(jobSeeker)
-                            }
-                            className="rounded-full bg-[#203F8B] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#193474]"
-                          >
-                            View Details
-                          </button>
-                        </TableCell>
-
-                        <TableCell>
-                          <StatusBadge
-                            status={status}
-                          />
-                        </TableCell>
-
-                        <TableCell>
-                          <div className="flex items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => startEditing(jobSeeker)}
+                              onClick={() => {
+                                startEditing(jobSeeker);
+                              }}
+                              title="Edit job seeker"
                               disabled={!jobSeeker.job_seeker_id || deletingId === jobSeeker.job_seeker_id}
-                              className="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                              className="rounded-md border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                             >
                               Edit
                             </button>
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-1">
+                            {jobSeeker.resume_url && (
+                              <button
+                                type="button"
+                                onClick={() => void openResume(jobSeeker, rowId)}
+                                disabled={openingResumeId === rowId}
+                                title="View resume"
+                                className="rounded-md border border-blue-200 px-2 py-1 text-[10px] font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                              >
+                                {openingResumeId === rowId ? "..." : "Resume"}
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => void deleteJobSeeker(jobSeeker)}
                               disabled={!jobSeeker.job_seeker_id || deletingId === jobSeeker.job_seeker_id}
-                              className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                              className="rounded-md border border-red-200 px-2 py-1 text-[10px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
                             >
-                              {deletingId === jobSeeker.job_seeker_id ? "Deleting..." : "Delete"}
+                              {deletingId === jobSeeker.job_seeker_id ? "..." : "Delete"}
                             </button>
                           </div>
-                        </TableCell>
-
+                        </td>
                       </tr>
                     );
-                  }
-                )}
-
+                })}
               </tbody>
-
             </table>
-
           </div>
         )}
 
