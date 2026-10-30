@@ -940,7 +940,12 @@ export default function AdminDashboard() {
     setApplicationsError("");
 
     try {
-      const [applicationsResult, seekersResult] =
+      const [
+        applicationsResult,
+        seekersResult,
+        employersResult,
+        jobsResult,
+      ] =
         await Promise.all([
           supabase.from("application").select("*"),
           supabase
@@ -951,20 +956,44 @@ export default function AdminDashboard() {
             .order("created_at", {
               ascending: false,
             }),
+          supabase.from("employer").select("employer_id, name"),
+          supabase
+            .from("job_vacancy")
+            .select("job_vacancy_id, position_title, employer_id, requirements, location"),
         ]);
 
       const seekers = seekersResult.data ?? [];
+      const employersById = new Map(
+        (employersResult.data ?? []).map((employer) => [
+          employer.employer_id,
+          employer.name,
+        ]),
+      );
+      const jobs = jobsResult.data ?? [];
+      const supportingErrors: string[] = [];
 
       if (seekersResult.error) {
         console.error(
-          "Job seeker resumes error:",
+          "Application applicant details error:",
           seekersResult.error,
         );
-        setApplicationsError(
-          `Resumes could not be loaded: ${seekersResult.error.message}`,
+        supportingErrors.push(
+          `Applicant details could not be loaded: ${seekersResult.error.message}`,
         );
       } else {
         setJobSeekers(seekers);
+      }
+      if (employersResult.error) {
+        console.error("Application employers error:", employersResult.error);
+        supportingErrors.push(
+          `Employer names could not be loaded: ${employersResult.error.message}`,
+        );
+      }
+      if (jobsResult.error) {
+        console.error("Application job details error:", jobsResult.error);
+        supportingErrors.push(
+          `Job requirements could not be loaded: ${jobsResult.error.message}`,
+        );
       }
 
       if (applicationsResult.error) {
@@ -975,7 +1004,10 @@ export default function AdminDashboard() {
 
         setApplications([]);
         setApplicationsError(
-          `Unable to load applications: ${applicationsResult.error.message}`,
+          [
+            `Unable to load applications: ${applicationsResult.error.message}`,
+            ...supportingErrors,
+          ].join(" "),
         );
 
         return;
@@ -1005,12 +1037,20 @@ export default function AdminDashboard() {
           seeker,
         ]),
       );
+      const findJob = (application: Application) =>
+        jobs.find((job) =>
+          application.job_vacancy_id
+            ? job.job_vacancy_id === application.job_vacancy_id
+            : job.employer_id === application.employer_id &&
+              job.position_title === application.position_title,
+        );
 
       setApplications(
         rows.map((application) => {
           const seeker = seekersById.get(
             application.job_seeker_id,
           );
+          const job = findJob(application);
 
           return {
             ...application,
@@ -1020,12 +1060,72 @@ export default function AdminDashboard() {
               seeker?.email ?? null,
             resume_url:
               seeker?.resume_url ?? null,
+            contact_number:
+              seeker?.contact_no ?? null,
+            applicant_address:
+              seeker?.address ?? null,
+            employer_name:
+              employersById.get(application.employer_id) ?? null,
+            job_requirements:
+              job?.requirements ?? null,
+            job_location:
+              job?.location ?? null,
           };
         }),
       );
+      setApplicationsError(supportingErrors.join(" "));
     } finally {
       setModuleLoading(false);
     }
+  };
+
+  const updateApplicationStatus = async (
+    applicationId: string,
+    status: string,
+  ) => {
+    const { data, error } = await supabase
+      .from("application")
+      .update({ status })
+      .eq("application_id", applicationId)
+      .select("application_id")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Application status update error:", error);
+      throw new Error(`Application status could not be updated: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error("Application was not updated because the record no longer exists.");
+    }
+
+    setApplications((current) =>
+      current.map((application) =>
+        application.application_id === applicationId
+          ? { ...application, status, application_status: status }
+          : application,
+      ),
+    );
+  };
+
+  const deleteApplication = async (applicationId: string) => {
+    const { data, error } = await supabase
+      .from("application")
+      .delete()
+      .eq("application_id", applicationId)
+      .select("application_id")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Application deletion error:", error);
+      throw new Error(`Application could not be deleted: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error("Application was not deleted because the record no longer exists.");
+    }
+
+    setApplications((current) =>
+      current.filter((application) => application.application_id !== applicationId),
+    );
   };
 
   /* ============================================================
@@ -1035,19 +1135,25 @@ export default function AdminDashboard() {
   const loadAuditLogs = async () => {
     setAuditLogError("");
     try {
-      const [logsResult, adminsResult, staffResult] = await Promise.all([
-        supabase
-          .from("admin_activity_log")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(500),
+      const logsResult = await supabase
+        .from("admin_activity_log")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(500);
+
+      if (logsResult.error) throw logsResult.error;
+
+      const [adminsResult, staffResult] = await Promise.all([
         supabase.from("peso_admin").select("admin_id, full_name"),
         supabase.from("peso_staff").select("peso_staff_id, full_name"),
       ]);
 
-      if (logsResult.error) throw logsResult.error;
-      if (adminsResult.error) throw adminsResult.error;
-      if (staffResult.error) throw staffResult.error;
+      if (adminsResult.error) {
+        console.error("Audit log admin names error:", adminsResult.error);
+      }
+      if (staffResult.error) {
+        console.error("Audit log staff names error:", staffResult.error);
+      }
 
       const adminNames = new Map(
         (adminsResult.data ?? []).map((admin) => [
@@ -1073,11 +1179,17 @@ export default function AdminDashboard() {
             "Admin",
         })),
       );
+      if (adminsResult.error || staffResult.error) {
+        setAuditLogError(
+            "Audit log records loaded, but some actor names could not be resolved.",
+        );
+      }
     } catch (error) {
       console.error("Audit log loading error:", error);
+      setAuditLogs([]);
       setAuditLogError(
         `Audit logs could not be loaded: ${
-          error instanceof Error ? error.message : "Unexpected error."
+            error instanceof Error ? error.message : "Unexpected error."
         }`,
       );
     }
@@ -1175,40 +1287,6 @@ export default function AdminDashboard() {
   }, [
     jobSeekers,
     jobSeekerSearch,
-  ]);
-
-  /* ============================================================
-     FILTERED APPLICATIONS
-  ============================================================ */
-
-  const filteredApplications = useMemo(() => {
-    return applications.filter((application) => {
-      const status =
-        application.status ||
-        application.application_status ||
-        "Unknown";
-
-      const statusMatch =
-        applicationStatusFilter === "All" ||
-        status.toLowerCase().replace(/_/g, " ") ===
-          applicationStatusFilter.toLowerCase();
-
-      const searchableText =
-        JSON.stringify(application);
-
-      const searchMatch =
-        searchableText
-          .toLowerCase()
-          .includes(
-            applicationSearch.toLowerCase()
-          );
-
-      return statusMatch && searchMatch;
-    });
-  }, [
-    applications,
-    applicationSearch,
-    applicationStatusFilter,
   ]);
 
   /* ============================================================
@@ -1362,7 +1440,7 @@ export default function AdminDashboard() {
       case "Applications":
         return (
           <ApplicationsModule
-            applications={filteredApplications}
+            applications={applications}
             loadError={applicationsError}
             search={applicationSearch}
             setSearch={setApplicationSearch}
@@ -1370,10 +1448,9 @@ export default function AdminDashboard() {
             setStatusFilter={setApplicationStatusFilter}
             loading={moduleLoading}
             onRefresh={loadApplications}
+            onUpdateStatus={updateApplicationStatus}
+            onDelete={deleteApplication}
             ModuleHeader={ModuleHeader}
-            TableHeader={TableHeader}
-            TableCell={TableCell}
-            StatusBadge={StatusBadge}
             LoadingMessage={LoadingMessage}
             EmptyMessage={EmptyMessage}
             formatDate={formatDate}
@@ -1575,22 +1652,9 @@ function AuditLogs({
   loadError: string;
   onRefresh: () => void;
 }) {
-  const today = new Date();
-  const dateToDefault = [
-    today.getFullYear(),
-    String(today.getMonth() + 1).padStart(2, "0"),
-    String(today.getDate()).padStart(2, "0"),
-  ].join("-");
-  const sevenDaysAgo = new Date(today);
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-  const dateFromDefault = [
-    sevenDaysAgo.getFullYear(),
-    String(sevenDaysAgo.getMonth() + 1).padStart(2, "0"),
-    String(sevenDaysAgo.getDate()).padStart(2, "0"),
-  ].join("-");
   const defaultFilters = {
-    dateFrom: dateFromDefault,
-    dateTo: dateToDefault,
+    dateFrom: "",
+    dateTo: "",
     admin: "all",
     keyword: "",
     area: "all",
@@ -1692,7 +1756,7 @@ function AuditLogs({
             Audit trail for admin activities (who did what, where, and when).
           </p>
           <p className="mt-0.5 text-xs text-slate-400">
-            Showing logs for the last 7 days by default. Adjust the date range if needed.
+            Showing all available logs by default. Use the date range to narrow results.
           </p>
         </div>
         <p className="hidden text-right text-[10px] text-slate-400 md:block">

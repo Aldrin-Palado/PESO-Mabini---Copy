@@ -161,6 +161,7 @@ export default function ApplicationsModule({
           "All",
           "pending",
           "under_review",
+          "shortlisted",
           "interview",
           "hired",
           "rejected",

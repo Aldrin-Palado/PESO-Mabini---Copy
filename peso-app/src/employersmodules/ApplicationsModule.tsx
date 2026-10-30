@@ -100,6 +100,7 @@ export default function ApplicationsModule({
         return "bg-red-100 text-red-700";
 
       case "for review":
+      case "under_review":
         return "bg-yellow-100 text-yellow-700";
 
       default:
@@ -162,10 +163,12 @@ export default function ApplicationsModule({
             >
               <option value="All Status">All Status</option>
               <option value="pending">Pending</option>
-              <option value="for review">For Review</option>
+              <option value="under_review">Under Review</option>
               <option value="shortlisted">Shortlisted</option>
+              <option value="interview">Interview</option>
               <option value="rejected">Rejected</option>
               <option value="hired">Hired</option>
+              <option value="withdrawn">Withdrawn</option>
             </select>
 
           </div>
@@ -291,10 +294,12 @@ export default function ApplicationsModule({
                     className="rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:opacity-50"
                   >
                     <option value="pending">Pending</option>
-                    <option value="for review">For Review</option>
+                    <option value="under_review">Under Review</option>
                     <option value="shortlisted">Shortlisted</option>
+                    <option value="interview">Interview</option>
                     <option value="rejected">Rejected</option>
                     <option value="hired">Hired</option>
+                    <option value="withdrawn">Withdrawn</option>
                   </select>
 
                   {updatingId === application.application_id && (
