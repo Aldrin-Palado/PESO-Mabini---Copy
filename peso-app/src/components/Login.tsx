@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import AuthSideImage from "./AuthSideImage";
 import PesoLogo from "./PesoLogo";
@@ -17,6 +17,142 @@ function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const routeAuthenticatedUser = async (user: { id: string }) => {
+    const { data: admin, error: adminError } = await supabase
+      .from("peso_admin")
+      .select("admin_id, user_id, full_name, email, is_active")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (adminError) {
+      console.error("Admin profile lookup error:", adminError);
+      throw new Error("Your login was accepted, but we could not verify the Admin profile. Check database permissions and try again.");
+    }
+
+    if (admin) {
+      if (!admin.is_active) {
+        await supabase.auth.signOut();
+        alert("This Admin account is inactive. Please contact the system administrator.");
+        navigate("/", { replace: true });
+        return;
+      }
+      navigate("/superadmin", { replace: true });
+      return;
+    }
+
+    const { data: staff, error: staffError } = await supabase
+      .from("peso_staff")
+      .select("peso_staff_id, user_id, full_name, email, is_active")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (staffError) {
+      console.error("Staff profile lookup error:", staffError);
+      throw new Error("Your login was accepted, but we could not verify the Staff profile. Please try again.");
+    }
+
+    if (staff) {
+      if (!staff.is_active) {
+        await supabase.auth.signOut();
+        alert("This Staff account is inactive. Please contact the Admin.");
+        navigate("/", { replace: true });
+        return;
+      }
+      navigate("/superadmin", { replace: true });
+      return;
+    }
+
+    const { data: jobSeeker, error: jobSeekerError } = await supabase
+      .from("job_seeker")
+      .select("job_seeker_id, user_id, full_name, email, is_active")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (jobSeekerError) {
+      console.error("Job Seeker profile lookup error:", jobSeekerError);
+      throw new Error("Your login was accepted, but we could not verify the Job Seeker profile. Please try again.");
+    }
+
+    if (jobSeeker) {
+      if (!jobSeeker.is_active) {
+        await supabase.auth.signOut();
+        alert("This Job Seeker account is inactive.");
+        navigate("/", { replace: true });
+        return;
+      }
+      const state = location.state;
+      const returnTo =
+        state &&
+        typeof state === "object" &&
+        "returnTo" in state &&
+        typeof state.returnTo === "string" &&
+        state.returnTo.startsWith("/jobs")
+          ? state.returnTo
+          : "/jobseeker";
+      navigate(returnTo, { replace: true });
+      return;
+    }
+
+    const { data: employer, error: employerError } = await supabase
+      .from("employer")
+      .select("employer_id, user_id, name, email, is_verified")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (employerError) {
+      console.error("Employer profile lookup error:", employerError);
+      throw new Error("Your login was accepted, but we could not verify the Employer profile. Please try again.");
+    }
+
+    if (employer) {
+      navigate("/employer", { replace: true });
+      return;
+    }
+
+    await supabase.auth.signOut();
+    alert("Your account is authenticated, but no PESO profile was found. Please contact the Admin.");
+    navigate("/", { replace: true });
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkStoredSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!isMounted || !session?.user) {
+        return;
+      }
+
+      try {
+        await routeAuthenticatedUser(session.user);
+      } catch (error) {
+        console.error("Session redirect error:", error);
+        await supabase.auth.signOut();
+      }
+    };
+
+    void checkStoredSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        void routeAuthenticatedUser(session.user).catch(async () => {
+          await supabase.auth.signOut();
+        });
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [navigate, location.state]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,101 +182,7 @@ function Login() {
         return;
       }
 
-      // Admin is checked first; the database should contain only one Admin profile.
-      const { data: admin, error: adminError } = await supabase
-        .from("peso_admin")
-        .select("admin_id, user_id, full_name, email, is_active")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (adminError) {
-        console.error("Admin profile lookup error:", adminError);
-        throw new Error("Your login was accepted, but we could not verify the Admin profile. Check database permissions and try again.");
-      }
-
-      if (admin) {
-        if (!admin.is_active) {
-          await supabase.auth.signOut();
-          alert("This Admin account is inactive. Please contact the system administrator.");
-          navigate("/", { replace: true });
-          return;
-        }
-        navigate("/superadmin", { replace: true });
-        return;
-      }
-
-      const { data: staff, error: staffError } = await supabase
-        .from("peso_staff")
-        .select("peso_staff_id, user_id, full_name, email, is_active")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (staffError) {
-        console.error("Staff profile lookup error:", staffError);
-        throw new Error("Your login was accepted, but we could not verify the Staff profile. Please try again.");
-      }
-
-      if (staff) {
-        if (!staff.is_active) {
-          await supabase.auth.signOut();
-          alert("This Staff account is inactive. Please contact the Admin.");
-          navigate("/", { replace: true });
-          return;
-        }
-        navigate("/superadmin", { replace: true });
-        return;
-      }
-
-      const { data: jobSeeker, error: jobSeekerError } = await supabase
-        .from("job_seeker")
-        .select("job_seeker_id, user_id, full_name, email, is_active")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (jobSeekerError) {
-        console.error("Job Seeker profile lookup error:", jobSeekerError);
-        throw new Error("Your login was accepted, but we could not verify the Job Seeker profile. Please try again.");
-      }
-
-      if (jobSeeker) {
-        if (!jobSeeker.is_active) {
-          await supabase.auth.signOut();
-          alert("This Job Seeker account is inactive.");
-          navigate("/", { replace: true });
-          return;
-        }
-        const state = location.state;
-        const returnTo =
-          state &&
-          typeof state === "object" &&
-          "returnTo" in state &&
-          typeof state.returnTo === "string" &&
-          state.returnTo.startsWith("/jobs")
-            ? state.returnTo
-            : "/jobseeker";
-        navigate(returnTo, { replace: true });
-        return;
-      }
-
-      const { data: employer, error: employerError } = await supabase
-        .from("employer")
-        .select("employer_id, user_id, name, email, is_verified")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (employerError) {
-        console.error("Employer profile lookup error:", employerError);
-        throw new Error("Your login was accepted, but we could not verify the Employer profile. Please try again.");
-      }
-
-      if (employer) {
-        navigate("/employer", { replace: true });
-        return;
-      }
-
-      await supabase.auth.signOut();
-      alert("Your account is authenticated, but no PESO profile was found. Please contact the Admin.");
-      navigate("/", { replace: true });
+      await routeAuthenticatedUser(user);
     } catch (error) {
       console.error("Login error:", error);
       const message = error instanceof Error
@@ -151,6 +193,36 @@ function Login() {
       navigate("/", { replace: true });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    if (googleLoading) return;
+    setGoogleLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/login`,
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error("Google login error:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Google sign-in could not be started. Please try again."
+      );
+      setGoogleLoading(false);
     }
   };
 
@@ -267,6 +339,37 @@ function Login() {
                 className="w-full rounded-2xl bg-[#315FEA] px-5 py-4 text-base font-semibold text-white shadow-[0_12px_24px_-12px_rgba(49,95,234,0.75)] transition hover:bg-[#244FD4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#315FEA] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? "Signing In..." : "Sign In"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={loading || googleLoading}
+                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-base font-semibold text-slate-700 shadow-sm transition hover:border-[#315FEA]/50 hover:text-[#315FEA] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 48 48"
+                  className="h-6 w-6"
+                >
+                  <path
+                    fill="#EA4335"
+                    d="M24 9.5c3.5 0 6.7 1.2 9.1 3.5l6.7-6.7C34.8 2.3 29.8 0 24 0 14.8 0 6.8 5.3 2.7 13l7.9 6.1C12.3 14.5 17.5 9.5 24 9.5Z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.5 2.8-2.1 5.2-4.5 6.8l7.3 5.7c4.3-4 6.9-9.9 6.9-16.5Z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M32.2 35.8c-2.1 1.4-4.8 2.2-8.2 2.2-6.5 0-12-4.3-13.9-10.2l-7.9 6.1C5.3 42.7 13.8 48 24 48c7 0 12.9-2.1 17.2-5.8l-9-6.4Z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M10.1 27.8A14.8 14.8 0 0 1 9.6 24c0-1.7.3-3.2.9-4.7L2.7 13C1 16.5.8 20.3.8 24s.2 7.5 1.9 11l7.4-5.7Z"
+                  />
+                </svg>
+                {googleLoading ? "Connecting Google..." : "Sign in with Google"}
               </button>
             </form>
 
