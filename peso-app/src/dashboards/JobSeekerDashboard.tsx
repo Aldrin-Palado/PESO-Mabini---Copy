@@ -33,8 +33,131 @@ type Seeker = {
   email: string;
   contact_no: string | null;
   address: string | null;
+  birth_date: string | null;
   resume_url: string | null;
+  registration_details: unknown;
 };
+
+type ScreeningValue = string | number | boolean | string[] | null;
+type ScreeningDetails = Record<string, ScreeningValue>;
+
+type ScreeningField = {
+  key: string;
+  label: string;
+  type?: "text" | "number" | "date" | "textarea" | "select" | "checkboxes" | "checkbox";
+  options?: string[];
+};
+
+const screeningSections: {
+  title: string;
+  fields: ScreeningField[];
+}[] = [
+  {
+    title: "Personal Information",
+    fields: [
+      { key: "middleName", label: "Middle Name" },
+      { key: "dateOfBirth", label: "Date of Birth", type: "date" },
+      { key: "sex", label: "Sex", type: "select", options: ["Female", "Male", "Prefer not to say"] },
+      { key: "contactNumber", label: "Contact Number" },
+      { key: "presentAddress", label: "Present Address", type: "textarea" },
+      { key: "permanentAddress", label: "Permanent Address", type: "textarea" },
+      { key: "civilStatus", label: "Civil Status", type: "select", options: ["Single", "Married", "Widowed", "Separated", "Annulled", "Others"] },
+      { key: "fatherName", label: "Father's Name" },
+      { key: "motherName", label: "Mother's Name" },
+      { key: "parentsCivilStatus", label: "Parents' Civil Status", type: "select", options: ["Single", "Married", "Widowed", "Separated", "Annulled", "Others"] },
+      { key: "governmentIdType", label: "Type of Government ID", type: "select", options: ["Philippine Identification (PhilID)", "SSS", "GSIS", "UMID", "Driver's License", "Passport", "Voter's ID", "PRC ID", "PhilHealth", "Postal ID", "Other"] },
+      { key: "governmentIdNumber", label: "Government ID Number" },
+      { key: "heightCm", label: "Height (cm)", type: "number" },
+      { key: "weightKg", label: "Weight (kg)", type: "number" },
+      { key: "disability", label: "Disability", type: "select", options: ["Visual", "Hearing", "Speech", "Physical", "Mental", "Other", "N/A"] },
+    ],
+  },
+  {
+    title: "Employment Information",
+    fields: [
+      { key: "employmentStatus", label: "Employment Status", type: "select", options: ["Employed", "Wage Employed", "Self-employed", "Fisherman/Fisherfolk", "Vendor/Retailer", "Home-based Worker", "Transport", "Domestic Worker", "Freelancer", "Artisan/Craft Worker", "Unemployed", "N/A"] },
+      { key: "unemploymentDurationMonths", label: "Months Looking for Work", type: "number" },
+      { key: "unemploymentReason", label: "Reason for Unemployment", type: "select", options: ["New entrant/Fresh graduate", "Finished contract", "Resigned", "Retired", "Terminated/Laid off due to calamity", "Terminated/Laid off (local)", "Terminated/Laid off (abroad)", "Other"] },
+      { key: "isOfw", label: "Are you an OFW?", type: "select", options: ["Yes", "No"] },
+      { key: "isFormerOfw", label: "Are you a former OFW?", type: "select", options: ["Yes", "No"] },
+      { key: "is4PsBeneficiary", label: "Are you a 4Ps beneficiary?", type: "select", options: ["Yes", "No"] },
+      { key: "preferredOccupation", label: "Preferred Occupation" },
+      { key: "companyApplyingFor", label: "Company Applying For" },
+      { key: "preferredWorkLocation", label: "Preferred Work Location", type: "select", options: ["Mabini", "Batangas Province", "Anywhere in the Philippines", "Other"] },
+      { key: "otherWorkLocation", label: "Other Preferred Work Location" },
+    ],
+  },
+  {
+    title: "Language / Dialect Proficiency",
+    fields: [
+      { key: "languages", label: "Languages", type: "checkboxes", options: ["Filipino", "English", "Mandarin"] },
+      { key: "otherLanguage", label: "Other Language / Dialect" },
+    ],
+  },
+  {
+    title: "Educational Background",
+    fields: [
+      { key: "educationLevel", label: "Highest Educational Attainment", type: "select", options: ["Elementary", "High School", "Senior High School", "Technical/Vocational", "College", "Postgraduate", "Undergraduate", "No formal education"] },
+      { key: "elementaryEducation", label: "Elementary (school / year graduated)" },
+      { key: "secondaryEducation", label: "Secondary (school / K-12 / strand / year graduated)" },
+      { key: "tertiaryEducation", label: "Tertiary (university / course / year graduated)" },
+      { key: "graduateStudies", label: "Graduate Studies / Postgraduate" },
+      { key: "undergraduateLevel", label: "Undergraduate Level" },
+    ],
+  },
+  {
+    title: "Training and Professional Eligibility",
+    fields: [
+      { key: "training1", label: "Training / Course 1", type: "textarea" },
+      { key: "training2", label: "Training / Course 2", type: "textarea" },
+      { key: "training3", label: "Training / Course 3", type: "textarea" },
+      { key: "eligibility1", label: "Eligibility / Professional License 1", type: "textarea" },
+      { key: "eligibility2", label: "Eligibility / Professional License 2", type: "textarea" },
+    ],
+  },
+  {
+    title: "Work Experience and Skills",
+    fields: [
+      { key: "noWorkExperience", label: "I have no previous work experience", type: "checkbox" },
+      { key: "workExperience1", label: "Most Recent Work Experience", type: "textarea" },
+      { key: "workExperience2", label: "Previous Work Experience 2", type: "textarea" },
+      { key: "workExperience3", label: "Previous Work Experience 3", type: "textarea" },
+      { key: "otherSkills", label: "Other Skills Acquired Without Certificate", type: "textarea" },
+    ],
+  },
+  {
+    title: "SPES / GIP History and Certification",
+    fields: [
+      { key: "spesGipHistory", label: "Participated in SPES / GIP?", type: "select", options: ["Yes", "No"] },
+      { key: "engagementPeriod", label: "Period of Engagement" },
+      { key: "spesGipId", label: "SPES / GIP ID Number" },
+      { key: "signature", label: "Typed Signature" },
+      { key: "signatureDate", label: "Date Signed", type: "date" },
+    ],
+  },
+];
+
+function parseScreeningDetails(value: unknown): ScreeningDetails {
+  let details = value;
+  if (typeof details === "string") {
+    try {
+      details = JSON.parse(details);
+    } catch {
+      return {};
+    }
+  }
+  if (!details || typeof details !== "object" || Array.isArray(details)) return {};
+
+  return Object.fromEntries(
+    Object.entries(details).filter(([, fieldValue]) =>
+      fieldValue === null ||
+      typeof fieldValue === "string" ||
+      typeof fieldValue === "number" ||
+      typeof fieldValue === "boolean" ||
+      (Array.isArray(fieldValue) && fieldValue.every((item) => typeof item === "string")),
+    ),
+  ) as ScreeningDetails;
+}
 
 // =====================================================
 // DASHBOARD
@@ -55,6 +178,9 @@ export default function JobSeekerDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [editingScreening, setEditingScreening] = useState(false);
+  const [savingScreening, setSavingScreening] = useState(false);
+  const [screeningForm, setScreeningForm] = useState<ScreeningDetails>({});
   const [profileError, setProfileError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState("");
   const [resumeFile, setResumeFile] = useState<File | null>(null);
@@ -115,7 +241,9 @@ export default function JobSeekerDashboard() {
             email,
             contact_no,
             address,
-            resume_url
+            birth_date,
+            resume_url,
+            registration_details
           `
         )
         .eq("user_id", user.id)
@@ -213,6 +341,62 @@ export default function JobSeekerDashboard() {
       );
     } finally {
       setSavingProfile(false);
+    }
+  };
+
+  const startScreeningEdit = () => {
+    if (!seeker) return;
+    const details = parseScreeningDetails(seeker.registration_details);
+    details.dateOfBirth = seeker.birth_date || String(details.dateOfBirth || "");
+    details.contactNumber = seeker.contact_no || String(details.contactNumber || "");
+    details.presentAddress = seeker.address || String(details.presentAddress || "");
+    setScreeningForm(details);
+    setProfileError("");
+    setProfileSuccess("");
+    setEditingScreening(true);
+  };
+
+  const saveScreening = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!seeker || savingScreening) return;
+
+    const birthDate = String(screeningForm.dateOfBirth || "").trim();
+    const contactNumber = String(screeningForm.contactNumber || "").trim();
+    const presentAddress = String(screeningForm.presentAddress || "").trim();
+
+    setSavingScreening(true);
+    setProfileError("");
+    setProfileSuccess("");
+    try {
+      const { data, error: updateError } = await supabase
+        .from("job_seeker")
+        .update({
+          registration_details: screeningForm,
+          birth_date: birthDate || null,
+          contact_no: contactNumber || null,
+          address: presentAddress || null,
+        })
+        .eq("job_seeker_id", seeker.job_seeker_id)
+        .select("registration_details, birth_date, contact_no, address")
+        .maybeSingle();
+
+      if (updateError) throw updateError;
+      if (!data) {
+        throw new Error("Your screening details were not saved. Please sign in again and try once more.");
+      }
+
+      setSeeker({ ...seeker, ...data });
+      setEditingScreening(false);
+      setProfileSuccess("Your screening details have been updated.");
+    } catch (saveError) {
+      console.error("Job seeker screening details update error:", saveError);
+      setProfileError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Unable to update your screening details. Please try again.",
+      );
+    } finally {
+      setSavingScreening(false);
     }
   };
 
@@ -397,6 +581,13 @@ export default function JobSeekerDashboard() {
           : "No resume uploaded",
       },
     ];
+    const savedScreeningDetails = parseScreeningDetails(seeker.registration_details);
+    savedScreeningDetails.dateOfBirth =
+      seeker.birth_date || String(savedScreeningDetails.dateOfBirth || "");
+    savedScreeningDetails.contactNumber =
+      seeker.contact_no || String(savedScreeningDetails.contactNumber || "");
+    savedScreeningDetails.presentAddress =
+      seeker.address || String(savedScreeningDetails.presentAddress || "");
 
     return (
       <div className="mx-auto max-w-5xl space-y-6">
@@ -560,6 +751,192 @@ export default function JobSeekerDashboard() {
           </form>
 
         </div>
+
+        <form
+          onSubmit={saveScreening}
+          className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+        >
+          <div className="flex flex-col gap-3 border-b border-slate-100 p-6 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-[#123B70]">Screening Details</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Review and update the information you provided for employment screening.
+              </p>
+            </div>
+            {!editingScreening && (
+              <button
+                type="button"
+                onClick={startScreeningEdit}
+                className="rounded-full bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#064A91]"
+              >
+                Edit Screening Details
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-6 p-6">
+            {screeningSections.map((section) => (
+              <section key={section.title} className="space-y-4">
+                <h3 className="border-b border-slate-100 pb-2 text-base font-bold text-[#123B70]">
+                  {section.title}
+                </h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {section.fields.map((field) => {
+                    const rawValue = editingScreening
+                      ? screeningForm[field.key]
+                      : savedScreeningDetails[field.key];
+                    const displayValue = Array.isArray(rawValue)
+                      ? rawValue.join(", ")
+                      : typeof rawValue === "boolean"
+                        ? rawValue ? "Yes" : "No"
+                        : String(rawValue ?? "").trim() || "Not provided";
+                    const controlClass =
+                      "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100";
+
+                    return (
+                      <div
+                        key={field.key}
+                        className={`rounded-xl bg-slate-50 p-4 ${field.type === "checkboxes" || field.type === "checkbox" ? "sm:col-span-2" : ""}`}
+                      >
+                        {editingScreening ? (
+                          field.type === "checkbox" ? (
+                            <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
+                              <input
+                                type="checkbox"
+                                checked={rawValue === true}
+                                disabled={savingScreening}
+                                onChange={(event) =>
+                                  setScreeningForm({
+                                    ...screeningForm,
+                                    [field.key]: event.target.checked,
+                                  })
+                                }
+                                className="h-4 w-4 rounded border-slate-300 accent-[#0759AE]"
+                              />
+                              {field.label}
+                            </label>
+                          ) : (
+                            <label className="block text-xs font-bold uppercase tracking-wide text-slate-500">
+                              {field.label}
+                              {field.type === "checkboxes" ? (
+                                <span className="mt-2 grid gap-2 sm:grid-cols-3">
+                                  {field.options?.map((option) => {
+                                    const selectedLanguages = Array.isArray(rawValue)
+                                      ? rawValue
+                                      : [];
+                                    return (
+                                      <span key={option} className="flex items-center gap-2 rounded-lg bg-white p-2 text-sm font-medium normal-case tracking-normal text-slate-700">
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedLanguages.includes(option)}
+                                          disabled={savingScreening}
+                                          onChange={(event) =>
+                                            setScreeningForm({
+                                              ...screeningForm,
+                                              [field.key]: event.target.checked
+                                                ? [...selectedLanguages, option]
+                                                : selectedLanguages.filter((language) => language !== option),
+                                            })
+                                          }
+                                          className="h-4 w-4 rounded border-slate-300 accent-[#0759AE]"
+                                        />
+                                        {option}
+                                      </span>
+                                    );
+                                  })}
+                                </span>
+                              ) : field.type === "textarea" ? (
+                                <textarea
+                                  rows={3}
+                                  value={String(rawValue ?? "")}
+                                  disabled={savingScreening}
+                                  onChange={(event) =>
+                                    setScreeningForm({
+                                      ...screeningForm,
+                                      [field.key]: event.target.value,
+                                    })
+                                  }
+                                  className={controlClass}
+                                />
+                              ) : field.type === "select" ? (
+                                <select
+                                  value={String(rawValue ?? "")}
+                                  disabled={savingScreening}
+                                  onChange={(event) =>
+                                    setScreeningForm({
+                                      ...screeningForm,
+                                      [field.key]: event.target.value,
+                                    })
+                                  }
+                                  className={controlClass}
+                                >
+                                  <option value="">Choose</option>
+                                  {rawValue && !field.options?.includes(String(rawValue)) && (
+                                    <option value={String(rawValue)}>{String(rawValue)}</option>
+                                  )}
+                                  {field.options?.map((option) => (
+                                    <option key={option} value={option}>{option}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <input
+                                  type={field.type || "text"}
+                                  value={String(rawValue ?? "")}
+                                  disabled={savingScreening}
+                                  onChange={(event) =>
+                                    setScreeningForm({
+                                      ...screeningForm,
+                                      [field.key]: event.target.value,
+                                    })
+                                  }
+                                  className={controlClass}
+                                />
+                              )}
+                            </label>
+                          )
+                        ) : (
+                          <>
+                            <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                              {field.label}
+                            </p>
+                            <p className="mt-2 break-words text-sm font-semibold text-slate-800">
+                              {displayValue}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+            {!editingScreening && (
+              <p className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs text-blue-800">
+                Your data privacy consent and consent date are retained as originally recorded and cannot be changed from this editor.
+              </p>
+            )}
+          </div>
+
+          {editingScreening && (
+            <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-5">
+              <button
+                type="button"
+                onClick={() => setEditingScreening(false)}
+                disabled={savingScreening}
+                className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={savingScreening}
+                className="rounded-full bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#064A91] disabled:cursor-wait disabled:opacity-60"
+              >
+                {savingScreening ? "Saving..." : "Save Screening Details"}
+              </button>
+            </div>
+          )}
+        </form>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-black text-[#123B70]">Profile picture</h2>
