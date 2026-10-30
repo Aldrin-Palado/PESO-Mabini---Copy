@@ -312,93 +312,91 @@ export default function JobsModule({
           filteredJobs.map((job) => {
 
             const isSaved = savedJobs.includes(job.id);
+            const postedDate = job.datePosted
+              ? new Date(job.datePosted).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "2-digit",
+                  year: "numeric",
+                })
+              : "Recently posted";
 
             return (
               <div
                 key={job.id}
-                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-blue-200"
+                className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:border-blue-200 hover:shadow-md"
               >
+                <div className="px-5 pb-5 pt-5 sm:px-7">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0759AE] text-sm font-black text-white">
+                      {job.company.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-medium text-slate-400">{postedDate}</p>
+                      <p className="mt-0.5 truncate text-sm font-medium text-slate-700">
+                        {job.company}
+                      </p>
+                      <h3 className="mt-2 text-lg font-black leading-snug text-slate-950 sm:text-xl">
+                        {job.title}
+                      </h3>
+                      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+                        <span className="capitalize">{job.classification}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>{job.type}</span>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs font-medium text-slate-600">
+                        <span className="inline-flex items-center gap-1.5">
+                          <AppIcon name="dollar" className="h-3.5 w-3.5 text-amber-500" />
+                          {job.salary}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <AppIcon name="mapPin" className="h-3.5 w-3.5 text-slate-500" />
+                          {job.location}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 {job.imageUrl && (
-                  <img
-                    src={job.imageUrl}
-                    alt={`${job.title} job`}
-                    className="mb-5 h-64 w-full rounded-xl bg-slate-50 object-contain sm:h-80"
-                    loading="lazy"
-                  />
+                  <div className="overflow-hidden border-y border-slate-100 bg-slate-50">
+                    <img
+                      src={job.imageUrl}
+                      alt={`${job.title} job posting`}
+                      className="h-56 w-full object-contain sm:h-72"
+                      loading="lazy"
+                    />
+                  </div>
                 )}
 
-                <div className="flex gap-4">
-
-                  {/* Company Logo */}
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-lg font-bold text-blue-700">
-                    {job.company.charAt(0)}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-
-                    <h3 className="text-lg font-bold text-gray-900">
-                      {job.title}
-                    </h3>
-
-                    <p className="font-medium text-blue-700">
-                      {job.company}
-                    </p>
-
-                    {/* Job Information */}
-                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-500">
-
-                      <span className="rounded-full bg-gray-100 px-3 py-1">
-                        <AppIcon name="mapPin" className="mr-1 inline h-3.5 w-3.5" /> {job.location}
-                      </span>
-
-                      <span className="rounded-full bg-gray-100 px-3 py-1">
-                        <AppIcon name="briefcase" className="mr-1 inline h-3.5 w-3.5" /> {job.type}
-                      </span>
-
-                      <span className="rounded-full bg-indigo-50 px-3 py-1 capitalize text-indigo-700">
-                        {job.classification}
-                      </span>
-
-                      <span className="rounded-full bg-green-50 px-3 py-1 text-green-700">
-                        <AppIcon name="dollar" className="mr-1 inline h-3.5 w-3.5" /> {job.salary}
-                      </span>
-
-                    </div>
-
-                    <p className="mt-3 text-sm leading-6 text-gray-600">
-                      {job.description}
-                    </p>
-
-                    {/* Buttons */}
-                    <div className="mt-4 flex flex-wrap gap-2">
-
-                      <button
-                        type="button"
-                        onClick={() => setSelectedJob(job)}
-                        className="rounded-lg bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800"
-                      >
-                        View Details
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => toggleSave(job.id)}
-                        className={`rounded-lg border px-5 py-2.5 text-sm font-semibold transition ${
-                          isSaved
-                            ? "border-yellow-300 bg-yellow-50 text-yellow-700"
-                            : "border-blue-200 text-blue-700 hover:bg-blue-50"
-                        }`}
-                      >
-                        <AppIcon
-                          name="star"
-                          className={`mr-1 inline h-4 w-4 ${isSaved ? "fill-current" : ""}`}
-                        />
-                        {isSaved ? "Saved" : "Save"}
-                      </button>
-
-                    </div>
-
+                <div className="flex flex-col gap-3 bg-slate-50/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+                  <p className="text-xs text-slate-500">
+                    Online application via portal.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedJob(job)}
+                      className="inline-flex items-center justify-center gap-2 rounded-full bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#064A91]"
+                    >
+                      View / Apply
+                      <AppIcon name="arrowRight" className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleSave(job.id)}
+                      aria-pressed={isSaved}
+                      className={`inline-flex items-center justify-center gap-1 rounded-full border px-4 py-2.5 text-sm font-semibold transition ${
+                        isSaved
+                          ? "border-yellow-300 bg-yellow-50 text-yellow-700"
+                          : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      <AppIcon
+                        name="star"
+                        className={`h-4 w-4 ${isSaved ? "fill-current" : ""}`}
+                      />
+                      {isSaved ? "Saved" : "Save"}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -421,7 +419,7 @@ export default function JobsModule({
             role="dialog"
             aria-modal="true"
             aria-labelledby={`job-title-${selectedJob.id}`}
-            className="my-auto max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5"
+            className="my-auto max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5"
           >
             <div className="max-h-[92vh] overflow-y-auto">
               <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur sm:px-8">
@@ -433,7 +431,15 @@ export default function JobsModule({
                     <p className="truncate text-sm font-bold text-blue-700">
                       {selectedJob.company}
                     </p>
-                    <p className="text-xs text-slate-500">Job opportunity</p>
+                    <p className="text-xs text-slate-500">
+                      {selectedJob.datePosted
+                        ? new Date(selectedJob.datePosted).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "2-digit",
+                            year: "numeric",
+                          })
+                        : "Recently posted"}
+                    </p>
                   </div>
                 </div>
                 <button
@@ -448,35 +454,40 @@ export default function JobsModule({
 
               <div className="space-y-7 px-5 py-6 sm:px-8 sm:py-8">
                 <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                      Open position
-                    </span>
-                    {selectedJob.datePosted && (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                        <AppIcon name="clock" className="h-3.5 w-3.5" />
-                        Posted {new Date(selectedJob.datePosted).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
                   <h2
                     id={`job-title-${selectedJob.id}`}
-                    className="mt-4 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl"
+                    className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl"
                   >
                     {selectedJob.title}
                   </h2>
                   <p className="mt-2 text-sm text-slate-600">
                     {selectedJob.company}
                   </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-600">
+                    <span className="capitalize">{selectedJob.classification}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>{selectedJob.type}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>{selectedJob.location}</span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-slate-700">
+                    <span className="inline-flex items-center gap-2">
+                      <AppIcon name="dollar" className="h-4 w-4 text-amber-500" />
+                      {selectedJob.salary}
+                    </span>
+                    <span className="inline-flex items-center gap-2">
+                      <AppIcon name="mapPin" className="h-4 w-4 text-slate-500" />
+                      {selectedJob.location}
+                    </span>
+                  </div>
                 </div>
 
                 {selectedJob.imageUrl && (
-                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-2">
+                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
                     <img
                       src={selectedJob.imageUrl}
                       alt={`${selectedJob.title} job`}
-                      className="max-h-[55vh] w-full rounded-xl object-contain"
+                      className="max-h-[55vh] w-full object-contain"
                     />
                   </div>
                 )}
@@ -571,7 +582,10 @@ export default function JobsModule({
                   </div>
                 </div>
 
-                <div className="flex justify-end border-t border-slate-100 pt-5">
+                <div className="flex flex-col gap-3 border-t border-slate-100 bg-slate-50/80 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs text-slate-500">
+                    Online application via portal.
+                  </p>
                   <button
                     type="button"
                     onClick={() => setSelectedJob(null)}

@@ -33,6 +33,14 @@ function JobCard({ job, index, isAuthenticated }: JobCardProps) {
     ? "before:bg-red-200 group-hover:before:bg-red-400"
     : "before:bg-yellow-300 group-hover:before:bg-yellow-400";
 
+  const postedDate = job.date_posted
+    ? new Date(job.date_posted).toLocaleDateString("en-US", {
+        month: "short",
+        day: "2-digit",
+        year: "numeric",
+      })
+    : "Recently posted";
+
   const closeDetails = () => {
     setIsDetailsOpen(false);
     if (searchParams.get("job") === job.job_vacancy_id) {
@@ -98,44 +106,90 @@ function JobCard({ job, index, isAuthenticated }: JobCardProps) {
   return (
     <>
       <div
-        className={`group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 before:absolute before:inset-y-0 before:left-0 before:w-1.5 before:content-[''] before:transition-colors motion-reduce:before:transition-none hover:-translate-y-1 hover:shadow-lg ${accent}`}
+        className={`group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 before:absolute before:inset-y-0 before:left-0 before:z-10 before:w-1.5 before:content-[''] before:transition-colors motion-reduce:before:transition-none hover:-translate-y-1 hover:shadow-lg ${accent}`}
       >
-
-      <div className="mb-3 flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-100 font-bold text-sky-600">
-          {job.employer?.name?.charAt(0).toUpperCase() || "E"}
+        <div className="px-6 pb-5 pt-5 sm:px-7">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0759AE] text-sm font-black text-white shadow-sm">
+              {job.employer?.name?.charAt(0).toUpperCase() || "E"}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-medium text-slate-400">{postedDate}</p>
+              <p className="mt-0.5 truncate text-sm font-medium text-slate-700">
+                {job.employer?.name || "Employer"}
+              </p>
+              <h3 className="mt-2 text-lg font-black leading-snug text-slate-950 transition-colors group-hover:text-sky-700 sm:text-xl">
+                {job.position_title}
+              </h3>
+              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+                {job.job_classification && (
+                  <span className="capitalize">{job.job_classification}</span>
+                )}
+                {job.employment_type && (
+                  <>
+                    {job.job_classification && <span aria-hidden="true">·</span>}
+                    <span>{job.employment_type}</span>
+                  </>
+                )}
+                {job.location && (
+                  <>
+                    {(job.job_classification || job.employment_type) && (
+                      <span aria-hidden="true">·</span>
+                    )}
+                    <span>{job.location}</span>
+                  </>
+                )}
+              </div>
+              {(job.salary || job.location) && (
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs font-medium text-slate-600">
+                  {job.salary && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <AppIcon name="dollar" className="h-3.5 w-3.5 text-amber-500" />
+                      {job.salary}
+                    </span>
+                  )}
+                  {job.location && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <AppIcon name="mapPin" className="h-3.5 w-3.5 text-slate-500" />
+                      {job.location}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div>
-          <p className="text-sm font-semibold text-sky-600">
-            {job.employer?.name || "Employer"}
-          </p>
-
-          <p className="text-xs text-slate-400">
-            Job Vacancy
-          </p>
-        </div>
-      </div>
-
-      <h3 className="text-xl font-black text-slate-900 transition-colors group-hover:text-sky-600">
-        {job.position_title}
-      </h3>
-
-      <div className="mt-6 border-t border-slate-100 pt-5">
-        <button
-          type="button"
-          onClick={viewJobDetails}
-          disabled={isCheckingLogin}
-          className="w-full rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-sky-700 disabled:cursor-wait disabled:opacity-70"
-        >
-          {isCheckingLogin ? "Checking..." : "View Job Details"}
-        </button>
-        {loginError && (
-          <p role="alert" className="mt-2 text-sm text-red-700">
-            {loginError}
-          </p>
+        {job.image_url && (
+          <div className="overflow-hidden border-y border-slate-100 bg-slate-50">
+            <img
+              src={job.image_url}
+              alt={`${job.position_title} job posting`}
+              className="h-56 w-full object-contain sm:h-64"
+              loading="lazy"
+            />
+          </div>
         )}
-      </div>
+
+        <div className="flex flex-col gap-3 bg-slate-50/80 px-6 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+          <p className="text-xs text-slate-500">
+            Sign in to view full details and application information.
+          </p>
+          <button
+            type="button"
+            onClick={viewJobDetails}
+            disabled={isCheckingLogin}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#064A91] disabled:cursor-wait disabled:opacity-70"
+          >
+            {isCheckingLogin ? "Checking..." : "View / Apply"}
+            <AppIcon name="arrowRight" className="h-4 w-4" />
+          </button>
+          {loginError && (
+            <p role="alert" className="text-sm text-red-700">
+              {loginError}
+            </p>
+          )}
+        </div>
       </div>
 
       {isDetailsOpen && (
@@ -151,7 +205,7 @@ function JobCard({ job, index, isAuthenticated }: JobCardProps) {
             role="dialog"
             aria-modal="true"
             aria-labelledby={`job-title-${job.job_vacancy_id}`}
-            className="my-auto max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5"
+            className="my-auto max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5"
           >
             <div className="max-h-[92vh] overflow-y-auto">
               <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur sm:px-8">
@@ -163,7 +217,7 @@ function JobCard({ job, index, isAuthenticated }: JobCardProps) {
                     <p className="truncate text-sm font-bold text-sky-700">
                       {job.employer?.name || "Employer"}
                     </p>
-                    <p className="text-xs text-slate-500">Job opportunity</p>
+                    <p className="text-xs text-slate-500">{postedDate}</p>
                   </div>
                 </div>
                 <button
@@ -178,35 +232,50 @@ function JobCard({ job, index, isAuthenticated }: JobCardProps) {
 
               <div className="space-y-7 px-5 py-6 sm:px-8 sm:py-8">
                 <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                      Open position
-                    </span>
-                    {job.date_posted && (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                        <AppIcon name="clock" className="h-3.5 w-3.5" />
-                        Posted {new Date(job.date_posted).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
                   <h2
                     id={`job-title-${job.job_vacancy_id}`}
-                    className="mt-4 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl"
+                    className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl"
                   >
                     {job.position_title}
                   </h2>
                   <p className="mt-2 text-sm text-slate-600">
                     {job.employer?.name || "Employer"}
                   </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-600">
+                    {job.job_classification && (
+                      <span className="capitalize">{job.job_classification}</span>
+                    )}
+                    {job.job_classification && job.employment_type && (
+                      <span aria-hidden="true">·</span>
+                    )}
+                    {job.employment_type && <span>{job.employment_type}</span>}
+                    {(job.job_classification || job.employment_type) && job.location && (
+                      <span aria-hidden="true">·</span>
+                    )}
+                    {job.location && <span>{job.location}</span>}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-slate-700">
+                    {job.salary && (
+                      <span className="inline-flex items-center gap-2">
+                        <AppIcon name="dollar" className="h-4 w-4 text-amber-500" />
+                        {job.salary}
+                      </span>
+                    )}
+                    {job.location && (
+                      <span className="inline-flex items-center gap-2">
+                        <AppIcon name="mapPin" className="h-4 w-4 text-slate-500" />
+                        {job.location}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {job.image_url && (
-                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-2">
+                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
                     <img
                       src={job.image_url}
                       alt={`${job.position_title} job`}
-                      className="max-h-[55vh] w-full rounded-xl object-contain"
+                      className="max-h-[55vh] w-full object-contain"
                     />
                   </div>
                 )}
@@ -307,7 +376,10 @@ function JobCard({ job, index, isAuthenticated }: JobCardProps) {
                   )}
                 </div>
 
-                <div className="flex justify-end border-t border-slate-100 pt-5">
+                <div className="flex flex-col gap-3 border-t border-slate-100 bg-slate-50/80 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs text-slate-500">
+                    Online application via portal.
+                  </p>
                   <button
                     type="button"
                     onClick={closeDetails}
