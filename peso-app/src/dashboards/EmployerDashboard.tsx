@@ -565,6 +565,7 @@ export default function EmployerDashboard() {
           <MyJobPostModule
             jobs={jobs}
             employerId={profile.employer_id}
+            employerName={profile.name}
             onRefresh={handleRefresh}
           />
         );

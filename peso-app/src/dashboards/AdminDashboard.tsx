@@ -47,6 +47,9 @@ type Permissions = {
 
 type AuditLog = {
   log_id: string;
+  admin_id?: string | null;
+  peso_staff_id?: string | null;
+  actor_name?: string;
   action: string;
   details: any;
   created_at: string;
@@ -152,6 +155,7 @@ export default function AdminDashboard() {
 
   const [auditLogs, setAuditLogs] =
     useState<AuditLog[]>([]);
+  const [auditLogError, setAuditLogError] = useState("");
 
   const isSuperadmin =
     account?.role === "superadmin";
@@ -1005,32 +1009,52 @@ export default function AdminDashboard() {
   ============================================================ */
 
   const loadAuditLogs = async () => {
+    setAuditLogError("");
     try {
-      const {
-        data,
-        error,
-      } = await supabase
-        .from("admin_activity_log")
-        .select("*")
-        .order("created_at", {
-          ascending: false,
-        })
-        .limit(100);
+      const [logsResult, adminsResult, staffResult] = await Promise.all([
+        supabase
+          .from("admin_activity_log")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(500),
+        supabase.from("peso_admin").select("admin_id, full_name"),
+        supabase.from("peso_staff").select("peso_staff_id, full_name"),
+      ]);
 
-      if (error) {
-        console.error(
-          "Audit log error:",
-          error
-        );
+      if (logsResult.error) throw logsResult.error;
+      if (adminsResult.error) throw adminsResult.error;
+      if (staffResult.error) throw staffResult.error;
 
-        return;
-      }
+      const adminNames = new Map(
+        (adminsResult.data ?? []).map((admin) => [
+          admin.admin_id,
+          admin.full_name,
+        ]),
+      );
+      const staffNames = new Map(
+        (staffResult.data ?? []).map((staff) => [
+          staff.peso_staff_id,
+          staff.full_name,
+        ]),
+      );
 
-      setAuditLogs(data ?? []);
+      setAuditLogs(
+        (logsResult.data ?? []).map((log) => ({
+          ...log,
+          actor_name:
+            (log.peso_staff_id
+              ? staffNames.get(log.peso_staff_id)
+              : undefined) ||
+            (log.admin_id ? adminNames.get(log.admin_id) : undefined) ||
+            "Admin",
+        })),
+      );
     } catch (error) {
-      console.error(
-        "Audit log loading error:",
-        error
+      console.error("Audit log loading error:", error);
+      setAuditLogError(
+        `Audit logs could not be loaded: ${
+          error instanceof Error ? error.message : "Unexpected error."
+        }`,
       );
     }
   };
@@ -1408,6 +1432,8 @@ export default function AdminDashboard() {
         return (
           <AuditLogs
             logs={auditLogs}
+            loadError={auditLogError}
+            onRefresh={loadAuditLogs}
           />
         );
 
@@ -1523,92 +1549,311 @@ export default function AdminDashboard() {
 
 function AuditLogs({
   logs,
+  loadError,
+  onRefresh,
 }: {
   logs: AuditLog[];
+  loadError: string;
+  onRefresh: () => void;
 }) {
+  const today = new Date();
+  const dateToDefault = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, "0"),
+    String(today.getDate()).padStart(2, "0"),
+  ].join("-");
+  const sevenDaysAgo = new Date(today);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+  const dateFromDefault = [
+    sevenDaysAgo.getFullYear(),
+    String(sevenDaysAgo.getMonth() + 1).padStart(2, "0"),
+    String(sevenDaysAgo.getDate()).padStart(2, "0"),
+  ].join("-");
+  const defaultFilters = {
+    dateFrom: dateFromDefault,
+    dateTo: dateToDefault,
+    admin: "all",
+    keyword: "",
+    area: "all",
+    action: "all",
+  };
+  const [filters, setFilters] = useState(defaultFilters);
+  const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
+
+  const getDetails = (details: unknown): Record<string, unknown> => {
+    if (!details || typeof details !== "object" || Array.isArray(details)) {
+      return {};
+    }
+    return details as Record<string, unknown>;
+  };
+
+  const getArea = (log: AuditLog) => {
+    const details = getDetails(log.details);
+    const recordedArea =
+      details.area || details.section || details.module;
+    if (typeof recordedArea === "string" && recordedArea.trim()) {
+      return recordedArea.replace(/^section:\s*/i, "").replace(/_/g, " ");
+    }
+
+    const action = log.action.toLowerCase();
+    if (action.includes("permission") || action.includes("staff")) {
+      return "Admin Accounts";
+    }
+    if (action.includes("job seeker")) return "Job Seekers";
+    if (action.includes("employer")) return "Employers";
+    if (action.includes("application")) return "Applications";
+    if (action.includes("job")) return "Job Posts";
+    if (action.includes("login") || action.includes("dashboard")) {
+      return "Admin Portal";
+    }
+    return "Admin Portal";
+  };
+
+  const getIpDevice = (log: AuditLog) => {
+    const details = getDetails(log.details);
+    const ip =
+      details.ip_address || details.ip || details.ipAddress;
+    const device =
+      details.device || details.user_agent || details.userAgent;
+    const values = [
+      typeof ip === "string" ? `IP: ${ip}` : "",
+      typeof device === "string" ? `Device: ${device}` : "",
+    ].filter(Boolean);
+    return values.join(" · ") || "-";
+  };
+
+  const areas = [...new Set(logs.map(getArea))].sort();
+  const actions = [...new Set(logs.map((log) => log.action))].sort();
+  const admins = [...new Set(logs.map((log) => log.actor_name || "Admin"))].sort();
+  const filteredLogs = logs.filter((log) => {
+    const date = log.created_at.slice(0, 10);
+    const keyword = appliedFilters.keyword.trim().toLowerCase();
+    const detailsText =
+      typeof log.details === "string"
+        ? log.details
+        : JSON.stringify(log.details ?? "");
+    const matchesKeyword =
+      !keyword ||
+      `${log.actor_name || ""} ${getArea(log)} ${log.action} ${detailsText} ${getIpDevice(log)}`
+        .toLowerCase()
+        .includes(keyword);
+
+    return (
+      (!appliedFilters.dateFrom || date >= appliedFilters.dateFrom) &&
+      (!appliedFilters.dateTo || date <= appliedFilters.dateTo) &&
+      (appliedFilters.admin === "all" ||
+        (log.actor_name || "Admin") === appliedFilters.admin) &&
+      (appliedFilters.area === "all" ||
+        getArea(log) === appliedFilters.area) &&
+      (appliedFilters.action === "all" ||
+        log.action === appliedFilters.action) &&
+      matchesKeyword
+    );
+  });
+
+  const clearFilters = () => {
+    const clearedFilters = {
+      dateFrom: "",
+      dateTo: "",
+      admin: "all",
+      keyword: "",
+      area: "all",
+      action: "all",
+    };
+    setFilters(clearedFilters);
+    setAppliedFilters(clearedFilters);
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-black text-[#123B70]">Admin Audit Logs</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Audit trail for admin activities (who did what, where, and when).
+          </p>
+          <p className="mt-0.5 text-xs text-slate-400">
+            Showing logs for the last 7 days by default. Adjust the date range if needed.
+          </p>
+        </div>
+        <p className="hidden text-right text-[10px] text-slate-400 md:block">
+          Showing up to 500 recent records.<br />
+          Use filters to narrow down results.
+        </p>
+      </div>
 
-      <ModuleHeader
-        title="Admin Audit Logs"
-        description="Records of administrative activities."
-      />
+      {loadError && (
+        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {loadError}
+        </p>
+      )}
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          setAppliedFilters({ ...filters });
+        }}
+        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      >
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="block text-[11px] font-semibold text-slate-600">
+            Date From
+            <input
+              type="date"
+              value={filters.dateFrom}
+              onChange={(event) => setFilters({ ...filters, dateFrom: event.target.value })}
+              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-2 text-xs font-normal text-slate-800"
+            />
+          </label>
+          <label className="block text-[11px] font-semibold text-slate-600">
+            Date To
+            <input
+              type="date"
+              value={filters.dateTo}
+              onChange={(event) => setFilters({ ...filters, dateTo: event.target.value })}
+              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-2 text-xs font-normal text-slate-800"
+            />
+          </label>
+          <label className="block text-[11px] font-semibold text-slate-600">
+            Admin
+            <select
+              value={filters.admin}
+              onChange={(event) => setFilters({ ...filters, admin: event.target.value })}
+              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-2 text-xs font-normal text-slate-800"
+            >
+              <option value="all">All admins</option>
+              {admins.map((admin) => <option key={admin} value={admin}>{admin}</option>)}
+            </select>
+          </label>
+          <label className="block text-[11px] font-semibold text-slate-600">
+            Keyword
+            <input
+              type="search"
+              value={filters.keyword}
+              onChange={(event) => setFilters({ ...filters, keyword: event.target.value })}
+              placeholder="Area, action, details..."
+              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-2 text-xs font-normal text-slate-800 placeholder:text-slate-400"
+            />
+          </label>
+        </div>
 
-        <div className="table-scroll">
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <label className="block flex-1 text-[11px] font-semibold text-slate-600">
+            Area
+            <select
+              value={filters.area}
+              onChange={(event) => setFilters({ ...filters, area: event.target.value })}
+              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-2 text-xs font-normal text-slate-800"
+            >
+              <option value="all">All areas</option>
+              {areas.map((area) => <option key={area} value={area}>{area}</option>)}
+            </select>
+          </label>
+          <label className="block flex-1 text-[11px] font-semibold text-slate-600">
+            Action
+            <select
+              value={filters.action}
+              onChange={(event) => setFilters({ ...filters, action: event.target.value })}
+              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-2 text-xs font-normal text-slate-800"
+            >
+              <option value="all">All actions</option>
+              {actions.map((action) => <option key={action} value={action}>{action}</option>)}
+            </select>
+          </label>
+          <div className="flex justify-end gap-2 sm:ml-auto">
+            <button
+              type="submit"
+              className="rounded-md bg-[#0759AE] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#064A91]"
+            >
+              Apply Filters
+            </button>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="rounded-md border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={onRefresh}
+              className="rounded-md border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+      </form>
 
-          <table className="w-full">
-
-            <thead className="bg-slate-50">
-
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+          <h2 className="text-sm font-bold text-slate-800">Logs</h2>
+          <span className="text-[11px] text-slate-400">
+            {filteredLogs.length} record{filteredLogs.length === 1 ? "" : "s"}
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] table-fixed">
+            <thead className="bg-slate-50 text-left">
               <tr>
-
-                <TableHeader>
-                  Action
-                </TableHeader>
-
-                <TableHeader>
-                  Details
-                </TableHeader>
-
-                <TableHeader>
-                  Date
-                </TableHeader>
-
-              </tr>
-
-            </thead>
-
-            <tbody className="divide-y divide-slate-100">
-
-              {logs.length === 0 ? (
-                <tr>
-
-                  <td
-                    colSpan={3}
-                    className="px-6 py-10 text-center text-sm text-slate-500"
+                {[
+                  ["Date / Time", "w-[14%]"],
+                  ["Admin", "w-[14%]"],
+                  ["Area", "w-[13%]"],
+                  ["Action", "w-[14%]"],
+                  ["Details", "w-[25%]"],
+                  ["IP / Device", "w-[20%]"],
+                ].map(([label, width]) => (
+                  <th
+                    key={label}
+                    className={`${width} px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500`}
                   >
-                    No audit logs found.
+                    {label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredLogs.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-500">
+                    {logs.length === 0 && !loadError
+                      ? "No audit logs found."
+                      : "No logs match these filters."}
                   </td>
-
                 </tr>
               ) : (
-                logs.map((log) => (
-                  <tr
-                    key={log.log_id}
-                  >
-
-                    <TableCell bold>
+                filteredLogs.map((log) => (
+                  <tr key={log.log_id} className="align-top hover:bg-slate-50/70">
+                    <td className="px-3 py-2.5 text-[10px] text-slate-600">
+                      {new Date(log.created_at).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2.5 text-[10px] font-medium text-slate-700">
+                      {log.actor_name || "Admin"}
+                    </td>
+                    <td className="px-3 py-2.5 text-[10px] text-slate-600">
+                      {getArea(log)}
+                    </td>
+                    <td className="px-3 py-2.5 text-[10px] font-medium text-slate-700">
                       {log.action}
-                    </TableCell>
-
-                    <TableCell>
+                    </td>
+                    <td className="break-words px-3 py-2.5 text-[10px] leading-4 text-slate-600">
                       {log.details
-                        ? JSON.stringify(
-                            log.details
-                          )
+                        ? typeof log.details === "string"
+                          ? log.details
+                          : JSON.stringify(log.details)
                         : "-"}
-                    </TableCell>
-
-                    <TableCell>
-                      {formatDate(
-                        log.created_at
-                      )}
-                    </TableCell>
-
+                    </td>
+                    <td className="break-words px-3 py-2.5 text-[10px] leading-4 text-slate-500">
+                      {getIpDevice(log)}
+                    </td>
                   </tr>
                 ))
               )}
-
             </tbody>
-
           </table>
-
         </div>
-
-      </div>
-
+      </section>
     </div>
   );
 }
@@ -1624,7 +1869,7 @@ function MyProfile({
   account: Account | null;
   onSave: (values: Pick<Account, "full_name" | "contact_no">) => Promise<void>;
 }) {
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
@@ -1648,85 +1893,152 @@ function MyProfile({
   };
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Profile</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Manage your PESO Mabini account information.
+        </p>
+      </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
+      {error && (
+        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </p>
+      )}
 
-        <h3 className="mb-6 text-xl font-bold text-slate-800">
-          My Profile
-        </h3>
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(230px,0.7fr)_minmax(0,1.5fr)]">
+        <section className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+          {account?.user_id && (
+            <div className="flex justify-center">
+              <ProfileAvatar
+                userId={account.user_id}
+                fullName={account.full_name}
+                size="large"
+                showControls={false}
+              />
+            </div>
+          )}
+          <h2 className="mt-4 text-lg font-bold text-slate-900">
+            {account?.full_name || "PESO User"}
+          </h2>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {account?.role === "superadmin" ? "Super Admin" : "PESO Staff"}
+          </p>
+          <p className="mt-3 break-words text-sm text-slate-500">
+            {account?.email || "Email not available"}
+          </p>
+        </section>
 
-        {account?.user_id && (
-          <ProfileAvatar
-            userId={account.user_id}
-            fullName={account.full_name}
-          />
-        )}
+        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+          <div className="mb-5">
+            <h2 className="text-lg font-bold text-slate-900">
+              Edit Profile Picture
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Update your account details and profile picture.
+            </p>
+          </div>
 
-        {error && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-        <form onSubmit={handleSubmit} className="grid gap-5 md:grid-cols-2">
-
-          {editing ? (
-            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <label className="block text-xs font-semibold text-slate-600">
               Full Name
               <input
-                value={form.full_name}
+                value={editing ? form.full_name : account?.full_name ?? ""}
                 onChange={(event) => setForm({ ...form, full_name: event.target.value })}
                 required
                 maxLength={120}
-                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm font-normal normal-case tracking-normal text-slate-800"
+                disabled={!editing || saving}
+                className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50"
               />
             </label>
-          ) : (
-            <ProfileField label="Full Name" value={account?.full_name} />
-          )}
 
-          <ProfileField
-            label="Email"
-            value={account?.email}
-          />
+            <label className="block text-xs font-semibold text-slate-600">
+              Email
+              <input
+                type="email"
+                value={account?.email ?? ""}
+                readOnly
+                aria-describedby="admin-profile-email-note"
+                className="mt-1.5 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-500"
+              />
+              <span id="admin-profile-email-note" className="mt-1 block text-[11px] font-normal text-slate-400">
+                Contact the super admin to change your sign-in email.
+              </span>
+            </label>
 
-          {account?.role === "staff" && (
-            editing ? (
-              <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {account?.role === "staff" && (
+              <label className="block text-xs font-semibold text-slate-600">
                 Contact Number
                 <input
                   type="tel"
-                  value={form.contact_no}
+                  value={editing ? form.contact_no : account.contact_no ?? ""}
                   onChange={(event) => setForm({ ...form, contact_no: event.target.value })}
                   maxLength={30}
-                  className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm font-normal normal-case tracking-normal text-slate-800"
+                  disabled={!editing || saving}
+                  className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50"
                 />
               </label>
-            ) : (
-              <ProfileField label="Contact Number" value={account.contact_no || "Not provided"} />
-            )
-          )}
-
-          <ProfileField
-            label="Role"
-            value={account?.role === "superadmin" ? "Admin" : "PESO Staff"}
-          />
-
-          <ProfileField
-            label="Account Status"
-            value={account?.is_active ? "Active" : "Inactive"}
-          />
-
-          <div className="flex justify-end gap-3 md:col-span-2">
-            {editing ? (
-              <>
-                <button type="button" onClick={() => { setForm({ full_name: account?.full_name ?? "", contact_no: account?.contact_no ?? "" }); setEditing(false); }} disabled={saving} className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Cancel</button>
-                <button type="submit" disabled={saving} className="rounded-full bg-[#203F8B] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{saving ? "Saving..." : "Save Changes"}</button>
-              </>
-            ) : (
-              <button type="button" onClick={() => { setError(""); setEditing(true); }} className="rounded-full bg-[#203F8B] px-4 py-2 text-sm font-semibold text-white">Edit Profile</button>
             )}
-          </div>
-        </form>
 
+            <div className="border-t border-slate-100 pt-4">
+              <p className="mb-2 text-xs font-semibold text-slate-600">
+                Profile Picture
+              </p>
+              {account?.user_id && (
+                <ProfileAvatar
+                  key={account.user_id}
+                  userId={account.user_id}
+                  fullName={account.full_name}
+                />
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              {editing ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm({
+                        full_name: account?.full_name ?? "",
+                        contact_no: account?.contact_no ?? "",
+                      });
+                      setError("");
+                      setEditing(false);
+                    }}
+                    disabled={saving}
+                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="rounded-lg bg-[#0759AE] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#064A91] disabled:opacity-60"
+                  >
+                    {saving ? "Saving..." : "Save Changes"}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError("");
+                    setEditing(true);
+                  }}
+                  className="rounded-lg bg-[#0759AE] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#064A91]"
+                >
+                  Edit Profile
+                </button>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-400">
+              Profile picture uploads are saved immediately. Name and contact updates are saved when you select Save Changes.
+            </p>
+          </form>
+        </section>
       </div>
-
     </div>
   );
 }
@@ -1833,28 +2145,6 @@ function SummaryRow({
       <span className="font-bold text-slate-800">
         {value}
       </span>
-
-    </div>
-  );
-}
-
-function ProfileField({
-  label,
-  value,
-}: {
-  label: string;
-  value?: string;
-}) {
-  return (
-    <div>
-
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-        {label}
-      </p>
-
-      <p className="mt-1 rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-700">
-        {value || "-"}
-      </p>
 
     </div>
   );

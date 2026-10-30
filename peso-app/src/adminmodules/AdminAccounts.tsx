@@ -55,6 +55,18 @@ const permissionList = [
 
 type PermissionKey = keyof Omit<Permissions, "peso_staff_id">;
 
+type StaffPermissionValues = Omit<Permissions, "peso_staff_id">;
+
+const defaultStaffPermissions: StaffPermissionValues = {
+  dashboard_overview: true,
+  analytics: false,
+  job_posts: false,
+  job_application: false,
+  employers: false,
+  job_seekers: false,
+  notifications: false,
+};
+
 export default function AdminAccounts() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,7 +91,11 @@ export default function AdminAccounts() {
     email: "",
     contact_no: "",
     password: "",
+    confirm_password: "",
   });
+  const [createPermissions, setCreatePermissions] =
+    useState<StaffPermissionValues>(defaultStaffPermissions);
+  const [createError, setCreateError] = useState("");
 
   /* =====================================================
      LOAD STAFF
@@ -141,11 +157,17 @@ export default function AdminAccounts() {
     if (
       !form.full_name.trim() ||
       !form.email.trim() ||
-      !form.password.trim()
+      !form.password.trim() ||
+      !form.confirm_password.trim()
     ) {
       alert(
-        "Please enter the staff name, email, and password."
+        "Please enter the staff name, email, password, and password confirmation."
       );
+      return;
+    }
+
+    if (form.password !== form.confirm_password) {
+      setCreateError("The passwords do not match.");
       return;
     }
 
@@ -157,15 +179,17 @@ export default function AdminAccounts() {
     }
 
     setCreating(true);
+    setCreateError("");
 
     try {
+      const email = form.email.trim().toLowerCase();
       const { data, error } =
         await supabase.functions.invoke(
           "create-staff-account",
           {
             body: {
               full_name: form.full_name.trim(),
-              email: form.email.trim().toLowerCase(),
+              email,
               password: form.password,
               contact_no:
                 form.contact_no.trim() || null,
@@ -197,6 +221,48 @@ export default function AdminAccounts() {
         return;
       }
 
+      const { data: staffAccount, error: staffLookupError } = await supabase
+        .from("peso_staff")
+        .select("peso_staff_id")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (staffLookupError || !staffAccount) {
+        console.error(
+          "Created staff account lookup error:",
+          staffLookupError,
+        );
+        setCreateError(
+          `The account was created, but its permissions could not be assigned. ${
+            staffLookupError?.message || "The new account could not be found."
+          } Use Manage Access to configure permissions.`,
+        );
+        await loadStaff();
+        setCreating(false);
+        return;
+      }
+
+      const { error: permissionError } = await supabase
+        .from("staff_permissions")
+        .upsert(
+          {
+            peso_staff_id: staffAccount.peso_staff_id,
+            ...createPermissions,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "peso_staff_id" },
+        );
+
+      if (permissionError) {
+        console.error("New staff permissions save error:", permissionError);
+        setCreateError(
+          `The account was created, but permissions could not be saved: ${permissionError.message}. Use Manage Access to configure permissions.`,
+        );
+        await loadStaff();
+        setCreating(false);
+        return;
+      }
+
       alert(
         "PESO Staff account created successfully."
       );
@@ -207,7 +273,9 @@ export default function AdminAccounts() {
         email: "",
         contact_no: "",
         password: "",
+        confirm_password: "",
       });
+      setCreatePermissions(defaultStaffPermissions);
 
       setShowCreateModal(false);
 
@@ -390,7 +458,10 @@ export default function AdminAccounts() {
       email: "",
       contact_no: "",
       password: "",
+      confirm_password: "",
     });
+    setCreatePermissions(defaultStaffPermissions);
+    setCreateError("");
   };
 
   /* =====================================================
@@ -412,7 +483,7 @@ export default function AdminAccounts() {
   ===================================================== */
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
 
       {/* =================================================
           HEADER
@@ -421,23 +492,187 @@ export default function AdminAccounts() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
         <div>
-          <h1 className="text-2xl font-black text-[#123B70]">
+          <h1 className="text-xl font-black text-[#123B70]">
             Admin Accounts
           </h1>
 
-          <p className="mt-1 text-slate-500">
+          <p className="mt-1 text-sm text-slate-500">
             Manage PESO Staff accounts and their module access.
           </p>
         </div>
 
         <button
-          onClick={() => setShowCreateModal(true)}
-          className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-800"
+          type="button"
+          onClick={() => {
+            if (showCreateModal) {
+              closeCreateModal();
+            } else {
+              setCreateError("");
+              setShowCreateModal(true);
+            }
+          }}
+          className="rounded-lg bg-[#0759AE] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#064A91]"
         >
-          + Create Staff
+          {showCreateModal ? "Cancel" : "+ Add Admin"}
         </button>
 
       </div>
+
+      {showCreateModal && (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void createStaffAccount();
+          }}
+          className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+        >
+          <div className="mb-4 flex items-center gap-2">
+            <AppIcon name="user" className="h-4 w-4 text-[#0759AE]" />
+            <div>
+              <h2 className="text-sm font-bold text-slate-800">
+                New Admin Account
+              </h2>
+              <p className="text-xs text-slate-500">
+                Create a PESO Staff account and choose its dashboard access.
+              </p>
+            </div>
+          </div>
+
+          {createError && (
+            <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              {createError}
+            </p>
+          )}
+
+          <div className="grid gap-x-5 gap-y-3 sm:grid-cols-2">
+            <label className="block text-xs font-semibold text-slate-600">
+              Full Name
+              <input
+                type="text"
+                required
+                maxLength={120}
+                value={form.full_name}
+                onChange={(event) => setForm({ ...form, full_name: event.target.value })}
+                placeholder="Enter full name"
+                disabled={creating}
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50"
+              />
+            </label>
+
+            <label className="block text-xs font-semibold text-slate-600">
+              Email / Username
+              <input
+                type="email"
+                required
+                value={form.email}
+                onChange={(event) => setForm({ ...form, email: event.target.value })}
+                placeholder="Enter sign-in email"
+                disabled={creating}
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50"
+              />
+              <span className="mt-1 block text-[10px] font-normal text-slate-400">
+                Email address is used as the username.
+              </span>
+            </label>
+
+            <label className="block text-xs font-semibold text-slate-600">
+              Password
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={form.password}
+                onChange={(event) => setForm({ ...form, password: event.target.value })}
+                placeholder="Minimum 8 characters"
+                autoComplete="new-password"
+                disabled={creating}
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50"
+              />
+            </label>
+
+            <label className="block text-xs font-semibold text-slate-600">
+              Confirm Password
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={form.confirm_password}
+                onChange={(event) => setForm({ ...form, confirm_password: event.target.value })}
+                placeholder="Re-enter password"
+                autoComplete="new-password"
+                disabled={creating}
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50"
+              />
+            </label>
+
+            <label className="block text-xs font-semibold text-slate-600">
+              Role
+              <input
+                value="PESO Staff"
+                readOnly
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-normal text-slate-500"
+              />
+              <span className="mt-1 block text-[10px] font-normal text-slate-400">
+                Super Admin access cannot be assigned from this form.
+              </span>
+            </label>
+
+            <label className="block text-xs font-semibold text-slate-600">
+              Contact Number
+              <input
+                type="tel"
+                maxLength={30}
+                value={form.contact_no}
+                onChange={(event) => setForm({ ...form, contact_no: event.target.value })}
+                placeholder="Optional"
+                disabled={creating}
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50"
+              />
+            </label>
+          </div>
+
+          <fieldset className="mt-4 border-t border-slate-100 pt-4">
+            <legend className="text-xs font-semibold text-slate-700">
+              Accessible Sidebar Sections
+            </legend>
+            <div className="mt-2 grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+              {permissionList.map((permission) => (
+                <label
+                  key={permission.key}
+                  className="flex items-center gap-2 text-xs text-slate-700"
+                >
+                  <input
+                    type="checkbox"
+                    checked={createPermissions[permission.key]}
+                    disabled={creating}
+                    onChange={() =>
+                      setCreatePermissions((previous) => ({
+                        ...previous,
+                        [permission.key]: !previous[permission.key],
+                      }))
+                    }
+                    className="h-4 w-4 rounded border-slate-300 accent-[#0759AE]"
+                  />
+                  {permission.label}
+                </label>
+              ))}
+            </div>
+            <p className="mt-2 text-[10px] text-slate-400">
+              These settings control which parts of the dashboard this staff account can access.
+            </p>
+          </fieldset>
+
+          <div className="mt-4 flex justify-end border-t border-slate-100 pt-4">
+            <button
+              type="submit"
+              disabled={creating}
+              className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60"
+            >
+              {creating ? "Creating..." : "Save Admin"}
+            </button>
+          </div>
+        </form>
+      )}
 
       {/* =================================================
           STAFF LIST
@@ -530,166 +765,6 @@ export default function AdminAccounts() {
         )}
 
       </div>
-
-      {/* =================================================
-          CREATE STAFF MODAL
-      ================================================= */}
-
-      {showCreateModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4">
-
-          <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl">
-
-            {/* HEADER */}
-
-            <div className="border-b border-slate-200 p-6">
-
-              <div className="flex items-center justify-between">
-
-                <div>
-                  <h2 className="text-2xl font-black text-[#123B70]">
-                    Create PESO Staff
-                  </h2>
-
-                  <p className="mt-1 text-sm text-slate-500">
-                    Create a new staff account.
-                  </p>
-                </div>
-
-                <button
-                  onClick={closeCreateModal}
-                  disabled={creating}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-500"
-                >
-                  ×
-                </button>
-
-              </div>
-
-            </div>
-
-            {/* FORM */}
-
-            <div className="space-y-4 p-6">
-
-              {/* FULL NAME */}
-
-              <div>
-                <label className="mb-2 block text-sm font-bold text-slate-700">
-                  Full Name
-                </label>
-
-                <input
-                  type="text"
-                  value={form.full_name}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      full_name: e.target.value,
-                    })
-                  }
-                  placeholder="Enter full name"
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500"
-                />
-              </div>
-
-              {/* EMAIL */}
-
-              <div>
-                <label className="mb-2 block text-sm font-bold text-slate-700">
-                  Email Address
-                </label>
-
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      email: e.target.value,
-                    })
-                  }
-                  placeholder="Enter email address"
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500"
-                />
-              </div>
-
-              {/* CONTACT */}
-
-              <div>
-                <label className="mb-2 block text-sm font-bold text-slate-700">
-                  Contact Number
-                </label>
-
-                <input
-                  type="text"
-                  value={form.contact_no}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      contact_no: e.target.value,
-                    })
-                  }
-                  placeholder="Enter contact number"
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500"
-                />
-              </div>
-
-              {/* PASSWORD */}
-
-              <div>
-                <label className="mb-2 block text-sm font-bold text-slate-700">
-                  Temporary Password
-                </label>
-
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      password: e.target.value,
-                    })
-                  }
-                  placeholder="Minimum 8 characters"
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500"
-                />
-
-                <p className="mt-1 text-xs text-slate-400">
-                  The staff member can use this password to log in.
-                </p>
-              </div>
-
-            </div>
-
-            {/* FOOTER */}
-
-            <div className="flex justify-end gap-3 border-t border-slate-200 p-6">
-
-              <button
-                onClick={closeCreateModal}
-                disabled={creating}
-                className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-600"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={createStaffAccount}
-                disabled={creating}
-                className="rounded-xl bg-[#0446A7] px-6 py-3 text-sm font-bold text-white disabled:opacity-50"
-              >
-                {creating
-                  ? "Creating..."
-                  : "Create Staff"}
-              </button>
-
-            </div>
-
-          </div>
-
-        </div>
-      )}
 
       {/* =================================================
           PERMISSION MODAL

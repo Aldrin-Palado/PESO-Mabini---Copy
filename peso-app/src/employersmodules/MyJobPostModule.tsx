@@ -23,6 +23,7 @@ type JobPost = {
 type Props = {
   jobs: JobPost[];
   employerId: string;
+  employerName: string;
   onRefresh: () => Promise<void> | void;
 };
 
@@ -57,6 +58,7 @@ const STORAGE_BUCKET = "job-images";
 export default function MyJobPostModule({
   jobs,
   employerId,
+  employerName,
   onRefresh,
 }: Props) {
   const [showForm, setShowForm] = useState(false);
@@ -532,7 +534,7 @@ export default function MyJobPostModule({
           </h1>
 
           <p className="mt-1 text-sm text-slate-500">
-            Create and manage your company's job vacancies.
+            Add, update, or close your job vacancies from here.
           </p>
         </div>
 
@@ -541,7 +543,7 @@ export default function MyJobPostModule({
           onClick={openCreateForm}
           className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white hover:bg-blue-800"
         >
-          + Create Job Post
+          + New Job Post
         </button>
       </div>
 
@@ -838,149 +840,133 @@ export default function MyJobPostModule({
           </button>
         </div>
       ) : (
-        <div className="grid gap-5">
+        <div className="grid gap-6">
           {jobs.map((job) => (
             <article
               key={job.job_vacancy_id}
-              className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+              className="mx-auto w-full max-w-3xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
             >
-              {/* JOB IMAGE */}
-
-              {job.image_url && (
-                <img
-                  src={job.image_url}
-                  alt={`${job.position_title} job`}
-                  className="mb-5 h-56 w-full rounded-xl bg-slate-50 object-contain sm:h-64"
-                />
-              )}
-
-              {/* JOB HEADER */}
-
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <h2 className="text-xl font-black text-[#123B70]">
-                    {job.position_title}
-                  </h2>
-
-                  <p className="mt-2 text-sm text-slate-500">
-                    {job.location}
-                  </p>
-
-                  <p className="mt-1 text-sm text-slate-500">
-                    {job.employment_type}
-                  </p>
-                  <span className="mt-3 inline-flex w-fit rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold capitalize text-indigo-700">
-                    {job.job_classification}
-                  </span>
+              <div className="flex items-start gap-3 px-5 pb-4 pt-5 sm:px-6">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0759AE] text-sm font-black text-white">
+                  {employerName.trim().charAt(0).toUpperCase() || "E"}
                 </div>
-
-                <span className="w-fit rounded-full bg-blue-50 px-3 py-1 text-xs font-bold capitalize text-blue-700">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-slate-800">
+                    {employerName || "Your Company"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {formatDate(job.date_posted)} · {job.location}
+                  </p>
+                </div>
+                <span
+                  className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                    job.status === "open"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : job.status === "closed"
+                        ? "bg-slate-100 text-slate-600"
+                        : "bg-amber-50 text-amber-700"
+                  }`}
+                >
                   {job.status}
                 </span>
               </div>
 
-              {/* JOB DETAILS */}
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <div>
-                  <p className="text-xs font-semibold text-slate-400">
-                    Salary
-                  </p>
-
-                  <p className="mt-1 text-sm font-semibold text-slate-700">
-                    {formatSalary(job)}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold text-slate-400">
-                    Available Vacancies
-                  </p>
-
-                  <p className="mt-1 text-sm font-semibold text-slate-700">
-                    {job.vacancies_available}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold text-slate-400">
-                    Date Posted
-                  </p>
-
-                  <p className="mt-1 text-sm text-slate-700">
-                    {formatDate(job.date_posted)}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold text-slate-400">
-                    Application Deadline
-                  </p>
-
-                  <p className="mt-1 text-sm text-slate-700">
-                    {formatDate(job.deadline)}
-                  </p>
-                </div>
+              <div className="px-5 pb-4 sm:px-6">
+                <h2 className="text-lg font-black leading-snug text-slate-950">
+                  {job.position_title}
+                </h2>
+                <p className="mt-1.5 text-xs text-slate-600">
+                  <span className="capitalize">{job.job_classification}</span>
+                  {" · "}
+                  {job.employment_type}
+                </p>
+                <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-slate-700">
+                  <span className="text-amber-500" aria-hidden="true">₱</span>
+                  {formatSalary(job)}
+                </p>
+                <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-600">
+                  <span className="font-semibold text-slate-700">Application requirements: </span>
+                  {job.requirements?.trim() || "Not specified"}
+                </p>
               </div>
 
-              {/* DESCRIPTION */}
-
-              {job.description && (
-                <div className="mt-5">
-                  <h3 className="text-sm font-bold text-slate-700">
-                    Job Description
-                  </h3>
-
-                  <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-600">
-                    {job.description}
-                  </p>
+              {job.image_url ? (
+                <div className="overflow-hidden border-y border-slate-100 bg-slate-50">
+                  <img
+                    src={job.image_url}
+                    alt={`${job.position_title} job posting`}
+                    className="h-64 w-full object-contain sm:h-80"
+                    loading="lazy"
+                  />
+                </div>
+              ) : (
+                <div className="flex h-40 items-center justify-center border-y border-slate-100 bg-slate-50 text-sm text-slate-400">
+                  No job image uploaded
                 </div>
               )}
 
-              {/* REQUIREMENTS */}
-
-              {job.requirements && (
-                <div className="mt-5">
-                  <h3 className="text-sm font-bold text-slate-700">
-                    Requirements
-                  </h3>
-
-                  <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-600">
-                    {job.requirements}
-                  </p>
+              <details className="border-b border-slate-100 px-5 py-3 sm:px-6">
+                <summary className="cursor-pointer text-sm font-semibold text-[#0446A7]">
+                  View full job details
+                </summary>
+                <div className="grid gap-4 pt-4 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">Available Vacancies</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-700">
+                      {job.vacancies_available}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">Application Deadline</p>
+                    <p className="mt-1 text-sm text-slate-700">{formatDate(job.deadline)}</p>
+                  </div>
+                  {job.description && (
+                    <div className="sm:col-span-2">
+                      <p className="text-xs font-semibold text-slate-400">Job Description</p>
+                      <p className="mt-1 whitespace-pre-line text-sm leading-6 text-slate-600">
+                        {job.description}
+                      </p>
+                    </div>
+                  )}
+                  {job.requirements && (
+                    <div className="sm:col-span-2">
+                      <p className="text-xs font-semibold text-slate-400">Requirements</p>
+                      <p className="mt-1 whitespace-pre-line text-sm leading-6 text-slate-600">
+                        {job.requirements}
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
+              </details>
 
-              {/* ACTIONS */}
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => openEditForm(job)}
-                  className="rounded-lg border border-blue-200 px-4 py-2 text-sm font-bold text-[#0446A7] hover:bg-blue-50"
-                >
-                  Edit
-                </button>
-
-                <select
-                  aria-label={`Status for ${job.position_title}`}
-                  value={job.status}
-                  onChange={(event) =>
-                    void handleStatusChange(job, event.target.value)
-                  }
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                >
-                  <option value="open">Open</option>
-                  <option value="closed">Closed</option>
-                  <option value="draft">Draft</option>
-                </select>
-
+              <div className="flex flex-col gap-3 bg-slate-50/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openEditForm(job)}
+                    className="rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-bold text-[#0446A7] hover:bg-blue-50"
+                  >
+                    Edit
+                  </button>
+                  <select
+                    aria-label={`Status for ${job.position_title}`}
+                    value={job.status}
+                    onChange={(event) =>
+                      void handleStatusChange(job, event.target.value)
+                    }
+                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm"
+                  >
+                    <option value="open">Open</option>
+                    <option value="closed">Closed</option>
+                    <option value="draft">Draft</option>
+                  </select>
+                </div>
                 <button
                   type="button"
                   onClick={() => void handleDelete(job)}
-                  className="rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50"
+                  className="rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50"
                 >
-                  Delete
+                  Delete Post
                 </button>
               </div>
             </article>
