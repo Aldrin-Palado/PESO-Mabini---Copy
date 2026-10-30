@@ -9,6 +9,7 @@ import ForgotPassword from "./components/ForgotPassword";
 import JobSeekerRegistration from "./components/JobSeekerRegistration";
 import Login from "./components/Login";
 import ResetPassword from "./components/ResetPassword";
+import SessionTimeout from "./components/SessionTimeout";
 import AdminDashboard from "./dashboards/AdminDashboard";
 import EmployerDashboard from "./dashboards/EmployerDashboard";
 import JobSeekerDashboard from "./dashboards/JobSeekerDashboard";
@@ -17,6 +18,7 @@ import StaffDashboard from "./dashboards/StaffDashboard";
 function App() {
   return (
     <BrowserRouter>
+      <SessionTimeout />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />

@@ -1,5 +1,6 @@
 
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import SidebarToggle from "../components/SidebarToggle";
 import EmployersSidebar, {
   type EmployerMenuName,
@@ -88,6 +89,7 @@ const menuItems: { name: MenuName; icon: string }[] = [
 ========================= */
 
 export default function EmployerDashboard() {
+  const navigateToRoute = useNavigate();
   const [activeMenu, setActiveMenu] =
     useState<MenuName>("Dashboard");
 
@@ -106,6 +108,8 @@ export default function EmployerDashboard() {
   const [refreshing, setRefreshing] = useState(false);
 
   const [error, setError] = useState("");
+
+  const [loginRequired, setLoginRequired] = useState(false);
 
   /* =========================
      SIDEBAR ESCAPE HANDLER
@@ -133,6 +137,7 @@ export default function EmployerDashboard() {
 
   const fetchEmployerData = useCallback(async () => {
     setError("");
+    setLoginRequired(false);
 
     const {
       data: { user },
@@ -143,10 +148,10 @@ export default function EmployerDashboard() {
       setProfile(null);
       setJobs([]);
       setApplications([]);
+      setLoginRequired(true);
 
       throw new Error(
-        authError?.message ||
-          "Please sign in to access the employer portal."
+        "Your employer login session has expired. Please sign in again."
       );
     }
 
@@ -168,8 +173,12 @@ export default function EmployerDashboard() {
     }
 
     if (!employerRow) {
+      setProfile(null);
+      setJobs([]);
+      setApplications([]);
+      setLoginRequired(true);
       throw new Error(
-        "No employer profile is linked to this login. Please contact PESO support."
+        "Your employer login session has expired or could not be verified. Please sign in again."
       );
     }
 
@@ -352,6 +361,20 @@ export default function EmployerDashboard() {
     window.location.assign("/");
   };
 
+  const signInAgain = async () => {
+    setError("");
+
+    const { error: signOutError } =
+      await supabase.auth.signOut();
+
+    if (signOutError) {
+      setError(`Unable to end your current session: ${signOutError.message}`);
+      return;
+    }
+
+    navigateToRoute("/login", { replace: true });
+  };
+
   /* =========================
      COMPANY PROFILE SAVE
   ========================= */
@@ -452,7 +475,9 @@ export default function EmployerDashboard() {
           </div>
 
           <h1 className="text-xl font-black text-[#123B70]">
-            Employer Portal Unavailable
+            {loginRequired
+              ? "Employer Login Session Expired"
+              : "Employer Portal Unavailable"}
           </h1>
 
           <p className="mt-3 text-sm leading-6 text-slate-600">
@@ -461,14 +486,24 @@ export default function EmployerDashboard() {
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white hover:bg-[#123B70] disabled:opacity-50"
-            >
-              {refreshing ? "Retrying..." : "Try Again"}
-            </button>
+            {loginRequired ? (
+              <button
+                type="button"
+                onClick={signInAgain}
+                className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white hover:bg-[#123B70]"
+              >
+                Sign In Again
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white hover:bg-[#123B70] disabled:opacity-50"
+              >
+                {refreshing ? "Retrying..." : "Try Again"}
+              </button>
+            )}
 
             <button
               type="button"

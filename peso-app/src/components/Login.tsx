@@ -8,6 +8,11 @@ import AppIcon from "./AppIcon";
 function Login() {
   const navigate = useNavigate();
   const location = useLocation();
+  const sessionExpired =
+    location.state !== null &&
+    typeof location.state === "object" &&
+    "sessionExpired" in location.state &&
+    location.state.sessionExpired === true;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -174,6 +179,16 @@ function Login() {
                 Access your PESO MABINI account to continue.
               </p>
             </div>
+
+            {sessionExpired && (
+              <p
+                role="status"
+                className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900"
+              >
+                Your session expired after 5 hours of inactivity. Please sign
+                in again.
+              </p>
+            )}
 
             <form onSubmit={handleLogin} className="space-y-5">
               <div>
