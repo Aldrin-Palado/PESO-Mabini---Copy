@@ -10,6 +10,7 @@ import DashboardModule from "../employersmodules/DashboardModule";
 import MyJobPostModule from "../employersmodules/MyJobPostModule";
 import ApplicationsModule from "../employersmodules/ApplicationsModule";
 import CompanyProfileModule from "../employersmodules/CompanyProfileModule";
+import MessagesModule from "../employersmodules/MessagesModule";
 
 import { supabase } from "../services/supabase";
 
@@ -21,6 +22,7 @@ type MenuName =
   | "Dashboard"
   | "My Job Posts"
   | "Applications"
+  | "Messages"
   | "Company Profile";
 
 interface EmployerProfile {
@@ -574,6 +576,9 @@ export default function EmployerDashboard() {
             onRefresh={handleRefresh}
           />
         );
+
+      case "Messages":
+        return <MessagesModule />;
 
       case "Company Profile":
         return (

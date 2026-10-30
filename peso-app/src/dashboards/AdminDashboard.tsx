@@ -15,6 +15,7 @@ import JobSeekersModule from "../adminmodules/JobSeekersModule";
 import ApplicationsModule from "../adminmodules/ApplicationsModule";
 import AnnouncementModule from "../adminmodules/AnnouncementModule";
 import AnalyticsModule from "../adminmodules/AnalyticsModule";
+import MessagesModule from "../adminmodules/MessagesModule";
 
 /* ============================================================
    TYPES
@@ -387,6 +388,7 @@ export default function AdminDashboard() {
           "Employers",
           "Job Seekers",
           "Applications",
+          "Messages",
           "Announcement",
           "Analytics & Reports",
           "Admin Accounts",
@@ -580,6 +582,10 @@ export default function AdminDashboard() {
 
     if (account?.role === "superadmin") {
       return true;
+    }
+
+    if (page === "Messages") {
+      return account?.role === "staff";
     }
 
     if (
@@ -1198,6 +1204,9 @@ export default function AdminDashboard() {
             formatDate={formatDate}
           />
         );
+
+      case "Messages":
+        return <MessagesModule />;
 
       /* ========================================================
          ANNOUNCEMENT

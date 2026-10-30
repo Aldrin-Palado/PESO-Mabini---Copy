@@ -4,6 +4,7 @@ import AppIcon, { type AppIconName } from "../components/AppIcon";
 import ProfileAvatar from "../components/ProfileAvatar";
 import { supabase } from "../services/supabase";
 import { openStoredResume } from "../services/resumes";
+import DirectMessages from "../components/DirectMessages";
 
 type StaffPermission = {
   dashboard_overview: boolean;
@@ -30,6 +31,7 @@ type ModuleName =
   | "Job Application"
   | "Employers"
   | "Job Seekers"
+  | "Messages"
   | "Notifications";
 
 type StaffRecordPage = "Job Posts" | "Employers" | "Job Seekers";
@@ -317,6 +319,10 @@ export default function StaffDashboard() {
     module: ModuleName
   ): boolean => {
 
+    if (module === "Messages") {
+      return true;
+    }
+
     if (!permissions) {
       return false;
     }
@@ -380,6 +386,10 @@ export default function StaffDashboard() {
     {
       name: "Job Seekers",
       icon: "♙",
+    },
+    {
+      name: "Messages",
+      icon: "✉",
     },
     {
       name: "Notifications",
@@ -496,6 +506,9 @@ export default function StaffDashboard() {
             onRefresh={() => setRecordsRefresh((value) => value + 1)}
           />
         );
+
+      case "Messages":
+        return <DirectMessages mode="staff" />;
 
       case "Notifications":
         return <Notifications />;

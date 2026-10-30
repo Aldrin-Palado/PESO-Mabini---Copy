@@ -1,3 +1,5 @@
+import DirectMessages from "../components/DirectMessages";
+
 type Seeker = {
   full_name?: string | null;
 };
@@ -18,21 +20,11 @@ export default function MessagesModule({ seeker, onNavigate }: Props) {
       <header>
         <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Hello, {firstName}. Your conversations will appear here.
+          Hello, {firstName}. Contact PESO staff, employers, and other job seekers.
         </p>
       </header>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-sm">
-        <div className="text-4xl" aria-hidden="true">
-          💬
-        </div>
-        <h2 className="mt-3 font-semibold text-gray-900">
-          No messages yet
-        </h2>
-        <p className="mt-1 text-sm text-gray-500">
-          There are no conversations to display.
-        </p>
-      </section>
+      <DirectMessages mode="job_seeker" />
 
       <section className="rounded-2xl border border-blue-100 bg-blue-50 p-5">
         <div className="flex items-center justify-between gap-4">
@@ -41,8 +33,7 @@ export default function MessagesModule({ seeker, onNavigate }: Props) {
               Keep your profile updated
             </h2>
             <p className="mt-1 text-sm text-blue-700">
-              Employers may use your profile information when communicating
-              about your applications.
+              Keep your contact details current so other users can reach you.
             </p>
           </div>
           <button
