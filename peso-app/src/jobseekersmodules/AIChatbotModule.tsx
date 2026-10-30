@@ -113,8 +113,9 @@ export default function AIChatbotModule({
             <p className="font-semibold text-[#123B70]">Try asking:</p>
             <ul className="mt-2 list-inside list-disc">
               <li>What jobs are currently open?</li>
+              <li>What services does PESO Mabini offer?</li>
+              <li>How do I apply for a job?</li>
               <li>What should I include in my resume?</li>
-              <li>How do I use PESO MABINI?</li>
             </ul>
             <p className="mt-3 text-xs text-slate-500">
               Messages are sent to Google Gemini. Don&apos;t share passwords or sensitive
