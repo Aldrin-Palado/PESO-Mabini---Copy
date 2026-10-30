@@ -185,7 +185,7 @@ function Login() {
                 role="status"
                 className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900"
               >
-                Your session expired after 5 hours of inactivity. Please sign
+                Your session expired after 30 minutes of inactivity. Please sign
                 in again.
               </p>
             )}

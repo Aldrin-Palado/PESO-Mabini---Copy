@@ -6,11 +6,14 @@ type Employer = {
   company_name?: string;
   business_name?: string;
   full_name?: string;
+  name?: string;
+  contact_person?: string;
   email?: string;
   contact_no?: string;
   phone?: string;
   address?: string;
   is_active?: boolean;
+  is_verified?: boolean;
   status?: string;
   created_at?: string;
   [key: string]: any;
@@ -18,6 +21,7 @@ type Employer = {
 
 type Props = {
   employers: Employer[];
+  loadError?: string;
   search: string;
   setSearch: (value: string) => void;
 
@@ -52,6 +56,7 @@ type Props = {
 
 export default function EmployersModule({
   employers,
+  loadError,
   search,
   setSearch,
   loading,
@@ -71,6 +76,12 @@ export default function EmployersModule({
         description="View registered employers and their information."
         onRefresh={onRefresh}
       />
+
+      {loadError && (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          {loadError}
+        </p>
+      )}
 
       {/* SEARCH */}
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -111,6 +122,10 @@ export default function EmployersModule({
                   </TableHeader>
 
                   <TableHeader>
+                    Contact Person
+                  </TableHeader>
+
+                  <TableHeader>
                     Contact
                   </TableHeader>
 
@@ -132,6 +147,7 @@ export default function EmployersModule({
                   (employer, index) => {
 
                     const name =
+                      employer.name ||
                       employer.company_name ||
                       employer.business_name ||
                       employer.full_name ||
@@ -139,11 +155,7 @@ export default function EmployersModule({
 
                     const status =
                       employer.status ||
-                      (
-                        employer.is_active
-                          ? "Active"
-                          : "Inactive"
-                      );
+                      (employer.is_verified ? "Verified" : "Pending verification");
 
                     return (
                       <tr
@@ -161,6 +173,10 @@ export default function EmployersModule({
 
                         <TableCell>
                           {employer.email || "-"}
+                        </TableCell>
+
+                        <TableCell>
+                          {employer.contact_person || "-"}
                         </TableCell>
 
                         <TableCell>

@@ -6,18 +6,25 @@ type JobPost = {
   title?: string;
   job_title?: string;
   position?: string;
+  position_title?: string;
   company_name?: string;
   employer_name?: string;
+  employer_id?: string;
   location?: string;
   employment_type?: string;
+  salary_min?: number | string | null;
+  salary_max?: number | string | null;
+  vacancies_available?: number;
   status?: string;
   description?: string;
   created_at?: string;
+  date_posted?: string;
   [key: string]: any;
 };
 
 type Props = {
   jobs: JobPost[];
+  loadError?: string;
   search: string;
   setSearch: (value: string) => void;
 
@@ -57,6 +64,7 @@ type Props = {
 
 export default function JobPostsModule({
   jobs,
+  loadError,
   search,
   setSearch,
   statusFilter,
@@ -79,6 +87,12 @@ export default function JobPostsModule({
         description="View and monitor job vacancies posted by employers."
         onRefresh={onRefresh}
       />
+
+      {loadError && (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          {loadError}
+        </p>
+      )}
 
       {/* SEARCH AND FILTER */}
       <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
@@ -169,6 +183,14 @@ export default function JobPostsModule({
                   </TableHeader>
 
                   <TableHeader>
+                    Salary Range
+                  </TableHeader>
+
+                  <TableHeader>
+                    Openings
+                  </TableHeader>
+
+                  <TableHeader>
                     Status
                   </TableHeader>
 
@@ -185,6 +207,7 @@ export default function JobPostsModule({
                 {jobs.map((job, index) => {
 
                   const title =
+                    job.position_title ||
                     job.title ||
                     job.job_title ||
                     job.position ||
@@ -193,7 +216,17 @@ export default function JobPostsModule({
                   const employer =
                     job.company_name ||
                     job.employer_name ||
+                    job.employer_id ||
                     "-";
+                  const rawStatus = (job.status || "Unknown").toLowerCase();
+                  const displayStatus =
+                    rawStatus === "open"
+                      ? "Active"
+                      : rawStatus === "draft"
+                        ? "Inactive"
+                        : rawStatus === "closed"
+                          ? "Closed"
+                          : job.status || "Unknown";
 
                   return (
                     <tr
@@ -206,11 +239,18 @@ export default function JobPostsModule({
                     >
 
                       <TableCell bold>
-                        {title}
+                        <div>
+                          <p>{title}</p>
+                          {job.description && (
+                            <p className="mt-1 max-w-xs truncate text-xs font-normal text-slate-500">
+                              {job.description}
+                            </p>
+                          )}
+                        </div>
                       </TableCell>
 
                       <TableCell>
-                        {employer}
+                        {employer || job.employer_id || "-"}
                       </TableCell>
 
                       <TableCell>
@@ -222,17 +262,24 @@ export default function JobPostsModule({
                       </TableCell>
 
                       <TableCell>
+                        {job.salary_min != null || job.salary_max != null
+                          ? `${job.salary_min ?? "-"} – ${job.salary_max ?? "-"}`
+                          : "-"}
+                      </TableCell>
+
+                      <TableCell>
+                        {job.vacancies_available ?? "-"}
+                      </TableCell>
+
+                      <TableCell>
                         <StatusBadge
-                          status={
-                            job.status ||
-                            "Unknown"
-                          }
+                          status={displayStatus}
                         />
                       </TableCell>
 
                       <TableCell>
                         {formatDate(
-                          job.created_at
+                          job.date_posted || job.created_at
                         )}
                       </TableCell>
 

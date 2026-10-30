@@ -19,6 +19,7 @@ type JobSeeker = {
 
 type Props = {
   jobSeekers: JobSeeker[];
+  loadError?: string;
   search: string;
   setSearch: (value: string) => void;
 
@@ -53,6 +54,7 @@ type Props = {
 
 export default function JobSeekersModule({
   jobSeekers,
+  loadError,
   search,
   setSearch,
   loading,
@@ -98,6 +100,12 @@ export default function JobSeekersModule({
         description="View registered job seekers and open their uploaded resumes to assess their qualifications."
         onRefresh={onRefresh}
       />
+
+      {loadError && (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          {loadError}
+        </p>
+      )}
 
       {/* SEARCH */}
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -155,6 +163,10 @@ export default function JobSeekersModule({
                   </TableHeader>
 
                   <TableHeader>
+                    Birth Date
+                  </TableHeader>
+
+                  <TableHeader>
                     Resume
                   </TableHeader>
 
@@ -182,11 +194,11 @@ export default function JobSeekersModule({
 
                     const status =
                       jobSeeker.status ||
-                      (
-                        jobSeeker.is_active
+                      (jobSeeker.is_active === undefined
+                        ? "Registered"
+                        : jobSeeker.is_active
                           ? "Active"
-                          : "Inactive"
-                      );
+                          : "Inactive");
 
                     const rowId = String(
                       jobSeeker.id ||
@@ -216,6 +228,10 @@ export default function JobSeekersModule({
 
                         <TableCell>
                           {jobSeeker.address || "-"}
+                        </TableCell>
+
+                        <TableCell>
+                          {jobSeeker.birth_date || "-"}
                         </TableCell>
 
                         <TableCell>

@@ -59,6 +59,8 @@ type JobPost = {
   title?: string;
   job_title?: string;
   position?: string;
+  position_title?: string;
+  employer_id?: string;
   company_name?: string;
   employer_name?: string;
   location?: string;
@@ -66,6 +68,7 @@ type JobPost = {
   status?: string;
   description?: string;
   created_at?: string;
+  date_posted?: string;
   [key: string]: any;
 };
 
@@ -75,6 +78,7 @@ type Employer = {
   company_name?: string;
   business_name?: string;
   full_name?: string;
+  name?: string;
   email?: string;
   contact_no?: string;
   phone?: string;
@@ -196,6 +200,8 @@ export default function AdminDashboard() {
 
   const [moduleLoading, setModuleLoading] =
     useState(false);
+
+  const [moduleError, setModuleError] = useState("");
 
   const [applicationsError, setApplicationsError] =
     useState("");
@@ -650,25 +656,50 @@ export default function AdminDashboard() {
 
   const loadJobPosts = async () => {
     setModuleLoading(true);
+    setModuleError("");
 
     try {
-      const { data, error } = await supabase
+      const [jobsResult, employersResult] = await Promise.all([
+        supabase
         .from("job_vacancy")
         .select("*")
         .order("created_at", {
           ascending: false,
-        });
+        }),
+        supabase
+          .from("employer")
+          .select("employer_id, name"),
+      ]);
 
-      if (error) {
+      if (jobsResult.error) {
         console.error(
           "Job posts error:",
-          error
+          jobsResult.error
         );
-
+        setJobPosts([]);
+        setModuleError(`Job posts could not be loaded: ${jobsResult.error.message}`);
         return;
       }
 
-      setJobPosts(data ?? []);
+      if (employersResult.error) {
+        console.error("Job post employer names error:", employersResult.error);
+        setModuleError(
+          `Job posts loaded, but employer names could not be loaded: ${employersResult.error.message}`,
+        );
+      }
+
+      const employersById = new Map(
+        (employersResult.data ?? []).map((employer) => [
+          employer.employer_id,
+          employer.name,
+        ]),
+      );
+      setJobPosts(
+        (jobsResult.data ?? []).map((job) => ({
+          ...job,
+          company_name: employersById.get(job.employer_id) || "",
+        })),
+      );
     } finally {
       setModuleLoading(false);
     }
@@ -680,6 +711,7 @@ export default function AdminDashboard() {
 
   const loadEmployers = async () => {
     setModuleLoading(true);
+    setModuleError("");
 
     try {
       const { data, error } = await supabase
@@ -694,7 +726,8 @@ export default function AdminDashboard() {
           "Employers error:",
           error
         );
-
+        setEmployers([]);
+        setModuleError(`Employers could not be loaded: ${error.message}`);
         return;
       }
 
@@ -710,6 +743,7 @@ export default function AdminDashboard() {
 
   const loadJobSeekers = async () => {
     setModuleLoading(true);
+    setModuleError("");
 
     try {
       const { data, error } = await supabase
@@ -724,7 +758,8 @@ export default function AdminDashboard() {
           "Job seekers error:",
           error
         );
-
+        setJobSeekers([]);
+        setModuleError(`Job seekers could not be loaded: ${error.message}`);
         return;
       }
 
@@ -873,14 +908,17 @@ export default function AdminDashboard() {
   const filteredJobs = useMemo(() => {
     return jobPosts.filter((job) => {
       const title =
+        job.position_title ||
         job.title ||
         job.job_title ||
         job.position ||
         "";
 
       const employer =
+        job.name ||
         job.company_name ||
         job.employer_name ||
+        job.employer_id ||
         "";
 
       const searchMatch =
@@ -888,8 +926,13 @@ export default function AdminDashboard() {
           .toLowerCase()
           .includes(jobSearch.toLowerCase());
 
+      const rawStatus = (job.status || "Unknown").toLowerCase();
       const status =
-        job.status || "Unknown";
+        rawStatus === "open"
+          ? "active"
+          : rawStatus === "draft"
+            ? "inactive"
+            : rawStatus;
 
       const statusMatch =
         jobStatusFilter === "All" ||
@@ -911,6 +954,7 @@ export default function AdminDashboard() {
   const filteredEmployers = useMemo(() => {
     return employers.filter((employer) => {
       const name =
+        employer.name ||
         employer.company_name ||
         employer.business_name ||
         employer.full_name ||
@@ -1069,6 +1113,7 @@ export default function AdminDashboard() {
         return (
           <JobPostsModule
             jobs={filteredJobs}
+            loadError={moduleError}
             search={jobSearch}
             setSearch={setJobSearch}
             statusFilter={jobStatusFilter}
@@ -1093,6 +1138,7 @@ export default function AdminDashboard() {
         return (
           <EmployersModule
             employers={filteredEmployers}
+            loadError={moduleError}
             search={employerSearch}
             setSearch={setEmployerSearch}
             loading={moduleLoading}
@@ -1114,6 +1160,7 @@ export default function AdminDashboard() {
         return (
           <JobSeekersModule
             jobSeekers={filteredJobSeekers}
+            loadError={moduleError}
             search={jobSeekerSearch}
             setSearch={setJobSeekerSearch}
             loading={moduleLoading}
