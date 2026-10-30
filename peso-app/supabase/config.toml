@@ -7,6 +7,9 @@ project_id = "peso-app"
 [functions.peso-ai]
 verify_jwt = false
 
+[functions.audit-metadata]
+verify_jwt = true
+
 [api]
 enabled = true
 # Port to use for the API URL.

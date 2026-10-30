@@ -414,29 +414,81 @@ export default function AdminAccounts() {
 
     // Log to admin activity log
     if (adminId) {
+      let metadataErrorMessage = "";
+      let metadata: {
+        ip_address?: string | null;
+        user_agent?: string | null;
+      } | null = null;
       try {
-        await supabase
+        const result = await supabase.functions.invoke("audit-metadata", {
+          body: {},
+        });
+        if (result.error) {
+          console.error("Audit metadata collection error:", result.error);
+          metadataErrorMessage = result.error.message;
+        } else {
+          metadata = result.data;
+        }
+      } catch (error) {
+        console.error("Audit metadata collection error:", error);
+        metadataErrorMessage =
+          error instanceof Error ? error.message : "Unexpected metadata error.";
+      }
+
+      const details = {
+        area: "Admin Accounts",
+        staff: {
+          full_name: selectedStaff.full_name,
+          email: selectedStaff.email,
+        },
+        permissions,
+        ip_address: metadata?.ip_address ?? null,
+        user_agent:
+          metadata?.user_agent ??
+          (typeof navigator !== "undefined" ? navigator.userAgent : null),
+        device:
+          typeof navigator !== "undefined"
+            ? navigator.platform
+            : null,
+      };
+
+      try {
+        const { error: logError } = await supabase
           .from("admin_activity_log")
           .insert({
             admin_id: adminId,
             peso_staff_id: selectedStaff.peso_staff_id,
             action: "Updated staff permissions",
-            details: {
-              staff: {
-                full_name: selectedStaff.full_name,
-                email: selectedStaff.email,
-              },
-              permissions,
-            },
+            details,
           });
+        if (logError) throw logError;
       } catch (logError) {
         console.error("Audit log error:", logError);
+        alert(
+          `Permissions were saved, but the audit log could not be recorded: ${
+            logError instanceof Error ? logError.message : "Unexpected error."
+          }`,
+        );
+        setSaving(false);
+        setSelectedStaff(null);
+        setPermissions(null);
+        return;
       }
-    }
 
-    alert(
-      "Permissions saved successfully."
-    );
+      if (!metadata?.ip_address && !metadataErrorMessage) {
+        metadataErrorMessage = "The server did not provide an IP address.";
+      }
+
+      alert(
+        metadataErrorMessage
+          ? `Permissions saved and logged. Device information was recorded, but the IP address could not be collected: ${metadataErrorMessage}`
+          : "Permissions saved and audit log recorded.",
+      );
+    } else {
+      alert(
+        "Permissions were saved, but the audit log could not be recorded because the admin account could not be identified.",
+      );
+    }
 
     setSaving(false);
 

@@ -194,9 +194,9 @@ function Home() {
           EMPLOYMENT FEED + ANNOUNCEMENTS
       ===================================================== */}
 
-      <main className="mx-auto max-w-7xl px-4 py-12 sm:px-5 sm:py-14 lg:px-8 lg:py-16">
+      <main className="mx-auto w-full max-w-screen-2xl px-4 py-12 sm:px-5 sm:py-14 lg:px-10 lg:py-16">
 
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(300px,0.9fr)] xl:gap-10">
 
 
           {/* =================================================
@@ -306,20 +306,20 @@ function Home() {
                   {jobPreviews.map((job) => (
                     <article
                       key={job.job_vacancy_id}
-                      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md sm:p-7"
+                      className="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md sm:p-8 lg:p-9"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-sky-100 font-bold text-sky-700">
-                          <AppIcon name="briefcase" className="h-6 w-6" />
+                      <div className="flex items-start gap-4 sm:gap-5">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-sky-100 font-bold text-sky-700 sm:h-14 sm:w-14">
+                          <AppIcon name="briefcase" className="h-6 w-6 sm:h-7 sm:w-7" />
                         </div>
                         <div className="min-w-0">
-                          <h3 className="text-lg font-bold text-slate-900 sm:text-xl">
+                          <h3 className="break-words text-lg font-bold text-slate-900 sm:text-xl lg:text-2xl">
                             {job.position_title}
                           </h3>
-                          <p className="mt-1 truncate text-base text-slate-500">
+                          <p className="mt-1 break-words text-sm text-slate-500 sm:text-base">
                             {job.employer_name || "Employer"}
                           </p>
-                          <span className="mt-3 inline-flex rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold capitalize text-sky-700">
+                          <span className="mt-3 inline-flex rounded-full bg-sky-50 px-3 py-1.5 text-xs font-semibold capitalize text-sky-700">
                             {job.job_classification}
                           </span>
                         </div>

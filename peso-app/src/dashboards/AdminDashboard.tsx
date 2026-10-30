@@ -1697,12 +1697,21 @@ function AuditLogs({
     const ip =
       details.ip_address || details.ip || details.ipAddress;
     const device =
-      details.device || details.user_agent || details.userAgent;
+      typeof details.device === "string" ? details.device : "";
+    const userAgent =
+      typeof details.user_agent === "string"
+        ? details.user_agent
+        : typeof details.userAgent === "string"
+          ? details.userAgent
+          : "";
+    const deviceDetails = [device, userAgent]
+      .filter(Boolean)
+      .join(" · ");
     const values = [
       typeof ip === "string" ? `IP: ${ip}` : "",
-      typeof device === "string" ? `Device: ${device}` : "",
+      deviceDetails ? `Device: ${deviceDetails}` : "",
     ].filter(Boolean);
-    return values.join(" · ") || "-";
+    return values.join(" · ") || "Not recorded";
   };
 
   const areas = [...new Set(logs.map(getArea))].sort();
