@@ -1,24 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Footer from "../components/Footer";
 import HeroBackground from "../components/HeroBackground";
 import Navbar from "../components/Navbar";
 import AppIcon from "../components/AppIcon";
 import AIChatbotModule from "../jobseekersmodules/AIChatbotModule";
+import type { PublicJobVacancyPreviewRow } from "../types/JobVacancy";
+import { supabase } from "../services/supabase";
 
 const backgroundImage = new URL(
   "../assets/images/bg-image.png",
   import.meta.url,
 ).href;
-
-type EmploymentPost = {
-  id: number;
-  content: string;
-  image?: string;
-  date: string;
-  likes: number;
-  comments: number;
-};
 
 type Announcement = {
   id: number;
@@ -28,13 +21,6 @@ type Announcement = {
 };
 
 // =====================================================
-// EMPLOYMENT POSTS
-// Keep empty until posts are retrieved from the database.
-// =====================================================
-
-const employmentPosts: EmploymentPost[] = [];
-
-// =====================================================
 // ANNOUNCEMENTS
 // Keep empty until announcements are retrieved.
 // =====================================================
@@ -42,15 +28,38 @@ const employmentPosts: EmploymentPost[] = [];
 const announcements: Announcement[] = [];
 
 function Home() {
-  const [likedPosts, setLikedPosts] = useState<number[]>([]);
+  const [jobPreviews, setJobPreviews] = useState<
+    PublicJobVacancyPreviewRow[]
+  >([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
+  const [jobsError, setJobsError] = useState("");
 
-  const handleLike = (postId: number) => {
-    setLikedPosts((current) =>
-      current.includes(postId)
-        ? current.filter((id) => id !== postId)
-        : [...current, postId]
-    );
-  };
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadJobPreviews = async () => {
+      const { data, error } = await supabase
+        .rpc("get_public_job_vacancy_previews")
+        .order("position_title", { ascending: true });
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error("Could not load public job previews:", error);
+        setJobsError("Job posts are temporarily unavailable. Please try again later.");
+      } else {
+        setJobPreviews((data ?? []) as PublicJobVacancyPreviewRow[]);
+      }
+
+      setJobsLoading(false);
+    };
+
+    void loadJobPreviews();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="whirl-page-background flex min-h-screen flex-col text-slate-800">
@@ -201,16 +210,15 @@ function Home() {
             <div className="mb-7">
 
               <p className="text-sm font-bold uppercase tracking-widest text-sky-600">
-                Employment Updates
+                Job Opportunities
               </p>
 
               <h2 className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">
-                Employment Postings
+                Available Job Posts
               </h2>
 
               <p className="mt-2 text-slate-500">
-                Latest employment opportunities and job-related
-                postings from PESO.
+                Browse current openings. Sign in to view full job details.
               </p>
 
             </div>
@@ -220,7 +228,16 @@ function Home() {
                 NO POSTS
             ================================================= */}
 
-            {employmentPosts.length === 0 ? (
+            {jobsLoading ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-sky-100 border-t-sky-600" />
+                <p className="mt-4 text-sm text-slate-500">Loading job posts...</p>
+              </div>
+            ) : jobsError ? (
+              <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
+                {jobsError}
+              </div>
+            ) : jobPreviews.length === 0 ? (
 
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
@@ -261,13 +278,12 @@ function Home() {
 
 
                   <h3 className="mt-6 text-2xl font-bold text-slate-800">
-                    No employment postings yet
+                    No job posts yet
                   </h3>
 
                   <p className="mx-auto mt-3 max-w-md leading-7 text-slate-500">
-                    There are currently no employment postings
-                    available. Please check back later for new
-                    job opportunities.
+                    There are currently no open job posts available. Please
+                    check back later for new opportunities.
                   </p>
 
                   <div className="mx-auto mt-6 flex w-fit gap-1.5">
@@ -285,137 +301,43 @@ function Home() {
               </div>
 
             ) : (
-
-              /* =================================================
-                 FACEBOOK-STYLE FEED
-              ================================================== */
-
-              <div className="space-y-6">
-
-                {employmentPosts.map((post) => {
-
-                  const isLiked = likedPosts.includes(post.id);
-
-                  return (
-
+              <>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {jobPreviews.map((job) => (
                     <article
-                      key={post.id}
-                      className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
+                      key={job.job_vacancy_id}
+                      className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
                     >
-
-                      {/* Post header */}
-
-                      <div className="flex items-center justify-between p-5">
-
-                        <div className="flex items-center gap-3">
-
-                          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-sky-600 font-bold text-white">
-                            P
-                          </div>
-
-                          <div>
-
-                            <h3 className="font-bold text-slate-900">
-                              PESO MABINI
-                            </h3>
-
-                            <p className="text-sm text-slate-500">
-                              Public Employment Service Office ·{" "}
-                              {post.date}
-                            </p>
-
-                          </div>
-
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-100 font-bold text-sky-700">
+                          <AppIcon name="briefcase" className="h-5 w-5" />
                         </div>
-
-                        <button className="rounded-full px-3 py-2 text-xl text-slate-500 hover:bg-slate-100">
-                          ⋮
-                        </button>
-
-                      </div>
-
-
-                      {/* Post content */}
-
-                      <div className="px-5 pb-5">
-
-                        <p className="whitespace-pre-line leading-7 text-slate-700">
-                          {post.content}
-                        </p>
-
-                      </div>
-
-
-                      {/* Post image */}
-
-                      {post.image && (
-
-                        <div className="max-h-[500px] overflow-hidden bg-slate-100">
-
-                          <img
-                            src={post.image}
-                            alt="Employment posting"
-                            loading="lazy"
-                            decoding="async"
-                            className="h-full max-h-[500px] w-full object-cover"
-                          />
-
+                        <div className="min-w-0">
+                          <h3 className="font-bold text-slate-900">
+                            {job.position_title}
+                          </h3>
+                          <p className="mt-1 truncate text-sm text-slate-500">
+                            {job.employer_name || "Employer"}
+                          </p>
+                          <span className="mt-3 inline-flex rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold capitalize text-sky-700">
+                            {job.job_classification}
+                          </span>
                         </div>
-
-                      )}
-
-
-                      {/* Counts */}
-
-                      <div className="flex justify-between px-5 py-3 text-sm text-slate-500">
-
-                        <span>
-                          <AppIcon name="thumbsUp" className="mr-1 inline h-4 w-4" /> {post.likes + (isLiked ? 1 : 0)} Likes
-                        </span>
-
-                        <span>
-                          {post.comments} Comments
-                        </span>
-
                       </div>
-
-
-                      {/* Actions */}
-
-                      <div className="mx-5 border-t border-slate-100">
-
-                        <div className="grid grid-cols-3">
-
-                          <button
-                            onClick={() => handleLike(post.id)}
-                            className={`py-3 font-semibold transition hover:bg-sky-50 ${
-                              isLiked
-                                ? "text-sky-600"
-                                : "text-slate-600"
-                            }`}
-                          >
-                            <AppIcon name="thumbsUp" className="mx-auto mb-1 h-4 w-4" /> Like
-                          </button>
-
-                          <button className="py-3 font-semibold text-slate-600 transition hover:bg-sky-50 hover:text-sky-600">
-                            <AppIcon name="message" className="mx-auto mb-1 h-4 w-4" /> Comment
-                          </button>
-
-                          <button className="py-3 font-semibold text-slate-600 transition hover:bg-sky-50 hover:text-sky-600">
-                            <AppIcon name="share" className="mx-auto mb-1 h-4 w-4" /> Share
-                          </button>
-
-                        </div>
-
-                      </div>
-
                     </article>
+                  ))}
+                </div>
 
-                  );
-
-                })}
-
-              </div>
+                <div className="mt-6 text-center">
+                  <Link
+                    to="/jobs"
+                    className="inline-flex items-center rounded-xl bg-sky-600 px-6 py-3 font-bold text-white transition hover:bg-sky-700"
+                  >
+                    Browse all job posts
+                    <AppIcon name="arrowRight" className="ml-2 h-4 w-4" />
+                  </Link>
+                </div>
+              </>
 
             )}
 
