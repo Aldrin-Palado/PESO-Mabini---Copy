@@ -302,21 +302,21 @@ function Home() {
 
             ) : (
               <>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-5">
                   {jobPreviews.map((job) => (
                     <article
                       key={job.job_vacancy_id}
-                      className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md sm:p-7"
                     >
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-100 font-bold text-sky-700">
-                          <AppIcon name="briefcase" className="h-5 w-5" />
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-sky-100 font-bold text-sky-700">
+                          <AppIcon name="briefcase" className="h-6 w-6" />
                         </div>
                         <div className="min-w-0">
-                          <h3 className="font-bold text-slate-900">
+                          <h3 className="text-lg font-bold text-slate-900 sm:text-xl">
                             {job.position_title}
                           </h3>
-                          <p className="mt-1 truncate text-sm text-slate-500">
+                          <p className="mt-1 truncate text-base text-slate-500">
                             {job.employer_name || "Employer"}
                           </p>
                           <span className="mt-3 inline-flex rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold capitalize text-sky-700">
