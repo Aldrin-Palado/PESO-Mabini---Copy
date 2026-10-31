@@ -17,6 +17,7 @@ import JobSeekerSidebar, {
 
 import HomeModule from "../jobseekersmodules/HomeModule";
 import JobsModule from "../jobseekersmodules/JobsModule";
+import SavedJobsModule from "../jobseekersmodules/SavedJobsModule";
 import ApplicationsModule from "../jobseekersmodules/ApplicationsModule";
 import MessagesModule from "../jobseekersmodules/MessagesModule";
 import AIChatbotModule from "../jobseekersmodules/AIChatbotModule";
@@ -1119,6 +1120,18 @@ export default function JobSeekerDashboard() {
                   : page
               )
             }
+          />
+        );
+
+      // -------------------------------------------------
+      // SAVED JOBS
+      // -------------------------------------------------
+
+      case "Saved Jobs":
+        return (
+          <SavedJobsModule
+            seeker={seeker}
+            onNavigateToJobs={() => handlePageChange("Jobs")}
           />
         );
 

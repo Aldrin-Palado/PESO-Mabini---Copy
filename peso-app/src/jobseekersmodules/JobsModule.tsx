@@ -138,6 +138,36 @@ export default function JobsModule({
     };
   }, []);
 
+  // Load saved jobs from Supabase
+  useEffect(() => {
+    let active = true;
+
+    const loadSavedJobs = async () => {
+      const { data, error } = await supabase
+        .from("saved_job")
+        .select("job_vacancy_id")
+        .eq("job_seeker_id", seeker.job_seeker_id);
+
+      if (error) {
+        console.error("Error loading saved jobs:", error);
+        return;
+      }
+
+      if (active) {
+        setSavedJobs(
+          (data ?? []).map((row) => row.job_vacancy_id)
+        );
+      }
+    };
+
+    void loadSavedJobs();
+
+    return () => {
+      active = false;
+    };
+  }, [seeker.job_seeker_id]);
+
+  // Handle Escape key when job details are open
   useEffect(() => {
     if (!selectedJob) return;
 
@@ -169,11 +199,44 @@ export default function JobsModule({
     });
   }, [jobs, search, location, type]);
 
-  const toggleSave = (jobId: string) => {
+  const toggleSave = async (jobId: string) => {
+    const isSaved = savedJobs.includes(jobId);
+
+    if (isSaved) {
+      const { error } = await supabase
+        .from("saved_job")
+        .delete()
+        .eq("job_seeker_id", seeker.job_seeker_id)
+        .eq("job_vacancy_id", jobId);
+
+      if (error) {
+        console.error("Error removing saved job:", error);
+        alert(`Unable to remove saved job: ${error.message}`);
+        return;
+      }
+
+      setSavedJobs((current) =>
+        current.filter((id) => id !== jobId)
+      );
+
+      return;
+    }
+
+    const { error } = await supabase
+      .from("saved_job")
+      .insert({
+        job_seeker_id: seeker.job_seeker_id,
+        job_vacancy_id: jobId,
+      });
+
+    if (error) {
+      console.error("Error saving job:", error);
+      alert(`Unable to save job: ${error.message}`);
+      return;
+    }
+
     setSavedJobs((current) =>
-      current.includes(jobId)
-        ? current.filter((id) => id !== jobId)
-        : [...current, jobId]
+      current.includes(jobId) ? current : [...current, jobId]
     );
   };
 
@@ -383,7 +446,7 @@ export default function JobsModule({
                     </button>
                     <button
                       type="button"
-                      onClick={() => toggleSave(job.id)}
+                      onClick={() => void toggleSave(job.id)}
                       aria-pressed={isSaved}
                       className={`inline-flex items-center justify-center gap-1 rounded-full border px-4 py-2.5 text-sm font-semibold transition ${
                         isSaved
