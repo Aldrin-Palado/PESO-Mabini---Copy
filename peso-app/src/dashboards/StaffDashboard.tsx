@@ -4,7 +4,7 @@ import AppIcon, { type AppIconName } from "../components/AppIcon";
 import ProfileAvatar from "../components/ProfileAvatar";
 import { supabase } from "../services/supabase";
 import { openStoredResume } from "../services/resumes";
-import DirectMessages from "../components/DirectMessages";
+import MessagesModule from "../adminmodules/MessagesModule";
 import PESOPosts from "../adminmodules/PESOPosts";
 
 type StaffPermission = {
@@ -517,7 +517,7 @@ export default function StaffDashboard() {
         );
 
       case "Messages":
-        return <DirectMessages mode="staff" />;
+        return <MessagesModule mode="staff" />;
 
       case "PESO Posts":
         return <PESOPosts />;

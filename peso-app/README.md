@@ -45,28 +45,62 @@ consent. AI recommendations may be incomplete or inaccurate. Homepage chat is av
 visitors without signing in; do not include passwords or sensitive personal information in
 chat messages.
 
-## Gmail OAuth functions
+## Incoming Gmail inbox
 
-The Gmail OAuth Edge Functions and migrations are under `peso-app/supabase`. The repository
-root also has a separately linked Supabase project; root-level function entrypoints are
-provided for deployments run from the repository root. Set
-`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GMAIL_REDIRECT_URI`,
-`GMAIL_ACCOUNT`, and a base64-encoded 32-byte `TOKEN_ENCRYPTION_KEY` as Supabase function
-secrets. Set `GMAIL_REDIRECT_URI` to the deployed
-`/functions/v1/gmail-oauth-callback` URL and register that URL in the Google OAuth client.
+The admin and staff **Messages → Gmail Inbox** view stores the latest 20 inbox messages
+from the last 30 days on first connection. New mail is delivered by Gmail push notifications
+through Google Cloud Pub/Sub and appears in the app on its next 30-second refresh. Stored
+message bodies are accessible only through a staff/admin-protected Edge Function.
 
-Apply the storage migration before deploying. Deploy `gmail-oauth-start` and
-`gmail-oauth-callback`; the start function requires a signed-in staff/admin user, while
-Google returns to the callback without a Supabase JWT. Run these commands from the
-repository root:
+### Configure Google Cloud
+
+1. Enable the Gmail API and Pub/Sub API in the same Google Cloud project used by the Google
+   OAuth client.
+2. Create a Pub/Sub topic. Grant `gmail-api-push@system.gserviceaccount.com` the
+   **Pub/Sub Publisher** role on that topic.
+3. Create a push subscription for that topic with endpoint
+   `https://jvuyguamtvqtzddaauqq.supabase.co/functions/v1/gmail-pubsub-webhook`.
+   Enable OIDC authentication on the push subscription, select a service account, grant the
+   Pub/Sub service agent permission to mint tokens for it, and set the OIDC audience to the
+   exact same endpoint URL.
+4. Create a Cloud Scheduler job that sends an authenticated `POST` to
+   `https://jvuyguamtvqtzddaauqq.supabase.co/functions/v1/gmail-watch-renewal` every six
+   days, with the `x-gmail-renewal-secret` header described below. Gmail watches expire
+   after at most seven days.
+
+### Configure Supabase
+
+Set these Edge Function secrets in the Supabase dashboard. The Pub/Sub topic and
+subscription are fully qualified names, such as `projects/PROJECT_ID/topics/TOPIC_NAME`
+and `projects/PROJECT_ID/subscriptions/SUBSCRIPTION_NAME`.
+
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+- `GMAIL_ACCOUNT` (the mailbox address)
+- `GMAIL_REDIRECT_URI` set to
+  `https://jvuyguamtvqtzddaauqq.supabase.co/functions/v1/gmail-oauth-callback`
+- `TOKEN_ENCRYPTION_KEY` (base64-encoded 32 random bytes; generate with
+  `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`)
+- `GMAIL_PUBSUB_TOPIC`, `GMAIL_PUBSUB_SUBSCRIPTION`
+- `PUBSUB_OIDC_AUDIENCE` set to the exact push endpoint URL
+- `PUBSUB_PUSH_SERVICE_ACCOUNT` set to the selected push-subscription service account email
+- `GMAIL_RENEWAL_SECRET` set to a long, random secret; use the same value in Cloud Scheduler
+
+Register the redirect URL in the Google OAuth client. The callback requests Gmail read-only
+access. Existing Gmail connections must be re-authorized from **Messages → Gmail Inbox →
+Connect / Reconnect** to grant this new permission and register the push watch.
+
+### Apply and deploy
+
+Run these commands from the repository root. The database migration is in `peso-app`; the
+function entrypoints are also mirrored at the repository root because that is the linked
+Supabase project path. `--use-api` avoids needing Docker.
 
 ```sh
-npm --prefix ./peso-app install --save-dev supabase
 npm exec --prefix ./peso-app -- supabase --workdir ./peso-app login
 npm exec --prefix ./peso-app -- supabase --workdir ./peso-app db push
 npm exec --prefix ./peso-app -- supabase --workdir . functions deploy gmail-oauth-start --use-api
 npm exec --prefix ./peso-app -- supabase --workdir . functions deploy gmail-oauth-callback --use-api
+npm exec --prefix ./peso-app -- supabase --workdir . functions deploy gmail-pubsub-webhook --use-api
+npm exec --prefix ./peso-app -- supabase --workdir . functions deploy gmail-inbox --use-api
+npm exec --prefix ./peso-app -- supabase --workdir . functions deploy gmail-watch-renewal --use-api
 ```
-
-These commands deploy to the linked remote project and do not require Docker. Docker is needed
-for local Supabase services such as `supabase start`.

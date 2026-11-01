@@ -3,6 +3,7 @@ import {
   CLIENT_ID,
   CLIENT_SECRET,
   encryptToken,
+  startGmailWatch,
   GMAIL,
   REDIRECT,
   requireConfig,
@@ -81,6 +82,12 @@ Deno.serve(async (request: Request) => {
         502,
       );
     }
+    if (!tokens.scope?.includes("https://www.googleapis.com/auth/gmail.readonly")) {
+      return responseJson(
+        { error: "Google did not grant Gmail read access. Please authorize again." },
+        403,
+      );
+    }
 
     const profileResponse = await fetch(
       "https://openidconnect.googleapis.com/v1/userinfo",
@@ -103,6 +110,7 @@ Deno.serve(async (request: Request) => {
       );
     }
 
+    const watch = await startGmailWatch(tokens.access_token);
     const refreshTokenEncrypted = await encryptToken(tokens.refresh_token);
     const { error: saveError } = await adminDb()
       .from("gmail_oauth_tokens")
@@ -112,6 +120,9 @@ Deno.serve(async (request: Request) => {
           refresh_token_encrypted: refreshTokenEncrypted,
           scope: tokens.scope ?? null,
           connected_by: stateRecord.created_by,
+          history_id: watch.historyId,
+          watch_expiration: new Date(Number(watch.expiration)).toISOString(),
+          initial_sync_complete: false,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "account_email" },

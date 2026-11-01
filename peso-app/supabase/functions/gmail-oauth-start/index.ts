@@ -87,7 +87,7 @@ Deno.serve(async (request: Request) => {
       client_id: CLIENT_ID,
       redirect_uri: REDIRECT,
       response_type: "code",
-      scope: "openid email https://www.googleapis.com/auth/gmail.send",
+      scope: "openid email https://www.googleapis.com/auth/gmail.readonly",
       access_type: "offline",
       prompt: "consent",
       state,

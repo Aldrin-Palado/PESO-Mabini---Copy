@@ -443,3 +443,18 @@ entrypoint = "./functions/gmail-oauth-start/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/gmail-oauth-callback/index.ts"
+
+[functions.gmail-pubsub-webhook]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/gmail-pubsub-webhook/index.ts"
+
+[functions.gmail-inbox]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/gmail-inbox/index.ts"
+
+[functions.gmail-watch-renewal]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/gmail-watch-renewal/index.ts"

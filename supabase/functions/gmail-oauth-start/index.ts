@@ -2,10 +2,11 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   adminDb,
   CLIENT_ID,
-  randomState,
+  REDIRECT,
   requireConfig,
   responseJson,
   sha256,
+  randomState,
 } from "../_shared/gmail.ts";
 
 const corsHeaders = (origin: string | null) => ({
@@ -64,10 +65,7 @@ Deno.serve(async (request: Request) => {
       .delete()
       .lt("expires_at", new Date().toISOString());
     if (expiredStateError) {
-      console.error(
-        "Expired Gmail OAuth state cleanup failed:",
-        expiredStateError,
-      );
+      console.error("Expired Gmail OAuth state cleanup failed:", expiredStateError);
       return respond({ error: "Unable to start Gmail authorization." }, 500);
     }
 
@@ -84,14 +82,12 @@ Deno.serve(async (request: Request) => {
       return respond({ error: "Unable to start Gmail authorization." }, 500);
     }
 
-    const authorizationUrl = new URL(
-      "https://accounts.google.com/o/oauth2/v2/auth",
-    );
+    const authorizationUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
     authorizationUrl.search = new URLSearchParams({
       client_id: CLIENT_ID,
-      redirect_uri: Deno.env.get("GMAIL_REDIRECT_URI")!,
+      redirect_uri: REDIRECT,
       response_type: "code",
-      scope: "openid email https://www.googleapis.com/auth/gmail.send",
+      scope: "openid email https://www.googleapis.com/auth/gmail.readonly",
       access_type: "offline",
       prompt: "consent",
       state,
