@@ -83,13 +83,17 @@ function Login() {
         return;
       }
       const state = location.state;
-      const returnTo =
+      const returnToPath =
         state &&
         typeof state === "object" &&
         "returnTo" in state &&
-        typeof state.returnTo === "string" &&
-        state.returnTo.startsWith("/jobs")
+        typeof state.returnTo === "string"
           ? state.returnTo
+          : "";
+      const returnTo =
+        returnToPath.startsWith("/jobs") ||
+        /^\/jobseeker\?job=[0-9a-f-]{36}$/i.test(returnToPath)
+          ? returnToPath
           : "/jobseeker";
       navigate(returnTo, { replace: true });
       return;
