@@ -34,6 +34,7 @@ interface EmployerProfile {
   contact_no: string | null;
   email: string | null;
   is_verified: boolean;
+  logo_url: string | null;
 }
 
 interface JobPost {
@@ -73,6 +74,7 @@ interface CompanyProfileForm {
   industry?: string | null;
   website?: string | null;
   contact_person?: string | null;
+  company_logo_url?: string | null;
 }
 
 /* =========================
@@ -83,6 +85,7 @@ const menuItems: { name: MenuName; icon: string }[] = [
   { name: "Dashboard", icon: "▦" },
   { name: "My Job Posts", icon: "▤" },
   { name: "Applications", icon: "✓" },
+  { name: "Messages", icon: "✉" },
   { name: "Company Profile", icon: "▣" },
 ];
 
@@ -163,7 +166,7 @@ export default function EmployerDashboard() {
       await supabase
         .from("employer")
         .select(
-          "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified"
+          "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified, logo_url"
         )
         .eq("user_id", user.id)
         .maybeSingle();
@@ -382,7 +385,8 @@ export default function EmployerDashboard() {
   ========================= */
 
   const handleSaveCompanyProfile = async (
-    updatedProfile: CompanyProfileForm
+    updatedProfile: CompanyProfileForm,
+    logoFile: File | null,
   ) => {
     if (!profile) {
       throw new Error("Employer profile is not available.");
@@ -399,12 +403,44 @@ export default function EmployerDashboard() {
       );
     }
 
+    let logoUrl = profile.logo_url;
+    let uploadedLogoPath: string | null = null;
+
+    if (logoFile) {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(logoFile.type)) {
+        throw new Error("Choose a JPG, PNG, or WebP company image.");
+      }
+      if (logoFile.size > 5 * 1024 * 1024) {
+        throw new Error("Company image must be 5 MB or smaller.");
+      }
+
+      const safeFileName = logoFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      uploadedLogoPath = `${user.id}/${crypto.randomUUID()}-${safeFileName}`;
+      const { error: uploadError } = await supabase.storage
+        .from("employer-logos")
+        .upload(uploadedLogoPath, logoFile, {
+          cacheControl: "3600",
+          contentType: logoFile.type,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        throw new Error(`Company image upload failed: ${uploadError.message}`);
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("employer-logos")
+        .getPublicUrl(uploadedLogoPath);
+      logoUrl = publicUrlData.publicUrl;
+    }
+
     const changes = {
       name: updatedProfile.company_name.trim(),
       address: updatedProfile.company_address.trim() || null,
       contact_person:
         updatedProfile.contact_person?.trim() || null,
       contact_no: updatedProfile.company_phone.trim() || null,
+      logo_url: logoUrl,
     };
 
     const { data, error: updateError } = await supabase
@@ -412,23 +448,51 @@ export default function EmployerDashboard() {
       .update(changes)
       .eq("user_id", user.id)
       .select(
-        "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified"
+        "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified, logo_url"
       )
       .maybeSingle();
 
     if (updateError) {
+      if (uploadedLogoPath) {
+        const { error: cleanupError } = await supabase.storage
+          .from("employer-logos")
+          .remove([uploadedLogoPath]);
+        if (cleanupError) {
+          console.error("Could not remove unreferenced company image:", cleanupError);
+        }
+      }
       throw new Error(
         `Company profile update failed: ${updateError.message}`
       );
     }
 
     if (!data) {
+      if (uploadedLogoPath) {
+        const { error: cleanupError } = await supabase.storage
+          .from("employer-logos")
+          .remove([uploadedLogoPath]);
+        if (cleanupError) {
+          console.error("Could not remove unreferenced company image:", cleanupError);
+        }
+      }
       throw new Error(
         "Profile was not updated. Check your employer permissions."
       );
     }
 
     setProfile(data as EmployerProfile);
+    if (uploadedLogoPath && profile.logo_url) {
+      const oldLogoPath = profile.logo_url.split("/employer-logos/")[1]?.split("?")[0];
+      if (oldLogoPath) {
+        const { error: removeError } = await supabase.storage
+          .from("employer-logos")
+          .remove([decodeURIComponent(oldLogoPath)]);
+        if (removeError) {
+          console.error("Could not remove previous company image:", removeError);
+        }
+      }
+    }
+    return logoUrl;
   };
 
   /* =========================
@@ -552,6 +616,7 @@ export default function EmployerDashboard() {
     industry: null,
     website: null,
     contact_person: profile.contact_person || "",
+    company_logo_url: profile.logo_url,
   };
 
   /* =========================
@@ -640,8 +705,16 @@ export default function EmployerDashboard() {
             </div>
 
             <div className="hidden items-center gap-3 border-l border-slate-200 pl-4 sm:flex">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0446A7] text-sm font-bold text-white">
-                {initial}
+              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[#0446A7] text-sm font-bold text-white">
+                {profile.logo_url ? (
+                  <img
+                    src={profile.logo_url}
+                    alt={`${displayName} logo`}
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  initial
+                )}
               </div>
 
               <div>

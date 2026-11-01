@@ -1,5 +1,6 @@
 
 import type { Dispatch, SetStateAction } from "react";
+import PesoLogo from "./PesoLogo";
 
 export type EmployerMenuName =
   | "Dashboard"
@@ -59,20 +60,15 @@ function EmployersSidebar({
         }`}
       >
         {/* Branding */}
-        <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-lg font-black text-[#0446A7]">
-            P
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-lg font-black">
-              <span className="text-white">PESO </span>
-              <span className="text-red-400">MABINI</span>
-            </h1>
-            <p className="text-xs text-blue-100">
-              Employer Portal
-            </p>
-          </div>
+        <div className="flex items-center justify-between gap-2 border-b border-white/10 px-5 py-5">
+          <PesoLogo
+            size="sm"
+            showName
+            subtitle="Employer Portal"
+            tone="light"
+            linkTo={null}
+            className="min-w-0"
+          />
 
           <button
             type="button"

@@ -1,5 +1,5 @@
 
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 interface CompanyProfile {
   employer_id?: number | string;
@@ -11,11 +11,15 @@ interface CompanyProfile {
   industry?: string | null;
   website?: string | null;
   contact_person?: string | null;
+  company_logo_url?: string | null;
 }
 
 interface CompanyProfileModuleProps {
   profile: CompanyProfile;
-  onSave: (updatedProfile: CompanyProfile) => Promise<void>;
+  onSave: (
+    updatedProfile: CompanyProfile,
+    logoFile: File | null,
+  ) => Promise<string | null>;
 }
 
 export default function CompanyProfileModule({
@@ -27,11 +31,23 @@ export default function CompanyProfileModule({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
 
-  // Update form when the profile changes
   useEffect(() => {
     setFormData(profile);
   }, [profile]);
+
+  useEffect(() => {
+    if (!logoFile) {
+      setLogoPreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(logoFile);
+    setLogoPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [logoFile]);
 
   const handleChange = (
     event: React.ChangeEvent<
@@ -51,9 +67,29 @@ export default function CompanyProfileModule({
 
   const handleCancel = () => {
     setFormData(profile);
+    setLogoFile(null);
     setIsEditing(false);
     setError("");
     setSuccess("");
+  };
+
+  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = "";
+    setError("");
+    setSuccess("");
+
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Choose a JPG, PNG, or WebP image.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Company image must be 5 MB or smaller.");
+      return;
+    }
+
+    setLogoFile(file);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -107,9 +143,13 @@ export default function CompanyProfileModule({
     try {
       setIsSaving(true);
 
-      await onSave(updatedProfile);
+      const savedLogoUrl = await onSave(updatedProfile, logoFile);
 
-      setFormData(updatedProfile);
+      setFormData({
+        ...updatedProfile,
+        company_logo_url: savedLogoUrl,
+      });
+      setLogoFile(null);
       setIsEditing(false);
       setSuccess("Company profile updated successfully.");
     } catch (err) {
@@ -188,11 +228,19 @@ export default function CompanyProfileModule({
         {/* Company Header */}
         <div className="border-b border-slate-100 bg-slate-50 px-6 py-6">
           <div className="flex flex-wrap items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0446A7] text-2xl font-black text-white">
-              {formData.company_name?.trim().charAt(0).toUpperCase() || "C"}
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white text-2xl font-black text-[#0446A7]">
+              {logoPreviewUrl || formData.company_logo_url ? (
+                <img
+                  src={logoPreviewUrl || formData.company_logo_url || ""}
+                  alt={`${formData.company_name || "Company"} logo`}
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                formData.company_name?.trim().charAt(0).toUpperCase() || "C"
+              )}
             </div>
 
-            <div>
+            <div className="min-w-0 flex-1">
               <h2 className="text-lg font-black text-[#123B70]">
                 {formData.company_name || "Company Information"}
               </h2>
@@ -200,6 +248,27 @@ export default function CompanyProfileModule({
               <p className="mt-1 text-sm text-slate-500">
                 {formData.industry || "Company profile"}
               </p>
+              {isEditing && (
+                <div className="mt-3">
+                  <label
+                    htmlFor="company-logo"
+                    className="inline-flex cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  >
+                    {logoFile ? "Change image" : "Upload company image"}
+                  </label>
+                  <input
+                    id="company-logo"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleLogoChange}
+                    disabled={isSaving}
+                    className="sr-only"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                    JPG, PNG, or WebP; maximum 5 MB.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
