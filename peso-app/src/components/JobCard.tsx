@@ -400,13 +400,29 @@ function JobCard({ job, index, isAuthenticated }: JobCardProps) {
                   <p className="text-xs text-slate-500">
                     Online application via portal.
                   </p>
-                  <button
-                    type="button"
-                    onClick={closeDetails}
-                    className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  >
-                    Close details
-                  </button>
+                  <div className="flex flex-wrap gap-2 sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate("/jobseeker", {
+                          state: {
+                            page: "Jobs",
+                            jobId: job.job_vacancy_id,
+                          },
+                        })
+                      }
+                      className="rounded-xl bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#064A91]"
+                    >
+                      Continue in Job Seeker Portal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={closeDetails}
+                      className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    >
+                      Close details
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

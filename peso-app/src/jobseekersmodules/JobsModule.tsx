@@ -35,12 +35,14 @@ type Job = {
 type Props = {
   seeker: Seeker;
   profileComplete: boolean;
+  initialJobId?: string;
   onNavigate: (page: JobSeekerPage) => void;
 };
 
 export default function JobsModule({
   seeker,
   profileComplete,
+  initialJobId,
   onNavigate,
 }: Props) {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -116,6 +118,11 @@ export default function JobsModule({
         });
 
         setJobs(availableJobs);
+        if (initialJobId) {
+          setSelectedJob(
+            availableJobs.find((job) => job.id === initialJobId) ?? null,
+          );
+        }
       } catch (error) {
         if (!active) return;
 
@@ -138,7 +145,7 @@ export default function JobsModule({
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialJobId]);
 
   // Load saved jobs from Supabase
   useEffect(() => {
