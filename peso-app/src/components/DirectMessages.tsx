@@ -157,12 +157,34 @@ export default function DirectMessages({ mode }: Props) {
       return;
     }
 
-    void loadMessages(true);
-    const interval = window.setInterval(() => {
-      void loadMessages(false);
-    }, 5000);
+    const channel = supabase
+      .channel(`peso-messages-${userId}-${selectedUserId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "peso_messages" },
+        (payload) => {
+          const message = payload.new as PesoMessage;
+          if (
+            (message.sender_user_id === userId &&
+              message.recipient_user_id === selectedUserId) ||
+            (message.sender_user_id === selectedUserId &&
+              message.recipient_user_id === userId)
+          ) {
+            void loadMessages(false);
+          }
+        },
+      )
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          setError("Live message updates are temporarily unavailable.");
+        }
+      });
 
-    return () => window.clearInterval(interval);
+    void loadMessages(true);
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, [loadMessages, recipientUserId, selectedUserId, userId]);
 
   useEffect(() => {

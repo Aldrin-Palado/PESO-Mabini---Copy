@@ -11,7 +11,7 @@ import {
 
 const corsHeaders = (origin: string | null) => ({
   ...(origin ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" } : {}),
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 });
 
@@ -49,14 +49,33 @@ Deno.serve(async (request: Request) => {
       return respond({ error: "The session is invalid or expired." }, 401);
     }
 
-    const { data: isStaffOrAdmin, error: roleError } =
-      await userDb.rpc("is_staff_or_admin");
+    const { data: isAdmin, error: roleError } = await userDb.rpc("is_admin");
     if (roleError) {
       console.error("Gmail OAuth role check failed:", roleError);
       return respond({ error: "Unable to verify access." }, 500);
     }
-    if (isStaffOrAdmin !== true) {
-      return respond({ error: "Admin or staff access is required." }, 403);
+    if (isAdmin !== true) {
+      return respond({ error: "PESO Head/Admin access is required." }, 403);
+    }
+
+    const { data: existingConnection, error: connectionError } = await adminDb()
+      .from("gmail_oauth_tokens")
+      .select("account_email, scope")
+      .eq("account_email", Deno.env.get("GMAIL_ACCOUNT")!.toLowerCase())
+      .maybeSingle();
+    if (connectionError) {
+      console.error("Gmail connection status check failed:", connectionError);
+      return respond({ error: "Unable to check Gmail authorization status." }, 500);
+    }
+    if (
+      existingConnection?.scope?.includes(
+        "https://www.googleapis.com/auth/gmail.readonly",
+      ) &&
+      existingConnection.scope.includes(
+        "https://www.googleapis.com/auth/gmail.send",
+      )
+    ) {
+      return respond({ error: "The official Gmail account is already authorized." }, 409);
     }
 
     const db = adminDb();
@@ -87,7 +106,8 @@ Deno.serve(async (request: Request) => {
       client_id: CLIENT_ID,
       redirect_uri: REDIRECT,
       response_type: "code",
-      scope: "openid email https://www.googleapis.com/auth/gmail.readonly",
+      scope:
+        "openid email https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send",
       access_type: "offline",
       prompt: "consent",
       state,

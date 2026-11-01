@@ -2,15 +2,19 @@ import {
   GMAIL,
   gmailAccessToken,
   requireConfig,
-  syncGmailHistoryWithRecovery,
   verifyPubSubIdentity,
 } from "../_shared/gmail.ts";
+import {
+  logGmailSyncFailure,
+  syncMappedGmailHistory,
+} from "../_shared/gmail-sync.ts";
 
 Deno.serve(async (request: Request) => {
   if (request.method !== "POST") {
     return Response.json({ error: "Method not allowed." }, { status: 405 });
   }
 
+  let authenticatedNotification = false;
   try {
     requireConfig();
 
@@ -50,14 +54,22 @@ Deno.serve(async (request: Request) => {
         status: 400,
       });
     }
+    authenticatedNotification = true;
 
-    const syncedCount = await syncGmailHistoryWithRecovery(
+    const syncedCount = await syncMappedGmailHistory(
       await gmailAccessToken(),
     );
 
     return Response.json({ received: true, synced: syncedCount });
   } catch (error) {
     console.error("Gmail Pub/Sub processing failed:", error);
+    if (authenticatedNotification) {
+      try {
+        await logGmailSyncFailure("pubsub", error);
+      } catch (logError) {
+        console.error("Could not persist Gmail sync failure:", logError);
+      }
+    }
     return Response.json({ error: "Gmail notification processing failed." }, {
       status: 500,
     });

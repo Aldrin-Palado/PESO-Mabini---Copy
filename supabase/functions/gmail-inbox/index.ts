@@ -1,28 +1,20 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import {
-  adminDb,
-  backfillRecentGmailMessages,
-  GMAIL,
-  requireConfig,
-} from "../_shared/gmail.ts";
-
-const corsHeaders = (origin: string | null) => ({
-  ...(origin ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" } : {}),
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-});
+import { adminDb, GMAIL, requireConfig, responseJson } from "../_shared/gmail.ts";
 
 Deno.serve(async (request: Request) => {
-  const origin = request.headers.get("Origin");
-  const headers = corsHeaders(origin);
+  const origin = request.headers.get("Origin") ?? undefined;
   if (request.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers });
+    return new Response(null, {
+      status: 204,
+      headers: {
+        ...(origin ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" } : {}),
+        "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+      },
+    });
   }
   if (request.method !== "GET") {
-    return Response.json(
-      { error: "Method not allowed." },
-      { status: 405, headers },
-    );
+    return responseJson({ error: "Method not allowed." }, 405, origin);
   }
 
   try {
@@ -33,10 +25,7 @@ Deno.serve(async (request: Request) => {
       Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
     const authorization = request.headers.get("Authorization");
     if (!publicKey || !authorization?.startsWith("Bearer ")) {
-      return Response.json({ error: "Authentication is required." }, {
-        status: 401,
-        headers,
-      });
+      return responseJson({ error: "Authentication is required." }, 401, origin);
     }
 
     const userDb = createClient(url, publicKey, {
@@ -45,56 +34,46 @@ Deno.serve(async (request: Request) => {
     });
     const { data: userResult, error: userError } = await userDb.auth.getUser();
     if (userError || !userResult.user) {
-      return Response.json({ error: "The session is invalid or expired." }, {
-        status: 401,
-        headers,
-      });
+      return responseJson({ error: "The session is invalid or expired." }, 401, origin);
     }
-    const { data: isStaffOrAdmin, error: roleError } =
-      await userDb.rpc("is_staff_or_admin");
+    const { data: isAdmin, error: roleError } = await userDb.rpc("is_admin");
     if (roleError) {
-      console.error("Gmail inbox role check failed:", roleError);
-      return Response.json({ error: "Unable to verify inbox access." }, {
-        status: 500,
-        headers,
-      });
+      console.error("Gmail setup role check failed:", roleError);
+      return responseJson({ error: "Unable to verify admin access." }, 500, origin);
     }
-    if (isStaffOrAdmin !== true) {
-      return Response.json({ error: "Admin or staff access is required." }, {
-        status: 403,
-        headers,
-      });
+    if (isAdmin !== true) {
+      return responseJson({ error: "PESO Head/Admin access is required." }, 403, origin);
     }
 
-    await backfillRecentGmailMessages();
-    const requestedLimit = Number(new URL(request.url).searchParams.get("limit"));
-    const limit = Number.isInteger(requestedLimit)
-      ? Math.min(Math.max(requestedLimit, 1), 50)
-      : 25;
-    const { data: messages, error: messagesError } = await adminDb()
-      .from("gmail_messages")
-      .select(
-        "gmail_message_id, thread_id, from_address, to_address, subject, snippet, body_text, internal_date",
-      )
-      .order("internal_date", { ascending: false })
-      .limit(limit);
-    if (messagesError) {
-      console.error("Gmail inbox query failed:", messagesError);
-      return Response.json({ error: "Unable to load Gmail messages." }, {
-        status: 500,
-        headers,
-      });
+    const { data: connection, error: connectionError } = await adminDb()
+      .from("gmail_oauth_tokens")
+      .select("account_email, watch_expiration, scope")
+      .eq("account_email", GMAIL.toLowerCase())
+      .maybeSingle();
+    if (connectionError) {
+      console.error("Gmail setup status query failed:", connectionError);
+      return responseJson({ error: "Unable to load Gmail setup status." }, 500, origin);
     }
 
-    return Response.json(
-      { account: GMAIL, messages: messages ?? [] },
-      { headers: { ...headers, "Cache-Control": "no-store" } },
+    return responseJson(
+      {
+        connected: Boolean(
+          connection?.scope?.includes(
+            "https://www.googleapis.com/auth/gmail.readonly",
+          ) &&
+            connection.scope.includes(
+              "https://www.googleapis.com/auth/gmail.send",
+            ),
+        ),
+        previously_authorized: Boolean(connection),
+        account: connection?.account_email ?? null,
+        watch_expires_at: connection?.watch_expiration ?? null,
+      },
+      200,
+      origin,
     );
   } catch (error) {
-    console.error("Gmail inbox request failed:", error);
-    return Response.json({ error: "Unable to load Gmail inbox." }, {
-      status: 500,
-      headers,
-    });
+    console.error("Gmail setup status failed:", error);
+    return responseJson({ error: "Unable to load Gmail setup status." }, 500, origin);
   }
 });

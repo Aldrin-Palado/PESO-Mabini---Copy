@@ -59,6 +59,26 @@ Deno.serve(async (request: Request) => {
       );
     }
 
+    const { data: existingConnection, error: connectionError } = await adminDb()
+      .from("gmail_oauth_tokens")
+      .select("account_email, scope")
+      .eq("account_email", GMAIL.toLowerCase())
+      .maybeSingle();
+    if (connectionError) {
+      console.error("Gmail connection status check failed:", connectionError);
+      return responseJson({ error: "Unable to check Gmail authorization status." }, 500);
+    }
+    if (
+      existingConnection?.scope?.includes(
+        "https://www.googleapis.com/auth/gmail.readonly",
+      ) &&
+      existingConnection.scope.includes(
+        "https://www.googleapis.com/auth/gmail.send",
+      )
+    ) {
+      return responseJson({ error: "The official Gmail account is already authorized." }, 409);
+    }
+
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -82,9 +102,12 @@ Deno.serve(async (request: Request) => {
         502,
       );
     }
-    if (!tokens.scope?.includes("https://www.googleapis.com/auth/gmail.readonly")) {
+    if (
+      !tokens.scope?.includes("https://www.googleapis.com/auth/gmail.readonly") ||
+      !tokens.scope.includes("https://www.googleapis.com/auth/gmail.send")
+    ) {
       return responseJson(
-        { error: "Google did not grant Gmail read access. Please authorize again." },
+        { error: "Google did not grant Gmail read and send access." },
         403,
       );
     }

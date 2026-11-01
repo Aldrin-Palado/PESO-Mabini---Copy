@@ -20,6 +20,7 @@ import ApplicationsModule from "../adminmodules/ApplicationsModule";
 import PESOPosts from "../adminmodules/PESOPosts";
 import AnalyticsModule from "../adminmodules/AnalyticsModule";
 import MessagesModule from "../adminmodules/MessagesModule";
+import GmailSetupModule from "../adminmodules/GmailSetupModule";
 
 /* ============================================================
    TYPES
@@ -380,6 +381,7 @@ export default function AdminDashboard() {
           "Job Seekers",
           "Applications",
           "Messages",
+          "Gmail Setup",
           "PESO Posts",
           "Analytics & Reports",
           "Admin Accounts",
@@ -580,6 +582,7 @@ export default function AdminDashboard() {
     }
 
     if (
+      page === "Gmail Setup" ||
       page === "Admin Accounts" ||
       page === "Admin Audit Logs"
     ) {
@@ -1393,6 +1396,12 @@ export default function AdminDashboard() {
 
       case "Messages":
         return <MessagesModule />;
+
+      case "Gmail Setup":
+        if (account?.role !== "superadmin") {
+          return <AccessDenied />;
+        }
+        return <GmailSetupModule />;
 
       /* ========================================================
          PESO POSTS
