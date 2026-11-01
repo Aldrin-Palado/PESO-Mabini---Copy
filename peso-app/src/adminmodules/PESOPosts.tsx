@@ -23,6 +23,46 @@ const emptyForm = {
   status: "draft" as PESOPost["status"],
 };
 
+function getSupabaseErrorMessage(error: unknown): string {
+  if (typeof error === "string") return error;
+  if (!error || typeof error !== "object") {
+    return error instanceof Error ? error.message : "Unknown database error.";
+  }
+
+  const details = error as {
+    code?: unknown;
+    message?: unknown;
+    details?: unknown;
+    hint?: unknown;
+  };
+  const code = typeof details.code === "string" ? details.code : "";
+  const message =
+    typeof details.message === "string"
+      ? details.message
+      : error instanceof Error
+        ? error.message
+        : "Unknown database error.";
+  const normalizedMessage = message.toLowerCase();
+  const missingTable =
+    code === "42P01" ||
+    code === "PGRST205" ||
+    (normalizedMessage.includes("peso_posts") &&
+        (normalizedMessage.includes("does not exist") ||
+          normalizedMessage.includes("could not find") ||
+          normalizedMessage.includes("schema cache")));
+
+  if (missingTable) {
+    return `PESO posts database setup is missing or unavailable. Apply the latest Supabase migration. Details: ${message}`;
+  }
+
+  const extra = [
+    typeof details.details === "string" ? details.details : "",
+    typeof details.hint === "string" ? details.hint : "",
+  ].filter(Boolean);
+
+  return [message, ...extra].join(" ");
+}
+
 function getStoredImagePath(imageUrl: string | null): string | null {
   if (!imageUrl) return null;
   const marker = `/${bucketName}/`;
@@ -77,11 +117,7 @@ export default function PESOPosts() {
       setPosts((data ?? []) as PESOPost[]);
     } catch (error) {
       console.error("Error fetching PESO posts:", error);
-      setLoadError(
-        `Unable to load PESO posts: ${
-          error instanceof Error ? error.message : "Unexpected error."
-        }`,
-      );
+      setLoadError(`Unable to load PESO posts: ${getSupabaseErrorMessage(error)}`);
       setPosts([]);
     } finally {
       setLoading(false);
