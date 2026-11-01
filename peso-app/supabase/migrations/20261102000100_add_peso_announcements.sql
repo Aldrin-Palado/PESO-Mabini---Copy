@@ -5,12 +5,18 @@ create table if not exists public.peso_announcements (
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now()
 );
+<<<<<<< HEAD
+create index if not exists idx_peso_announcements_created_at
+  on public.peso_announcements (created_at desc);
+alter table public.peso_announcements enable row level security;
+=======
 
 create index if not exists idx_peso_announcements_created_at
   on public.peso_announcements (created_at desc);
 
 alter table public.peso_announcements enable row level security;
 
+>>>>>>> 671bd423a6a4da635908137890bcb13864e87d67
 drop policy if exists "Public can view PESO announcements"
   on public.peso_announcements;
 create policy "Public can view PESO announcements"
@@ -18,7 +24,10 @@ on public.peso_announcements
 for select
 to anon, authenticated
 using (true);
+<<<<<<< HEAD
+=======
 
+>>>>>>> 671bd423a6a4da635908137890bcb13864e87d67
 drop policy if exists "PESO content staff can create announcements"
   on public.peso_announcements;
 create policy "PESO content staff can create announcements"
@@ -37,7 +46,10 @@ with check (
       and permissions.notifications
   )
 );
+<<<<<<< HEAD
+=======
 
+>>>>>>> 671bd423a6a4da635908137890bcb13864e87d67
 drop policy if exists "PESO content staff can delete announcements"
   on public.peso_announcements;
 create policy "PESO content staff can delete announcements"
@@ -56,6 +68,9 @@ using (
       and permissions.notifications
   )
 );
+<<<<<<< HEAD
+=======
 
+>>>>>>> 671bd423a6a4da635908137890bcb13864e87d67
 grant select on public.peso_announcements to anon, authenticated;
 grant insert, delete on public.peso_announcements to authenticated;
