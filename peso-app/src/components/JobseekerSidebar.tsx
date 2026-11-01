@@ -3,6 +3,7 @@ import React from "react";
 export type JobSeekerPage =
   | "Home"
   | "Jobs"
+  | "Saved Jobs"
   | "Application"
   | "Messages"
   | "AI Job Matches"
@@ -28,6 +29,10 @@ const menuItems: {
   {
     label: "Jobs",
     icon: "💼",
+  },
+  {
+    label: "Saved Jobs",
+    icon: "☆",
   },
   {
     label: "Application",
@@ -95,11 +100,10 @@ export default function JobSeekerSidebar({
                 <span className="text-red-600">MABINI</span>
               </h1>
 
-              <p className="text-xs text-gray-500">
-                Job Seeker
-              </p>
+              <p className="text-xs text-gray-500">Job Seeker</p>
             </div>
           </div>
+
           <button
             type="button"
             onClick={onClose}
@@ -123,6 +127,7 @@ export default function JobSeekerSidebar({
               return (
                 <button
                   key={item.label}
+                  type="button"
                   onClick={() => {
                     setActivePage(item.label);
                     onClose();
@@ -154,6 +159,7 @@ export default function JobSeekerSidebar({
               return (
                 <button
                   key={item.label}
+                  type="button"
                   onClick={() => {
                     setActivePage(item.label);
                     onClose();
@@ -178,6 +184,7 @@ export default function JobSeekerSidebar({
         {/* Logout */}
         <div className="border-t border-blue-100 p-4">
           <button
+            type="button"
             onClick={() => {
               onClose();
               onLogout();
