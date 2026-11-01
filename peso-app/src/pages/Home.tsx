@@ -13,19 +13,14 @@ const backgroundImage = new URL(
   import.meta.url,
 ).href;
 
-type Announcement = {
-  id: number;
+type PESOPost = {
+  id: string;
   title: string;
   content: string;
-  date: string;
+  category: string;
+  image_url: string | null;
+  created_at: string;
 };
-
-// =====================================================
-// ANNOUNCEMENTS
-// Keep empty until announcements are retrieved.
-// =====================================================
-
-const announcements: Announcement[] = [];
 
 function Home() {
   const [jobPreviews, setJobPreviews] = useState<
@@ -33,6 +28,10 @@ function Home() {
   >([]);
   const [jobsLoading, setJobsLoading] = useState(true);
   const [jobsError, setJobsError] = useState("");
+  const [pesoPosts, setPesoPosts] = useState<PESOPost[]>([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [postsError, setPostsError] = useState("");
+  const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,6 +55,35 @@ function Home() {
 
     void loadJobPreviews();
 
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPESOPosts = async () => {
+      const { data, error } = await supabase
+        .from("peso_posts")
+        .select("id, title, content, category, image_url, created_at")
+        .eq("status", "published")
+        .order("created_at", { ascending: false })
+        .limit(4);
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error("Could not load published PESO posts:", error);
+        setPostsError("PESO updates are temporarily unavailable. Please try again later.");
+      } else {
+        setPesoPosts((data ?? []) as PESOPost[]);
+      }
+
+      setPostsLoading(false);
+    };
+
+    void loadPESOPosts();
     return () => {
       cancelled = true;
     };
@@ -370,91 +398,75 @@ function Home() {
               </div>
 
 
-              {/* No announcements */}
-
-              {announcements.length === 0 ? (
-
+              {postsLoading ? (
+                <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+                  <div className="mx-auto h-7 w-7 animate-spin rounded-full border-4 border-sky-100 border-t-sky-600" />
+                  <p className="mt-3 text-sm text-slate-500">Loading PESO updates...</p>
+                </div>
+              ) : postsError ? (
+                <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">
+                  {postsError}
+                </p>
+              ) : pesoPosts.length === 0 ? (
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm sm:p-8">
-
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
-
-                    <svg
-                      className="h-7 w-7 text-red-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.7}
-                        d="M15 17h5l-1.5-2.5V10a6.5 6.5 0 00-13 0v4.5L4 17h5"
-                      />
-
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.7}
-                        d="M10 20h4"
-                      />
-
-                    </svg>
-
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-sky-50 text-2xl font-black text-sky-700">
+                    P
                   </div>
-
-                  <h3 className="mt-5 font-bold text-slate-800">
-                    No announcements yet
-                  </h3>
-
+                  <h3 className="mt-5 font-bold text-slate-800">No updates yet</h3>
                   <p className="mt-2 text-sm leading-6 text-slate-500">
-                    There are currently no announcements
-                    available.
+                    New PESO programs, activities, and announcements will appear here.
                   </p>
-
                 </div>
-
               ) : (
-
                 <div className="space-y-4">
-
-                  {announcements.map((announcement) => (
-
-                    <article
-                      key={announcement.id}
-                      className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md"
-                    >
-
-                      <div className="flex items-center justify-between">
-
-                        <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600">
-                          Announcement
-                        </span>
-
-                        <span className="text-xs text-slate-400">
-                          {announcement.date}
-                        </span>
-
-                      </div>
-
-                      <h3 className="mt-4 font-bold text-slate-900">
-                        {announcement.title}
-                      </h3>
-
-                      <p className="mt-2 text-sm leading-6 text-slate-500">
-                        {announcement.content}
-                      </p>
-
-                      <button className="mt-4 text-sm font-semibold text-sky-600 hover:text-sky-700">
-                        Read More <AppIcon name="arrowRight" className="ml-1 inline h-4 w-4" />
-                      </button>
-
-                    </article>
-
-                  ))}
-
+                  {pesoPosts.map((post) => {
+                    const expanded = expandedPostId === post.id;
+                    return (
+                      <article
+                        key={post.id}
+                        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
+                      >
+                        {post.image_url && (
+                          <img
+                            src={post.image_url}
+                            alt=""
+                            loading="lazy"
+                            className="h-44 w-full bg-slate-50 object-cover"
+                          />
+                        )}
+                        <div className="p-5">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600">
+                              {post.category}
+                            </span>
+                            <time className="text-xs text-slate-400" dateTime={post.created_at}>
+                              {new Date(post.created_at).toLocaleDateString("en-PH", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              })}
+                            </time>
+                          </div>
+                          <h3 className="mt-4 font-bold text-slate-900">{post.title}</h3>
+                          <p className={`mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-500 ${expanded ? "" : "line-clamp-4"}`}>
+                            {post.content}
+                          </p>
+                          {post.content.length > 220 && (
+                            <button
+                              type="button"
+                              aria-expanded={expanded}
+                              onClick={() => setExpandedPostId(expanded ? null : post.id)}
+                              className="mt-4 text-sm font-semibold text-sky-600 hover:text-sky-700"
+                            >
+                              {expanded ? "Show less" : "Read more"}
+                              <AppIcon name="arrowRight" className="ml-1 inline h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
-
               )}
 
             </div>

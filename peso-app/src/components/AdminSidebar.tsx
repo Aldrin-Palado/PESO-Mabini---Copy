@@ -10,7 +10,7 @@ export type AdminModule =
   | "Job Seekers"
   | "Applications"
   | "Messages"
-  | "Announcement"
+  | "PESO Posts"
   | "Analytics & Reports"
   | "Admin Accounts"
   | "Admin Audit Logs";
@@ -57,7 +57,7 @@ export default function AdminSidebar({
     "Job Seekers",
     "Applications",
     "Messages",
-    "Announcement",
+    "PESO Posts",
     "Analytics & Reports",
   ];
 

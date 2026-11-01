@@ -17,7 +17,7 @@ import JobSeekersModule, {
   type JobSeekerFormValues,
 } from "../adminmodules/JobSeekersModule";
 import ApplicationsModule from "../adminmodules/ApplicationsModule";
-import AnnouncementModule from "../adminmodules/AnnouncementModule";
+import PESOPosts from "../adminmodules/PESOPosts";
 import AnalyticsModule from "../adminmodules/AnalyticsModule";
 import MessagesModule from "../adminmodules/MessagesModule";
 
@@ -242,26 +242,6 @@ export default function AdminDashboard() {
     useState("All");
 
   /* ============================================================
-     ANNOUNCEMENT
-  ============================================================ */
-
-  const [announcementTitle, setAnnouncementTitle] =
-    useState("");
-
-  const [announcementMessage, setAnnouncementMessage] =
-    useState("");
-
-  const [announcementList, setAnnouncementList] =
-    useState<
-      {
-        id: number;
-        title: string;
-        message: string;
-        created_at: string;
-      }[]
-    >([]);
-
-  /* ============================================================
      LOAD ACCOUNT
   ============================================================ */
 
@@ -400,7 +380,7 @@ export default function AdminDashboard() {
           "Job Seekers",
           "Applications",
           "Messages",
-          "Announcement",
+          "PESO Posts",
           "Analytics & Reports",
           "Admin Accounts",
           "Admin Audit Logs",
@@ -570,7 +550,7 @@ export default function AdminDashboard() {
     }
 
     if (permission.notifications) {
-      result.push("Announcement");
+      result.push("PESO Posts");
     }
 
     if (permission.analytics) {
@@ -1290,52 +1270,6 @@ export default function AdminDashboard() {
   ]);
 
   /* ============================================================
-     ANNOUNCEMENT FUNCTION
-  ============================================================ */
-
-  const createAnnouncement = () => {
-    if (
-      !announcementTitle.trim() ||
-      !announcementMessage.trim()
-    ) {
-      alert(
-        "Please enter an announcement title and message."
-      );
-
-      return;
-    }
-
-    const newAnnouncement = {
-      id: Date.now(),
-      title: announcementTitle.trim(),
-      message: announcementMessage.trim(),
-      created_at:
-        new Date().toISOString(),
-    };
-
-    setAnnouncementList((previous) => [
-      newAnnouncement,
-      ...previous,
-    ]);
-
-    setAnnouncementTitle("");
-    setAnnouncementMessage("");
-
-    alert("Announcement created.");
-  };
-
-  const deleteAnnouncement = (
-    id: number
-  ) => {
-    setAnnouncementList((previous) =>
-      previous.filter(
-        (announcement) =>
-          announcement.id !== id
-      )
-    );
-  };
-
-  /* ============================================================
      PAGE RENDERING
   ============================================================ */
 
@@ -1461,24 +1395,11 @@ export default function AdminDashboard() {
         return <MessagesModule />;
 
       /* ========================================================
-         ANNOUNCEMENT
+         PESO POSTS
       ======================================================== */
 
-      case "Announcement":
-        return (
-          <AnnouncementModule
-            title={announcementTitle}
-            setTitle={setAnnouncementTitle}
-            message={announcementMessage}
-            setMessage={setAnnouncementMessage}
-            announcements={announcementList}
-            onCreate={createAnnouncement}
-            onDelete={deleteAnnouncement}
-            ModuleHeader={ModuleHeader}
-            EmptyMessage={EmptyMessage}
-            formatDate={formatDate}
-          />
-        );
+      case "PESO Posts":
+        return <PESOPosts />;
 
       /* ========================================================
          ANALYTICS

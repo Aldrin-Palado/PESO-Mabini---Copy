@@ -5,6 +5,7 @@ import ProfileAvatar from "../components/ProfileAvatar";
 import { supabase } from "../services/supabase";
 import { openStoredResume } from "../services/resumes";
 import DirectMessages from "../components/DirectMessages";
+import PESOPosts from "../adminmodules/PESOPosts";
 
 type StaffPermission = {
   dashboard_overview: boolean;
@@ -32,6 +33,7 @@ type ModuleName =
   | "Employers"
   | "Job Seekers"
   | "Messages"
+  | "PESO Posts"
   | "Notifications";
 
 type StaffRecordPage = "Job Posts" | "Employers" | "Job Seekers";
@@ -350,6 +352,9 @@ export default function StaffDashboard() {
       case "Notifications":
         return permissions.notifications;
 
+      case "PESO Posts":
+        return permissions.notifications;
+
       default:
         return false;
     }
@@ -390,6 +395,10 @@ export default function StaffDashboard() {
     {
       name: "Messages",
       icon: "✉",
+    },
+    {
+      name: "PESO Posts",
+      icon: "▣",
     },
     {
       name: "Notifications",
@@ -509,6 +518,9 @@ export default function StaffDashboard() {
 
       case "Messages":
         return <DirectMessages mode="staff" />;
+
+      case "PESO Posts":
+        return <PESOPosts />;
 
       case "Notifications":
         return <Notifications />;
