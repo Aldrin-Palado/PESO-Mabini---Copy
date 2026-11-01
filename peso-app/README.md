@@ -45,12 +45,18 @@ consent. AI recommendations may be incomplete or inaccurate. Homepage chat is av
 visitors without signing in; do not include passwords or sensitive personal information in
 chat messages.
 
-## Incoming Gmail inbox
+## Automatic PESO messaging and Gmail synchronization
 
-The admin and staff **Messages → Gmail Inbox** view stores the latest 20 inbox messages
-from the last 30 days on first connection. New mail is delivered by Gmail push notifications
-through Google Cloud Pub/Sub and appears in the app on its next 30-second refresh. Stored
-message bodies are accessible only through a staff/admin-protected Edge Function.
+The existing role-specific **Messages** screen remains the PESO-Hub conversation UI.
+Messages are saved in `peso_messages` immediately, then delivered by a server-side outbox.
+Gmail replies are synchronized into that same conversation using the Gmail thread ID,
+verified participant addresses, the official mailbox recipient, and a conversation marker.
+Only threads first created by a PESO-Hub message are eligible; general/personal inbox mail
+is not imported. Supabase Realtime updates the Messages screen without polling.
+
+Only the PESO Head/Admin can perform the one-time authorization from **Admin → Gmail Setup**.
+There is no Gmail connection control in Messages. Older read-only Gmail authorizations can
+be upgraded once from that protected setup page.
 
 ### Configure Google Cloud
 
@@ -63,10 +69,9 @@ message bodies are accessible only through a staff/admin-protected Edge Function
    Enable OIDC authentication on the push subscription, select a service account, grant the
    Pub/Sub service agent permission to mint tokens for it, and set the OIDC audience to the
    exact same endpoint URL.
-4. Create a Cloud Scheduler job that sends an authenticated `POST` to
-   `https://jvuyguamtvqtzddaauqq.supabase.co/functions/v1/gmail-watch-renewal` every six
-   days, with the `x-gmail-renewal-secret` header described below. Gmail watches expire
-   after at most seven days.
+4. Configure the Supabase Vault secrets and database schedule below. The database job
+   retries queued delivery every minute and renews the Gmail watch daily. Gmail watches
+   expire after at most seven days.
 
 ### Configure Supabase
 
@@ -83,11 +88,30 @@ and `projects/PROJECT_ID/subscriptions/SUBSCRIPTION_NAME`.
 - `GMAIL_PUBSUB_TOPIC`, `GMAIL_PUBSUB_SUBSCRIPTION`
 - `PUBSUB_OIDC_AUDIENCE` set to the exact push endpoint URL
 - `PUBSUB_PUSH_SERVICE_ACCOUNT` set to the selected push-subscription service account email
-- `GMAIL_RENEWAL_SECRET` set to a long, random secret; use the same value in Cloud Scheduler
+- `GMAIL_JOB_SECRET` set to a long, random secret
 
-Register the redirect URL in the Google OAuth client. The callback requests Gmail read-only
-access. Existing Gmail connections must be re-authorized from **Messages → Gmail Inbox →
-Connect / Reconnect** to grant this new permission and register the push watch.
+Register the redirect URL in the Google OAuth client. The Admin setup requests Gmail read
+and send access, verifies the authorized Google account against `GMAIL_ACCOUNT`, stores the
+refresh token encrypted, and registers the Gmail watch.
+
+In the Supabase SQL Editor, store the project URL and the exact same `GMAIL_JOB_SECRET` in
+Vault, then install the scheduled jobs:
+
+```sql
+select vault.create_secret(
+  'https://jvuyguamtvqtzddaauqq.supabase.co',
+  'supabase_project_url'
+);
+select vault.create_secret(
+  '<the same value configured as GMAIL_JOB_SECRET>',
+  'gmail_job_secret'
+);
+select public.schedule_peso_gmail_jobs();
+```
+
+If either Vault secret already exists, update it in Vault rather than creating a duplicate.
+The scheduling function returns `true` when both jobs are installed. It can be called again
+after changing a Vault secret.
 
 ### Apply and deploy
 
@@ -103,4 +127,5 @@ npm exec --prefix ./peso-app -- supabase --workdir . functions deploy gmail-oaut
 npm exec --prefix ./peso-app -- supabase --workdir . functions deploy gmail-pubsub-webhook --use-api
 npm exec --prefix ./peso-app -- supabase --workdir . functions deploy gmail-inbox --use-api
 npm exec --prefix ./peso-app -- supabase --workdir . functions deploy gmail-watch-renewal --use-api
+npm exec --prefix ./peso-app -- supabase --workdir . functions deploy gmail-deliver-queued --use-api
 ```
