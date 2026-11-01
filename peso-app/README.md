@@ -44,3 +44,29 @@ Google Gemini for processing. Use these features only when authorized and with a
 consent. AI recommendations may be incomplete or inaccurate. Homepage chat is available to
 visitors without signing in; do not include passwords or sensitive personal information in
 chat messages.
+
+## Gmail OAuth functions
+
+The Gmail OAuth Edge Functions and migrations are under `peso-app/supabase`. The repository
+root also has a separately linked Supabase project; root-level function entrypoints are
+provided for deployments run from the repository root. Set
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GMAIL_REDIRECT_URI`,
+`GMAIL_ACCOUNT`, and a base64-encoded 32-byte `TOKEN_ENCRYPTION_KEY` as Supabase function
+secrets. Set `GMAIL_REDIRECT_URI` to the deployed
+`/functions/v1/gmail-oauth-callback` URL and register that URL in the Google OAuth client.
+
+Apply the storage migration before deploying. Deploy `gmail-oauth-start` and
+`gmail-oauth-callback`; the start function requires a signed-in staff/admin user, while
+Google returns to the callback without a Supabase JWT. Run these commands from the
+repository root:
+
+```sh
+npm --prefix ./peso-app install --save-dev supabase
+npm exec --prefix ./peso-app -- supabase --workdir ./peso-app login
+npm exec --prefix ./peso-app -- supabase --workdir ./peso-app db push
+npm exec --prefix ./peso-app -- supabase --workdir . functions deploy gmail-oauth-start --use-api
+npm exec --prefix ./peso-app -- supabase --workdir . functions deploy gmail-oauth-callback --use-api
+```
+
+These commands deploy to the linked remote project and do not require Docker. Docker is needed
+for local Supabase services such as `supabase start`.

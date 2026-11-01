@@ -1,0 +1,13 @@
+
+
+project_id = "peso-app"
+
+[functions.gmail-oauth-start]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/gmail-oauth-start/index.ts"
+
+[functions.gmail-oauth-callback]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/gmail-oauth-callback/index.ts"
