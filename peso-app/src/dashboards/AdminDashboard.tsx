@@ -17,6 +17,7 @@ import JobSeekersModule, {
   type JobSeekerFormValues,
 } from "../adminmodules/JobSeekersModule";
 import ApplicationsModule from "../adminmodules/ApplicationsModule";
+import AnnouncementModule from "../adminmodules/AnnouncementModule";
 import PESOPosts from "../adminmodules/PESOPosts";
 import AnalyticsModule from "../adminmodules/AnalyticsModule";
 import MessagesModule from "../adminmodules/MessagesModule";
@@ -130,6 +131,13 @@ type Application = {
   [key: string]: any;
 };
 
+type Announcement = {
+  id: string;
+  title: string;
+  message: string;
+  created_at: string;
+};
+
 /* ============================================================
    MAIN DASHBOARD
 ============================================================ */
@@ -217,6 +225,9 @@ export default function AdminDashboard() {
 
   const [applicationsError, setApplicationsError] =
     useState("");
+  const [announcementTitle, setAnnouncementTitle] = useState("");
+  const [announcementMessage, setAnnouncementMessage] = useState("");
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
   /* ============================================================
      SEARCH
@@ -284,6 +295,9 @@ export default function AdminDashboard() {
 
     if (activePage === "Admin Audit Logs") {
       loadAuditLogs();
+    }
+    if (activePage === "Announcement") {
+      loadAnnouncements();
     }
     if (activePage === "Dashboard" && account.role === "superadmin") {
       loadAuditLogs();
@@ -380,6 +394,7 @@ export default function AdminDashboard() {
           "Job Seekers",
           "Applications",
           "Messages",
+          "Announcement",
           "PESO Posts",
           "Analytics & Reports",
           "Admin Accounts",
@@ -550,6 +565,7 @@ export default function AdminDashboard() {
     }
 
     if (permission.notifications) {
+      result.push("Announcement");
       result.push("PESO Posts");
     }
 
@@ -587,6 +603,77 @@ export default function AdminDashboard() {
     }
 
     return permissions.includes(page);
+  };
+
+  const loadAnnouncements = async () => {
+    const { data, error } = await supabase
+      .from("peso_announcements")
+      .select("id, title, message, created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error loading PESO announcements:", error);
+      alert(`Unable to load announcements: ${error.message}`);
+      return;
+    }
+
+    setAnnouncements((data ?? []) as Announcement[]);
+  };
+
+  const createAnnouncement = async () => {
+    const title = announcementTitle.trim();
+    const message = announcementMessage.trim();
+    if (!title || !message) {
+      alert("Please enter an announcement title and message.");
+      return;
+    }
+
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError) {
+      alert(`Unable to verify your account: ${authError.message}`);
+      return;
+    }
+    if (!authData.user) {
+      alert("Please sign in again before publishing an announcement.");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("peso_announcements")
+      .insert({
+        title,
+        message,
+        created_by: authData.user.id,
+      })
+      .select("id, title, message, created_at")
+      .single();
+
+    if (error) {
+      console.error("Error creating PESO announcement:", error);
+      alert(`Unable to publish announcement: ${error.message}`);
+      return;
+    }
+
+    setAnnouncements((current) => [data as Announcement, ...current]);
+    setAnnouncementTitle("");
+    setAnnouncementMessage("");
+  };
+
+  const deleteAnnouncement = async (id: string) => {
+    const { error } = await supabase
+      .from("peso_announcements")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error deleting PESO announcement:", error);
+      alert(`Unable to delete announcement: ${error.message}`);
+      return;
+    }
+
+    setAnnouncements((current) =>
+      current.filter((announcement) => announcement.id !== id),
+    );
   };
 
   /* ============================================================
@@ -1393,6 +1480,22 @@ export default function AdminDashboard() {
 
       case "Messages":
         return <MessagesModule />;
+
+      case "Announcement":
+        return (
+          <AnnouncementModule
+            title={announcementTitle}
+            setTitle={setAnnouncementTitle}
+            message={announcementMessage}
+            setMessage={setAnnouncementMessage}
+            announcements={announcements}
+            onCreate={() => void createAnnouncement()}
+            onDelete={(id) => void deleteAnnouncement(id)}
+            ModuleHeader={ModuleHeader}
+            EmptyMessage={EmptyMessage}
+            formatDate={formatDate}
+          />
+        );
 
       /* ========================================================
          PESO POSTS
