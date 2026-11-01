@@ -201,7 +201,7 @@ function JobCard({ job, index, isAuthenticated }: JobCardProps) {
             disabled={isCheckingLogin}
             className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#064A91] disabled:cursor-wait disabled:opacity-70"
           >
-            {isCheckingLogin ? "Checking..." : "View / Apply"}
+            {isCheckingLogin ? "Checking..." : "View Details"}
             <AppIcon name="arrowRight" className="h-4 w-4" />
           </button>
           {loginError && (

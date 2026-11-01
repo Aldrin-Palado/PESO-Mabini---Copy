@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../services/supabase";
 import AppIcon from "../components/AppIcon";
+import JobDetailsModal from "../components/JobDetailsModal";
 import type { OpenJobVacancyRow } from "../types/JobVacancy";
 
 type Seeker = {
@@ -350,141 +351,29 @@ export default function SavedJobsModule({
       )}
 
       {selectedJob && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
-              setSelectedJob(null);
-            }
+        <JobDetailsModal
+          job={{
+            id: selectedJob.id,
+            title: selectedJob.title,
+            company: selectedJob.company,
+            location: selectedJob.location,
+            employmentType: selectedJob.type,
+            classification: selectedJob.classification,
+            salary: selectedJob.salary,
+            description: selectedJob.description,
+            requirements: selectedJob.requirements,
+            openings: selectedJob.vacanciesAvailable,
+            deadline: selectedJob.deadline,
+            datePosted: selectedJob.datePosted,
+            imageUrl: selectedJob.imageUrl,
           }}
-        >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={`saved-job-title-${selectedJob.id}`}
-            className="my-auto max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
-          >
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur sm:px-7">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-blue-700">
-                  {selectedJob.company}
-                </p>
-                <h3
-                  id={`saved-job-title-${selectedJob.id}`}
-                  className="mt-1 text-xl font-black text-slate-950"
-                >
-                  {selectedJob.title}
-                </h3>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setSelectedJob(null)}
-                aria-label="Close job details"
-                className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100"
-              >
-                <AppIcon name="x" className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="space-y-6 p-5 sm:p-7">
-              <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-600">
-                <span className="inline-flex items-center gap-2">
-                  <AppIcon name="mapPin" className="h-4 w-4" />
-                  {selectedJob.location}
-                </span>
-                <span className="inline-flex items-center gap-2">
-                  <AppIcon name="dollar" className="h-4 w-4 text-amber-500" />
-                  {selectedJob.salary}
-                </span>
-                <span>{selectedJob.type}</span>
-              </div>
-
-              {selectedJob.imageUrl && (
-                <img
-                  src={selectedJob.imageUrl}
-                  alt={`${selectedJob.title} job`}
-                  className="max-h-64 w-full rounded-xl border border-slate-200 bg-slate-50 object-contain"
-                />
-              )}
-
-              <section>
-                <h4 className="text-sm font-bold uppercase tracking-wide text-slate-700">
-                  Job Overview
-                </h4>
-                <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl bg-slate-50 p-4">
-                    <dt className="text-xs font-semibold text-slate-500">
-                      Classification
-                    </dt>
-                    <dd className="mt-1 text-sm font-bold capitalize text-slate-900">
-                      {selectedJob.classification}
-                    </dd>
-                  </div>
-                  <div className="rounded-xl bg-slate-50 p-4">
-                    <dt className="text-xs font-semibold text-slate-500">
-                      Available Openings
-                    </dt>
-                    <dd className="mt-1 text-sm font-bold text-slate-900">
-                      {selectedJob.vacanciesAvailable}
-                    </dd>
-                  </div>
-                  {selectedJob.deadline && (
-                    <div className="rounded-xl bg-slate-50 p-4 sm:col-span-2">
-                      <dt className="text-xs font-semibold text-slate-500">
-                        Application Deadline
-                      </dt>
-                      <dd className="mt-1 text-sm font-bold text-slate-900">
-                        {new Date(
-                          `${selectedJob.deadline}T00:00:00`
-                        ).toLocaleDateString()}
-                      </dd>
-                    </div>
-                  )}
-                </dl>
-              </section>
-
-              <section>
-                <h4 className="text-sm font-bold uppercase tracking-wide text-slate-700">
-                  Job Description
-                </h4>
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
-                  {selectedJob.description}
-                </p>
-              </section>
-
-              <section>
-                <h4 className="text-sm font-bold uppercase tracking-wide text-slate-700">
-                  Requirements
-                </h4>
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
-                  {selectedJob.requirements || "No specific requirements provided."}
-                </p>
-              </section>
-
-              <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-between">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedJob(null);
-                    onNavigateToJobs();
-                  }}
-                  className="rounded-xl bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#064A91]"
-                >
-                  Go to Jobs
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedJob(null)}
-                  className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Close Details
-                </button>
-              </div>
-            </div>
-          </section>
-        </div>
+          onClose={() => setSelectedJob(null)}
+          onAction={() => {
+            setSelectedJob(null);
+            onNavigateToJobs();
+          }}
+          actionLabel="Go to Jobs"
+        />
       )}
     </div>
   );
