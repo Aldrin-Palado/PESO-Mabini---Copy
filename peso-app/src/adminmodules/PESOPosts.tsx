@@ -215,18 +215,13 @@ export default function PESOPosts() {
     try {
       let postId = editingPost?.id;
       if (!postId) {
-        const { data: authData, error: authError } = await supabase.auth.getUser();
-        if (authError) throw authError;
-        if (!authData.user) throw new Error("Sign in again before creating a post.");
-
         const { data, error } = await supabase
           .from("peso_posts")
           .insert({
-            title,
-            content,
+            title: form.title.trim(),
+            content: form.content.trim(),
             category: form.category,
             status: form.status,
-            created_by: authData.user.id,
           })
           .select("id")
           .single();
