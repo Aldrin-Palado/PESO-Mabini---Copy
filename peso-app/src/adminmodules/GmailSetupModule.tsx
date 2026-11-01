@@ -36,15 +36,37 @@ export default function GmailSetupModule() {
   const authorize = async () => {
     setAuthorizing(true);
     setError("");
-    const { data, error: startError } = await supabase.functions.invoke<
-      { authorization_url: string }
-    >("gmail-oauth-start", { method: "POST" });
-    if (startError || !data?.authorization_url) {
+    const { data, error: startError } = await supabase.functions.invoke<{
+      authorization_url?: string;
+      url?: string;
+    }>("gmail-oauth-start", { body: {} });
+    if (startError) {
       setError(startError?.message || "Could not begin Gmail authorization.");
       setAuthorizing(false);
       return;
     }
-    window.location.assign(data.authorization_url);
+
+    const authorizationUrl = data?.authorization_url ?? data?.url;
+    let parsedUrl: URL | null = null;
+    if (typeof authorizationUrl === "string") {
+      try {
+        parsedUrl = new URL(authorizationUrl);
+      } catch {
+        parsedUrl = null;
+      }
+    }
+
+    if (
+      !parsedUrl ||
+      parsedUrl.protocol !== "https:" ||
+      parsedUrl.origin !== "https://accounts.google.com"
+    ) {
+      setError("Gmail authorization returned an invalid Google URL.");
+      setAuthorizing(false);
+      return;
+    }
+
+    window.location.assign(parsedUrl.toString());
   };
 
   return (
@@ -109,7 +131,7 @@ export default function GmailSetupModule() {
                 ? "Opening Google..."
                 : status?.previously_authorized
                 ? "Complete Gmail authorization"
-                : "Authorize official Gmail account"}
+                : "Authorize PESO Gmail"}
             </button>
           </div>
         )}
