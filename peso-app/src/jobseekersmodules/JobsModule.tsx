@@ -35,12 +35,14 @@ type Job = {
 type Props = {
   seeker: Seeker;
   profileComplete: boolean;
+  initialJobId?: string;
   onNavigate: (page: JobSeekerPage) => void;
 };
 
 export default function JobsModule({
   seeker,
   profileComplete,
+  initialJobId,
   onNavigate,
 }: Props) {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -116,6 +118,11 @@ export default function JobsModule({
         });
 
         setJobs(availableJobs);
+        if (initialJobId) {
+          setSelectedJob(
+            availableJobs.find((job) => job.id === initialJobId) ?? null,
+          );
+        }
       } catch (error) {
         if (!active) return;
 
@@ -138,7 +145,7 @@ export default function JobsModule({
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialJobId]);
 
   // Load saved jobs from Supabase
   useEffect(() => {
@@ -438,6 +445,13 @@ export default function JobsModule({
                     Online application via portal.
                   </p>
                   <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedJob(job)}
+                      className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+                    >
+                      View Details
+                    </button>
                     <button
                       type="button"
                       onClick={() => {

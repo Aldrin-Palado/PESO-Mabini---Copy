@@ -22,6 +22,13 @@ type PESOPost = {
   created_at: string;
 };
 
+type PESOAnnouncement = {
+  id: string;
+  title: string;
+  message: string;
+  created_at: string;
+};
+
 function Home() {
   const [jobPreviews, setJobPreviews] = useState<
     PublicJobVacancyPreviewRow[]
@@ -33,6 +40,11 @@ function Home() {
   const [postsError, setPostsError] = useState("");
   const [selectedPESOPost, setSelectedPESOPost] = useState<PESOPost | null>(null);
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
+  const [announcements, setAnnouncements] = useState<PESOAnnouncement[]>([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(true);
+  const [announcementsError, setAnnouncementsError] = useState("");
+  const [selectedAnnouncement, setSelectedAnnouncement] =
+    useState<PESOAnnouncement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,13 +74,16 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    if (!selectedPESOPost) return;
+    if (!selectedPESOPost && !selectedAnnouncement) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSelectedPESOPost(null);
+      if (event.key === "Escape") {
+        setSelectedPESOPost(null);
+        setSelectedAnnouncement(null);
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedPESOPost]);
+  }, [selectedPESOPost, selectedAnnouncement]);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,6 +109,33 @@ function Home() {
     };
 
     void loadPESOPosts();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadAnnouncements = async () => {
+      const { data, error } = await supabase
+        .from("peso_announcements")
+        .select("id, title, message, created_at")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error("Could not load PESO announcements:", error);
+        setAnnouncementsError("Announcements are temporarily unavailable. Please try again later.");
+      } else {
+        setAnnouncements((data ?? []) as PESOAnnouncement[]);
+      }
+      setAnnouncementsLoading(false);
+    };
+
+    void loadAnnouncements();
     return () => {
       cancelled = true;
     };
@@ -234,6 +276,7 @@ function Home() {
 
       <main className="mx-auto w-full max-w-screen-2xl px-4 py-12 sm:px-5 sm:py-14 lg:px-10 lg:py-16">
 
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(280px,0.9fr)] xl:gap-10">
         <section aria-labelledby="public-peso-posts-heading">
           <div className="mb-7">
             <p className="text-sm font-bold uppercase tracking-widest text-sky-600">
@@ -313,6 +356,68 @@ function Home() {
             </div>
           )}
         </section>
+
+        <aside aria-labelledby="public-announcements-heading">
+          <div className="mb-6">
+            <p className="text-sm font-bold uppercase tracking-widest text-red-500">
+              Important
+            </p>
+            <h2 id="public-announcements-heading" className="mt-2 text-2xl font-black text-slate-900">
+              Announcements
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Important updates from PESO Mabini.
+            </p>
+          </div>
+
+          {announcementsLoading ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+              <div className="mx-auto h-7 w-7 animate-spin rounded-full border-4 border-red-100 border-t-red-500" />
+              <p className="mt-3 text-sm text-slate-500">Loading announcements...</p>
+            </div>
+          ) : announcementsError ? (
+            <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">
+              {announcementsError}
+            </p>
+          ) : announcements.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+              <h3 className="font-bold text-slate-800">No announcements yet</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Important PESO updates will appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {announcements.map((announcement) => (
+                <article
+                  key={announcement.id}
+                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md"
+                >
+                  <time className="text-xs text-slate-400" dateTime={announcement.created_at}>
+                    {new Date(announcement.created_at).toLocaleDateString("en-PH", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </time>
+                  <h3 className="mt-2 font-bold text-slate-900">{announcement.title}</h3>
+                  <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                    {announcement.message}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAnnouncement(announcement)}
+                    className="mt-3 text-sm font-semibold text-red-600 hover:text-red-700"
+                  >
+                    Read announcement
+                    <AppIcon name="arrowRight" className="ml-1 inline h-4 w-4" />
+                  </button>
+                </article>
+              ))}
+            </div>
+          )}
+        </aside>
+        </div>
 
         <div className="hidden">
 
@@ -616,6 +721,53 @@ function Home() {
               </h2>
               <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600">
                 {selectedPESOPost.content}
+              </p>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {selectedAnnouncement && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setSelectedAnnouncement(null);
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="public-announcement-title"
+            className="my-auto max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
+          >
+            <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur sm:px-7">
+              <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+                Announcement
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedAnnouncement(null)}
+                aria-label="Close announcement"
+                className="flex h-10 w-10 items-center justify-center rounded-full text-2xl text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-5 sm:p-7">
+              <time className="text-sm text-slate-500" dateTime={selectedAnnouncement.created_at}>
+                {new Date(selectedAnnouncement.created_at).toLocaleDateString("en-PH", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </time>
+              <h2 id="public-announcement-title" className="mt-2 text-2xl font-black text-slate-900">
+                {selectedAnnouncement.title}
+              </h2>
+              <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600">
+                {selectedAnnouncement.message}
               </p>
             </div>
           </section>

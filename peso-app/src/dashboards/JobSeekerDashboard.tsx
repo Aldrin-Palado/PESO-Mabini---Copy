@@ -192,11 +192,12 @@ export default function JobSeekerDashboard() {
 
   const [activePage, setActivePage] = useState<JobSeekerPage>(() => {
     const state = location.state;
-    return state &&
-      typeof state === "object" &&
-      "page" in state &&
-      state.page === "Profile"
-      ? "Profile"
+    if (!state || typeof state !== "object" || !("page" in state)) {
+      return "Home";
+    }
+
+    return state.page === "Profile" || state.page === "Jobs"
+      ? state.page
       : "Home";
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -1267,6 +1268,14 @@ export default function JobSeekerDashboard() {
         return (
           <JobsModule
             seeker={seeker}
+            initialJobId={
+              location.state &&
+              typeof location.state === "object" &&
+              "jobId" in location.state &&
+              typeof location.state.jobId === "string"
+                ? location.state.jobId
+                : undefined
+            }
             profileComplete={isJobSeekerProfileComplete(
               seeker.registration_details,
               seeker.resume_url,

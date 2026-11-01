@@ -1,7 +1,7 @@
 import React from "react";
 
 type Announcement = {
-  id: number;
+  id: string;
   title: string;
   message: string;
   created_at: string;
@@ -17,7 +17,7 @@ type Props = {
   announcements: Announcement[];
 
   onCreate: () => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string) => void;
 
   ModuleHeader: React.ComponentType<{
     title: string;
