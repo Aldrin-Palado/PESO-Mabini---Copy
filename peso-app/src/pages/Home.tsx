@@ -167,13 +167,13 @@ function Home() {
 
             <div className="mt-8 flex flex-col gap-3 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:gap-4 sm:mt-9">
 
-              <a
-                href="#jobs"
+              <Link
+                to="/jobs"
                 className="inline-flex items-center justify-center rounded-xl bg-yellow-400 px-6 py-3.5 text-center font-bold text-slate-900 shadow-lg transition hover:-translate-y-1 hover:bg-yellow-300 sm:px-7"
               >
                 Find a Job
                 <AppIcon name="arrowRight" className="ml-2 h-4 w-4" />
-              </a>
+              </Link>
 
               <Link
                 to="/employers"
@@ -219,13 +219,97 @@ function Home() {
 
 
       {/* =====================================================
-          EMPLOYMENT FEED + ANNOUNCEMENTS
+          PESO POSTS
       ===================================================== */}
 
       <main className="mx-auto w-full max-w-screen-2xl px-4 py-12 sm:px-5 sm:py-14 lg:px-10 lg:py-16">
 
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(300px,0.9fr)] xl:gap-10">
+        <section aria-labelledby="public-peso-posts-heading">
+          <div className="mb-7">
+            <p className="text-sm font-bold uppercase tracking-widest text-sky-600">
+              Official updates
+            </p>
+            <h2 id="public-peso-posts-heading" className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">
+              PESO Posts
+            </h2>
+            <p className="mt-2 text-slate-500">
+              Programs, activities, events, and announcements from PESO Mabini.
+            </p>
+          </div>
 
+          {postsLoading ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+              <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-sky-100 border-t-sky-600" />
+              <p className="mt-4 text-sm text-slate-500">Loading PESO posts...</p>
+            </div>
+          ) : postsError ? (
+            <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
+              {postsError}
+            </div>
+          ) : pesoPosts.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+              <h3 className="text-lg font-bold text-slate-800">
+                There are no posts at the moment.
+              </h3>
+              <p className="mt-2 text-sm text-slate-500">
+                Check back later for updates from PESO Mabini.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {pesoPosts.map((post) => {
+                const expanded = expandedPostId === post.id;
+                return (
+                  <article
+                    key={post.id}
+                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
+                  >
+                    {post.image_url && (
+                      <img
+                        src={post.image_url}
+                        alt=""
+                        loading="lazy"
+                        className="h-52 w-full bg-slate-50 object-cover"
+                      />
+                    )}
+                    <div className="p-5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+                          {post.category}
+                        </span>
+                        <time className="text-xs text-slate-400" dateTime={post.created_at}>
+                          {new Date(post.created_at).toLocaleDateString("en-PH", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </time>
+                      </div>
+                      <h3 className="mt-4 text-lg font-bold text-slate-900">
+                        {post.title}
+                      </h3>
+                      <p className={`mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600 ${expanded ? "" : "line-clamp-4"}`}>
+                        {post.content}
+                      </p>
+                      {post.content.length > 220 && (
+                        <button
+                          type="button"
+                          aria-expanded={expanded}
+                          onClick={() => setExpandedPostId(expanded ? null : post.id)}
+                          className="mt-4 text-sm font-semibold text-sky-700 hover:text-sky-900"
+                        >
+                          {expanded ? "Show less" : "Read more"}
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <div className="hidden">
 
           {/* =================================================
               EMPLOYMENT POSTING FEED

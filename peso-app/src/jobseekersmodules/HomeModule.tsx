@@ -1,23 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../services/supabase";
-import type { OpenJobVacancyRow } from "../types/JobVacancy";
 
 type Seeker = {
   job_seeker_id: string;
   full_name?: string | null;
   email?: string | null;
-};
-
-type JobPost = {
-  id: string;
-  company: string;
-  title: string;
-  location: string;
-  type: string;
-  classification: "local" | "international";
-  description: string;
-  posted: string;
-  imageUrl: string | null;
 };
 
 type PESOPost = {
@@ -45,9 +32,6 @@ export default function HomeModule({
   seeker,
   onNavigate,
 }: Props) {
-  const [jobPosts, setJobPosts] = useState<JobPost[]>([]);
-  const [jobsLoading, setJobsLoading] = useState(true);
-  const [jobsError, setJobsError] = useState("");
   const [pesoPosts, setPesoPosts] = useState<PESOPost[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState("");
@@ -55,55 +39,6 @@ export default function HomeModule({
 
   const firstName =
     seeker.full_name?.trim().split(" ")[0] || "Job Seeker";
-
-  useEffect(() => {
-    let active = true;
-
-    const loadRecommendedJobs = async () => {
-      setJobsLoading(true);
-      setJobsError("");
-
-      const { data, error } = await supabase
-        .rpc("get_open_job_vacancies")
-        .order("date_posted", { ascending: false })
-        .limit(3);
-
-      if (!active) return;
-
-      if (error) {
-        console.error("Error loading recommended jobs:", error);
-        setJobsError(`Unable to load jobs: ${error.message}`);
-        setJobPosts([]);
-        setJobsLoading(false);
-        return;
-      }
-
-      setJobPosts(
-        ((data ?? []) as OpenJobVacancyRow[]).map((row) => {
-          return {
-            id: row.job_vacancy_id,
-            company: row.employer_name || "Company name not provided",
-            title: row.position_title,
-            location: row.location || "Location not specified",
-            type: row.employment_type || "Type not specified",
-            classification: row.job_classification,
-            description: row.description || "No description provided.",
-            posted: row.date_posted
-              ? new Date(row.date_posted).toLocaleDateString()
-              : "Recently",
-            imageUrl: row.image_url ?? null,
-          };
-        })
-      );
-      setJobsLoading(false);
-    };
-
-    void loadRecommendedJobs();
-
-    return () => {
-      active = false;
-    };
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -204,7 +139,7 @@ export default function HomeModule({
       >
         <div className="mb-5">
           <p className="text-xs font-bold uppercase tracking-widest text-blue-700">
-            Official updates
+            PESO Mabini
           </p>
           <h2 id="job-seeker-peso-updates-heading" className="mt-1 text-lg font-bold text-gray-900">
             PESO Posts
@@ -224,7 +159,7 @@ export default function HomeModule({
           </p>
         ) : pesoPosts.length === 0 ? (
           <p className="rounded-xl bg-gray-50 p-5 text-sm text-gray-500">
-            No PESO updates are available right now. Check back later.
+            There are no posts at the moment.
           </p>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
@@ -280,126 +215,6 @@ export default function HomeModule({
           </div>
         )}
       </section>
-
-      {/* Recommended Jobs */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-
-        <div className="mb-5 flex items-center justify-between">
-
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">
-              Recommended Jobs
-            </h2>
-
-            <p className="text-sm text-gray-500">
-              Opportunities you may be interested in
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => onNavigate("Jobs")}
-            className="text-sm font-semibold text-blue-700 hover:text-blue-900"
-          >
-            See all
-          </button>
-
-        </div>
-
-        {jobsLoading ? (
-          <p className="rounded-xl bg-gray-50 p-5 text-sm text-gray-500">
-            Loading recommended jobs...
-          </p>
-        ) : jobsError ? (
-          <p
-            role="alert"
-            className="rounded-xl bg-red-50 p-5 text-sm text-red-800"
-          >
-            {jobsError}
-          </p>
-        ) : jobPosts.length === 0 ? (
-          <p className="rounded-xl bg-gray-50 p-5 text-sm text-gray-500">
-            No open job posts are available right now. Check the Jobs page
-            again later.
-          </p>
-        ) : (
-          <div className="space-y-4">
-          {jobPosts.map((job) => (
-            <div
-              key={job.id}
-              className="rounded-xl border border-gray-200 p-4 transition hover:border-blue-200 hover:bg-blue-50/30"
-            >
-
-              {job.imageUrl && (
-                <img
-                  src={job.imageUrl}
-                  alt={`${job.title} job`}
-                  className="mb-4 h-56 w-full rounded-lg bg-slate-50 object-contain sm:h-72"
-                  loading="lazy"
-                />
-              )}
-
-              <div className="flex gap-4">
-
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100 font-bold text-blue-700">
-                  {job.company.charAt(0)}
-                </div>
-
-                <div className="min-w-0 flex-1">
-
-                  <div className="flex flex-col justify-between gap-2 sm:flex-row">
-
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        {job.title}
-                      </h3>
-
-                      <p className="text-sm font-medium text-blue-700">
-                        {job.company}
-                      </p>
-                    </div>
-
-                    <span className="text-xs text-gray-400">
-                      {job.posted}
-                    </span>
-
-                  </div>
-
-                  <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
-
-                    <span className="rounded-full bg-gray-100 px-3 py-1">
-                      <AppIcon name="mapPin" className="mr-1 inline h-3.5 w-3.5" /> {job.location}
-                    </span>
-
-                    <span className="rounded-full bg-gray-100 px-3 py-1">
-                      <AppIcon name="briefcase" className="mr-1 inline h-3.5 w-3.5" /> {job.type}
-                    </span>
-
-                    <span className="rounded-full bg-indigo-50 px-3 py-1 capitalize text-indigo-700">
-                      {job.classification}
-                    </span>
-
-                  </div>
-
-                  <p className="mt-3 text-sm leading-5 text-gray-600">
-                    {job.description}
-                  </p>
-
-                  <button
-                    type="button"
-                    onClick={() => onNavigate("Jobs")}
-                    className="mt-3 text-sm font-semibold text-blue-700 hover:text-blue-900"
-                  >
-                    View Job <AppIcon name="arrowRight" className="ml-1 inline h-4 w-4" />
-                  </button>
-
-                </div>
-              </div>
-            </div>
-          ))}
-          </div>
-        )}
-      </div>
 
       {/* Profile Reminder */}
       <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
