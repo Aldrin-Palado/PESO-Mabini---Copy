@@ -31,6 +31,7 @@ function Home() {
   const [pesoPosts, setPesoPosts] = useState<PESOPost[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState("");
+  const [selectedPESOPost, setSelectedPESOPost] = useState<PESOPost | null>(null);
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,6 +60,15 @@ function Home() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!selectedPESOPost) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedPESOPost(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedPESOPost]);
 
   useEffect(() => {
     let cancelled = false;
@@ -257,9 +267,7 @@ function Home() {
             </div>
           ) : (
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {pesoPosts.map((post) => {
-                const expanded = expandedPostId === post.id;
-                return (
+              {pesoPosts.map((post) => (
                   <article
                     key={post.id}
                     className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
@@ -288,23 +296,20 @@ function Home() {
                       <h3 className="mt-4 text-lg font-bold text-slate-900">
                         {post.title}
                       </h3>
-                      <p className={`mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600 ${expanded ? "" : "line-clamp-4"}`}>
+                      <p className="mt-2 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-slate-600">
                         {post.content}
                       </p>
-                      {post.content.length > 220 && (
-                        <button
-                          type="button"
-                          aria-expanded={expanded}
-                          onClick={() => setExpandedPostId(expanded ? null : post.id)}
-                          className="mt-4 text-sm font-semibold text-sky-700 hover:text-sky-900"
-                        >
-                          {expanded ? "Show less" : "Read more"}
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPESOPost(post)}
+                        className="mt-4 text-sm font-semibold text-sky-700 hover:text-sky-900"
+                      >
+                        Read announcement
+                        <AppIcon name="arrowRight" className="ml-1 inline h-4 w-4" />
+                      </button>
                     </div>
                   </article>
-                );
-              })}
+              ))}
             </div>
           )}
         </section>
@@ -564,6 +569,58 @@ function Home() {
       <Footer />
 
       <AIChatbotModule floating />
+
+      {selectedPESOPost && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSelectedPESOPost(null);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="peso-announcement-title"
+            className="my-auto max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
+          >
+            <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur sm:px-7">
+              <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+                {selectedPESOPost.category}
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedPESOPost(null)}
+                aria-label="Close announcement"
+                className="flex h-10 w-10 items-center justify-center rounded-full text-2xl text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+              >
+                ×
+              </button>
+            </div>
+            {selectedPESOPost.image_url && (
+              <img
+                src={selectedPESOPost.image_url}
+                alt=""
+                className="max-h-[45vh] w-full bg-slate-50 object-contain"
+              />
+            )}
+            <div className="p-5 sm:p-7">
+              <time className="text-sm text-slate-500" dateTime={selectedPESOPost.created_at}>
+                {new Date(selectedPESOPost.created_at).toLocaleDateString("en-PH", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </time>
+              <h2 id="peso-announcement-title" className="mt-2 text-2xl font-black text-slate-900">
+                {selectedPESOPost.title}
+              </h2>
+              <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600">
+                {selectedPESOPost.content}
+              </p>
+            </div>
+          </section>
+        </div>
+      )}
 
     </div>
   );
