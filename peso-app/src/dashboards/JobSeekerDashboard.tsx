@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import AppIcon from "../components/AppIcon";
 import ProfileAvatar from "../components/ProfileAvatar";
 
@@ -21,6 +21,11 @@ import ApplicationsModule from "../jobseekersmodules/ApplicationsModule";
 import MessagesModule from "../jobseekersmodules/MessagesModule";
 import AIChatbotModule from "../jobseekersmodules/AIChatbotModule";
 import JobMatchesModule from "../jobseekersmodules/JobMatchesModule";
+import {
+  JOB_SEEKER_PROFILE_SECTION_TITLES,
+  getIncompleteJobSeekerProfileSections,
+  isJobSeekerProfileComplete,
+} from "../services/jobSeekerProfile";
 
 // =====================================================
 // TYPES
@@ -46,6 +51,7 @@ type ScreeningField = {
   label: string;
   type?: "text" | "number" | "date" | "textarea" | "select" | "checkboxes" | "checkbox";
   options?: string[];
+  required?: boolean;
 };
 
 const screeningSections: {
@@ -53,86 +59,102 @@ const screeningSections: {
   fields: ScreeningField[];
 }[] = [
   {
-    title: "Personal Information",
+    title: "I. Personal Information",
     fields: [
-      { key: "middleName", label: "Middle Name" },
-      { key: "dateOfBirth", label: "Date of Birth", type: "date" },
-      { key: "sex", label: "Sex", type: "select", options: ["Female", "Male", "Prefer not to say"] },
-      { key: "contactNumber", label: "Contact Number" },
-      { key: "presentAddress", label: "Present Address", type: "textarea" },
-      { key: "permanentAddress", label: "Permanent Address", type: "textarea" },
-      { key: "civilStatus", label: "Civil Status", type: "select", options: ["Single", "Married", "Widowed", "Separated", "Annulled", "Others"] },
-      { key: "fatherName", label: "Father's Name" },
-      { key: "motherName", label: "Mother's Name" },
-      { key: "parentsCivilStatus", label: "Parents' Civil Status", type: "select", options: ["Single", "Married", "Widowed", "Separated", "Annulled", "Others"] },
-      { key: "governmentIdType", label: "Type of Government ID", type: "select", options: ["Philippine Identification (PhilID)", "SSS", "GSIS", "UMID", "Driver's License", "Passport", "Voter's ID", "PRC ID", "PhilHealth", "Postal ID", "Other"] },
-      { key: "governmentIdNumber", label: "Government ID Number" },
-      { key: "heightCm", label: "Height (cm)", type: "number" },
-      { key: "weightKg", label: "Weight (kg)", type: "number" },
-      { key: "disability", label: "Disability", type: "select", options: ["Visual", "Hearing", "Speech", "Physical", "Mental", "Other", "N/A"] },
+      { key: "middleName", label: "Middle Name", required: true },
+      { key: "dateOfBirth", label: "Date of Birth", type: "date", required: true },
+      { key: "sex", label: "Sex", type: "select", options: ["Female", "Male", "Prefer not to say"], required: true },
+      { key: "contactNumber", label: "Contact Number", required: true },
+      { key: "presentAddress", label: "Present Address", type: "textarea", required: true },
+      { key: "permanentAddress", label: "Permanent Address", type: "textarea", required: true },
+      { key: "civilStatus", label: "Civil Status", type: "select", options: ["Single", "Married", "Widowed", "Separated", "Annulled", "Others"], required: true },
+      { key: "fatherName", label: "Father's Name", required: true },
+      { key: "motherName", label: "Mother's Name", required: true },
+      { key: "parentsCivilStatus", label: "Parents' Civil Status", type: "select", options: ["Single", "Married", "Widowed", "Separated", "Annulled", "Others"], required: true },
+      { key: "governmentIdType", label: "Type of Government ID", type: "select", options: ["Philippine Identification (PhilID)", "SSS", "GSIS", "UMID", "Driver's License", "Passport", "Voter's ID", "PRC ID", "PhilHealth", "Postal ID", "Other"], required: true },
+      { key: "governmentIdNumber", label: "Government ID Number", required: true },
+      { key: "heightCm", label: "Height (cm)", type: "number", required: true },
+      { key: "weightKg", label: "Weight (kg)", type: "number", required: true },
+      { key: "disability", label: "Disability", type: "select", options: ["Visual", "Hearing", "Speech", "Physical", "Mental", "Other", "N/A"], required: true },
+      { key: "privacyConsent", label: "I agree to the Data Privacy Statement", type: "checkbox", required: true },
     ],
   },
   {
-    title: "Employment Information",
+    title: "II. Employment Information",
     fields: [
-      { key: "employmentStatus", label: "Employment Status", type: "select", options: ["Employed", "Wage Employed", "Self-employed", "Fisherman/Fisherfolk", "Vendor/Retailer", "Home-based Worker", "Transport", "Domestic Worker", "Freelancer", "Artisan/Craft Worker", "Unemployed", "N/A"] },
+      { key: "employmentStatus", label: "Employment Status", type: "select", options: ["Employed", "Wage Employed", "Self-employed", "Fisherman/Fisherfolk", "Vendor/Retailer", "Home-based Worker", "Transport", "Domestic Worker", "Freelancer", "Artisan/Craft Worker", "Unemployed", "N/A"], required: true },
       { key: "unemploymentDurationMonths", label: "Months Looking for Work", type: "number" },
       { key: "unemploymentReason", label: "Reason for Unemployment", type: "select", options: ["New entrant/Fresh graduate", "Finished contract", "Resigned", "Retired", "Terminated/Laid off due to calamity", "Terminated/Laid off (local)", "Terminated/Laid off (abroad)", "Other"] },
-      { key: "isOfw", label: "Are you an OFW?", type: "select", options: ["Yes", "No"] },
-      { key: "isFormerOfw", label: "Are you a former OFW?", type: "select", options: ["Yes", "No"] },
-      { key: "is4PsBeneficiary", label: "Are you a 4Ps beneficiary?", type: "select", options: ["Yes", "No"] },
-      { key: "preferredOccupation", label: "Preferred Occupation" },
-      { key: "companyApplyingFor", label: "Company Applying For" },
-      { key: "preferredWorkLocation", label: "Preferred Work Location", type: "select", options: ["Mabini", "Batangas Province", "Anywhere in the Philippines", "Other"] },
+      { key: "isOfw", label: "Are you an OFW?", type: "select", options: ["Yes", "No"], required: true },
+      { key: "isFormerOfw", label: "Are you a former OFW?", type: "select", options: ["Yes", "No"], required: true },
+      { key: "is4PsBeneficiary", label: "Are you a 4Ps beneficiary?", type: "select", options: ["Yes", "No"], required: true },
+      { key: "preferredOccupation", label: "Preferred Occupation", required: true },
+      { key: "companyApplyingFor", label: "Company Applying For", required: true },
+      { key: "preferredWorkLocation", label: "Preferred Work Location", type: "select", options: ["Mabini", "Batangas Province", "Anywhere in the Philippines", "Other"], required: true },
       { key: "otherWorkLocation", label: "Other Preferred Work Location" },
     ],
   },
   {
-    title: "Language / Dialect Proficiency",
+    title: "III. Language / Dialect Proficiency",
     fields: [
-      { key: "languages", label: "Languages", type: "checkboxes", options: ["Filipino", "English", "Mandarin"] },
+      { key: "languages", label: "Languages", type: "checkboxes", options: ["Filipino", "English", "Mandarin"], required: true },
       { key: "otherLanguage", label: "Other Language / Dialect" },
     ],
   },
   {
-    title: "Educational Background",
+    title: "IV. Educational Background",
     fields: [
-      { key: "educationLevel", label: "Highest Educational Attainment", type: "select", options: ["Elementary", "High School", "Senior High School", "Technical/Vocational", "College", "Postgraduate", "Undergraduate", "No formal education"] },
-      { key: "elementaryEducation", label: "Elementary (school / year graduated)" },
-      { key: "secondaryEducation", label: "Secondary (school / K-12 / strand / year graduated)" },
-      { key: "tertiaryEducation", label: "Tertiary (university / course / year graduated)" },
+      { key: "educationLevel", label: "Highest Educational Attainment", type: "select", options: ["Elementary", "High School", "Senior High School", "Technical/Vocational", "College", "Postgraduate", "Undergraduate", "No formal education"], required: true },
+      { key: "elementaryEducation", label: "Elementary (school / year graduated)", required: true },
+      { key: "secondaryEducation", label: "Secondary (school / K-12 / strand / year graduated)", required: true },
+      { key: "tertiaryEducation", label: "Tertiary (university / course / year graduated)", required: true },
       { key: "graduateStudies", label: "Graduate Studies / Postgraduate" },
       { key: "undergraduateLevel", label: "Undergraduate Level" },
     ],
   },
   {
-    title: "Training and Professional Eligibility",
+    title: "V. Technical / Vocational and Other Training",
     fields: [
-      { key: "training1", label: "Training / Course 1", type: "textarea" },
-      { key: "training2", label: "Training / Course 2", type: "textarea" },
-      { key: "training3", label: "Training / Course 3", type: "textarea" },
-      { key: "eligibility1", label: "Eligibility / Professional License 1", type: "textarea" },
-      { key: "eligibility2", label: "Eligibility / Professional License 2", type: "textarea" },
+      { key: "training1", label: "Training / Course 1", type: "textarea", required: true },
+      { key: "training2", label: "Training / Course 2", type: "textarea", required: true },
+      { key: "training3", label: "Training / Course 3", type: "textarea", required: true },
     ],
   },
   {
-    title: "Work Experience and Skills",
+    title: "VI. Eligibility / Professional License",
     fields: [
-      { key: "noWorkExperience", label: "I have no previous work experience", type: "checkbox" },
-      { key: "workExperience1", label: "Most Recent Work Experience", type: "textarea" },
+      { key: "eligibility1", label: "Eligibility / Professional License 1", type: "textarea", required: true },
+      { key: "eligibility2", label: "Eligibility / Professional License 2", type: "textarea", required: true },
+    ],
+  },
+  {
+    title: "VII. Work Experience",
+    fields: [
+      { key: "noWorkExperience", label: "I have no previous work experience", type: "checkbox", required: true },
+      { key: "workExperience1", label: "Most Recent Work Experience", type: "textarea", required: true },
       { key: "workExperience2", label: "Previous Work Experience 2", type: "textarea" },
       { key: "workExperience3", label: "Previous Work Experience 3", type: "textarea" },
-      { key: "otherSkills", label: "Other Skills Acquired Without Certificate", type: "textarea" },
     ],
   },
   {
-    title: "SPES / GIP History and Certification",
+    title: "VIII. Other Skills Acquired Without Certificate",
     fields: [
-      { key: "spesGipHistory", label: "Participated in SPES / GIP?", type: "select", options: ["Yes", "No"] },
-      { key: "engagementPeriod", label: "Period of Engagement" },
-      { key: "spesGipId", label: "SPES / GIP ID Number" },
-      { key: "signature", label: "Typed Signature" },
-      { key: "signatureDate", label: "Date Signed", type: "date" },
+      { key: "otherSkills", label: "Other Skills Acquired Without Certificate", type: "textarea", required: true },
+    ],
+  },
+  {
+    title: "IX. History of SPES / GIP Engagement",
+    fields: [
+      { key: "spesGipHistory", label: "Participated in SPES / GIP?", type: "select", options: ["Yes", "No"], required: true },
+      { key: "engagementPeriod", label: "Period of Engagement", required: true },
+      { key: "spesGipId", label: "SPES / GIP ID Number", required: true },
+    ],
+  },
+  {
+    title: "Certification / Authorization",
+    fields: [
+      { key: "signature", label: "Typed Signature", required: true },
+      { key: "signatureDate", label: "Date Signed", type: "date", required: true },
     ],
   },
 ];
@@ -165,9 +187,17 @@ function parseScreeningDetails(value: unknown): ScreeningDetails {
 
 export default function JobSeekerDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [activePage, setActivePage] =
-    useState<JobSeekerPage>("Home");
+  const [activePage, setActivePage] = useState<JobSeekerPage>(() => {
+    const state = location.state;
+    return state &&
+      typeof state === "object" &&
+      "page" in state &&
+      state.page === "Profile"
+      ? "Profile"
+      : "Home";
+  });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [seeker, setSeeker] = useState<Seeker | null>(null);
@@ -363,6 +393,14 @@ export default function JobSeekerDashboard() {
     const birthDate = String(screeningForm.dateOfBirth || "").trim();
     const contactNumber = String(screeningForm.contactNumber || "").trim();
     const presentAddress = String(screeningForm.presentAddress || "").trim();
+    const previousDetails = parseScreeningDetails(seeker.registration_details);
+    const screeningDetails = {
+      ...screeningForm,
+      privacyConsentAt:
+        screeningForm.privacyConsent === true
+          ? previousDetails.privacyConsentAt || new Date().toISOString()
+          : null,
+    };
 
     setSavingScreening(true);
     setProfileError("");
@@ -371,7 +409,7 @@ export default function JobSeekerDashboard() {
       const { data, error: updateError } = await supabase
         .from("job_seeker")
         .update({
-          registration_details: screeningForm,
+          registration_details: screeningDetails,
           birth_date: birthDate || null,
           contact_no: contactNumber || null,
           address: presentAddress || null,
@@ -582,6 +620,20 @@ export default function JobSeekerDashboard() {
       },
     ];
     const savedScreeningDetails = parseScreeningDetails(seeker.registration_details);
+    const incompleteSections = getIncompleteJobSeekerProfileSections(
+      seeker.registration_details,
+    );
+    const incompleteTasks = [
+      ...incompleteSections,
+      ...(!seeker.resume_url ? ["Resume / CV"] : []),
+    ];
+    const completedTaskCount =
+      JOB_SEEKER_PROFILE_SECTION_TITLES.length +
+      1 -
+      incompleteTasks.length;
+    const setupProgress = Math.round(
+      (completedTaskCount / (JOB_SEEKER_PROFILE_SECTION_TITLES.length + 1)) * 100,
+    );
     savedScreeningDetails.dateOfBirth =
       seeker.birth_date || String(savedScreeningDetails.dateOfBirth || "");
     savedScreeningDetails.contactNumber =
@@ -614,6 +666,70 @@ export default function JobSeekerDashboard() {
             {profileError}
           </p>
         )}
+
+        <section className="rounded-3xl border border-blue-100 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-[#123B70]">
+                Job Seeker Profile Setup
+              </h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Complete each task and upload your resume before applying for a job.
+              </p>
+            </div>
+            <p className="shrink-0 rounded-full bg-blue-50 px-4 py-2 text-sm font-bold text-blue-800">
+              {completedTaskCount} of {JOB_SEEKER_PROFILE_SECTION_TITLES.length + 1} complete
+            </p>
+          </div>
+          <div
+            className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100"
+            role="progressbar"
+            aria-label="Profile setup progress"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={setupProgress}
+          >
+            <div
+              className="h-full rounded-full bg-blue-700 transition-all"
+              style={{ width: `${setupProgress}%` }}
+            />
+          </div>
+          <ul className="mt-5 grid gap-2 sm:grid-cols-2">
+            {[...JOB_SEEKER_PROFILE_SECTION_TITLES, "Resume / CV"].map((task) => {
+              const complete = !incompleteTasks.includes(task);
+              return (
+                <li
+                  key={task}
+                  className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm ${
+                    complete
+                      ? "bg-green-50 text-green-800"
+                      : "bg-amber-50 text-amber-900"
+                  }`}
+                >
+                  <span aria-hidden="true">{complete ? "✓" : "○"}</span>
+                  <span>{task}</span>
+                  <span className="ml-auto text-xs font-semibold">
+                    {complete ? "Complete" : "To do"}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          {incompleteTasks.length > 0 && !editingScreening && (
+            <button
+              type="button"
+              onClick={startScreeningEdit}
+              className="mt-4 rounded-full bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#064A91]"
+            >
+              Continue profile setup
+            </button>
+          )}
+          {incompleteTasks.length === 0 && (
+            <p role="status" className="mt-4 rounded-xl bg-green-50 p-3 text-sm font-semibold text-green-800">
+              Your profile is complete and ready for job applications.
+            </p>
+          )}
+        </section>
 
         {/* PROFILE CARD */}
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -780,6 +896,40 @@ export default function JobSeekerDashboard() {
                 <h3 className="border-b border-slate-100 pb-2 text-base font-bold text-[#123B70]">
                   {section.title}
                 </h3>
+                {section.title === "I. Personal Information" && (
+                  <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+                    <h4 className="font-bold text-slate-900">
+                      Data Privacy Statement / Consent
+                    </h4>
+                    <p>
+                      The Public Employment Service Office (PESO) of the
+                      Municipality of Mabini, Batangas recognizes its
+                      responsibilities under Republic Act No. 10173, the Data
+                      Privacy Act of 2012. Information collected will be stored
+                      in the office&apos;s authorized information system,
+                      accessed only by authorized PESO Mabini personnel, and
+                      protected using appropriate safeguards.
+                    </p>
+                    <p>
+                      Information will be used for job application and referral
+                      services, DOLE reporting, and Labor Market Information
+                      collection. Personal information will not be disclosed
+                      without consent and may be retained for up to ten years
+                      for Labor Market Information purposes.
+                    </p>
+                  </div>
+                )}
+                {section.title === "Certification / Authorization" && (
+                  <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+                    I certify that the information I provided is true and correct
+                    to the best of my knowledge. I authorize PESO Mabini to
+                    include my profile in its employment information system
+                    and use my personal information for employment facilitation
+                    in accordance with Republic Act No. 10173. I understand
+                    that DOLE/PESO is not obligated to seek employment on my
+                    behalf.
+                  </p>
+                )}
                 <div className="grid gap-4 sm:grid-cols-2">
                   {section.fields.map((field) => {
                     const rawValue = editingScreening
@@ -813,11 +963,15 @@ export default function JobSeekerDashboard() {
                                 }
                                 className="h-4 w-4 rounded border-slate-300 accent-[#0759AE]"
                               />
-                              {field.label}
+                              <span>
+                                {field.label}
+                                {field.required && <span className="text-red-600"> *</span>}
+                              </span>
                             </label>
                           ) : (
                             <label className="block text-xs font-bold uppercase tracking-wide text-slate-500">
                               {field.label}
+                              {field.required && <span className="text-red-600"> *</span>}
                               {field.type === "checkboxes" ? (
                                 <span className="mt-2 grid gap-2 sm:grid-cols-3">
                                   {field.options?.map((option) => {
@@ -1112,6 +1266,10 @@ export default function JobSeekerDashboard() {
         return (
           <JobsModule
             seeker={seeker}
+            profileComplete={isJobSeekerProfileComplete(
+              seeker.registration_details,
+              seeker.resume_url,
+            )}
             onNavigate={(page) =>
               handlePageChange(
                 page === "Applications"
@@ -1424,7 +1582,13 @@ export default function JobSeekerDashboard() {
             ================================================= */}
 
         <section className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          {hasProfilePhoto === false && activePage !== "Profile" && (
+          {seeker &&
+            activePage !== "Profile" &&
+            (!isJobSeekerProfileComplete(
+              seeker.registration_details,
+              seeker.resume_url,
+            ) ||
+              hasProfilePhoto === false) && (
             <div
               role="status"
               aria-live="polite"
@@ -1433,7 +1597,12 @@ export default function JobSeekerDashboard() {
               <div>
                 <p className="font-bold text-blue-900">Complete your profile setup</p>
                 <p className="mt-1 text-sm text-blue-800">
-                  Add a profile picture to finish setting up your job seeker profile.
+                  {!isJobSeekerProfileComplete(
+                    seeker.registration_details,
+                    seeker.resume_url,
+                  )
+                    ? "Complete your PESO profile and upload a resume before applying for jobs."
+                    : "Add a profile picture so employers can recognize you."}
                 </p>
               </div>
               <button

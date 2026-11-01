@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../services/supabase";
 import type { JobVacancy } from "../types/JobVacancy";
+import { isJobSeekerProfileComplete } from "../services/jobSeekerProfile";
 
 interface JobCardProps {
   job: JobVacancy;
@@ -91,6 +92,25 @@ function JobCard({ job, index, isAuthenticated }: JobCardProps) {
             returnTo: `${location.pathname}?${returnParams.toString()}`,
           },
         });
+        return;
+      }
+
+      const { data: seeker, error: seekerError } = await supabase
+        .from("job_seeker")
+        .select("job_seeker_id, registration_details, resume_url")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      if (seekerError) throw seekerError;
+
+      if (
+        seeker &&
+        !isJobSeekerProfileComplete(
+          seeker.registration_details,
+          seeker.resume_url,
+        )
+      ) {
+        navigate("/jobseeker", { state: { page: "Profile" } });
         return;
       }
 

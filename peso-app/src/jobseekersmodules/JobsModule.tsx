@@ -34,11 +34,13 @@ type Job = {
 
 type Props = {
   seeker: Seeker;
+  profileComplete: boolean;
   onNavigate: (page: JobSeekerPage) => void;
 };
 
 export default function JobsModule({
   seeker,
+  profileComplete,
   onNavigate,
 }: Props) {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -375,7 +377,13 @@ export default function JobsModule({
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      onClick={() => setSelectedJob(job)}
+                      onClick={() => {
+                        if (!profileComplete) {
+                          onNavigate("Profile");
+                          return;
+                        }
+                        setSelectedJob(job);
+                      }}
                       className="inline-flex items-center justify-center gap-2 rounded-full bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#064A91]"
                     >
                       View / Apply
