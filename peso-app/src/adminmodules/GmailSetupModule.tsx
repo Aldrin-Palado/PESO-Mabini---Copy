@@ -6,6 +6,16 @@ type GmailSetupStatus = {
   previously_authorized: boolean;
   account: string | null;
   watch_expires_at: string | null;
+  configuration: {
+    client_id_configured: boolean;
+    client_id_format_valid: boolean;
+    callback_uri_configured: boolean;
+    callback_uri_matches_project: boolean;
+    pubsub_topic_configured: boolean;
+    pubsub_subscription_configured: boolean;
+    pubsub_identity_configured: boolean;
+    delivery_job_secret_configured: boolean;
+  };
 };
 
 export default function GmailSetupModule() {
@@ -136,6 +146,41 @@ export default function GmailSetupModule() {
           </div>
         )}
       </div>
+      {status?.configuration && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="font-bold text-[#123B70]">Background service checks</h2>
+          <ul className="mt-3 space-y-2 text-sm">
+            {([
+              ["Google OAuth client ID", status.configuration.client_id_configured &&
+                status.configuration.client_id_format_valid],
+              ["OAuth callback URL", status.configuration.callback_uri_configured &&
+                status.configuration.callback_uri_matches_project],
+              ["Gmail Pub/Sub topic", status.configuration.pubsub_topic_configured],
+              ["Gmail Pub/Sub subscription", status.configuration.pubsub_subscription_configured],
+              ["Pub/Sub identity settings", status.configuration.pubsub_identity_configured],
+              ["Gmail delivery job secret", status.configuration.delivery_job_secret_configured],
+            ] as const).map(([label, configured]) => (
+              <li key={label} className={configured ? "text-emerald-800" : "text-amber-800"}>
+                {configured ? "Ready" : "Needs configuration"} — {label}
+              </li>
+            ))}
+          </ul>
+          {!status.configuration.client_id_configured ||
+            !status.configuration.client_id_format_valid ? (
+            <p className="mt-3 text-sm text-amber-800">
+              Verify the server-side OAuth client ID matches the Web client in Google Cloud.
+              A syntactically valid ID can still belong to the wrong Google project.
+            </p>
+          ) : null}
+          {!status.configuration.callback_uri_matches_project ? (
+            <p className="mt-2 text-sm text-amber-800">
+              Set the Google client’s authorized redirect URI and GMAIL_REDIRECT_URI to
+              https://jvuyguamtvqtzddaauqq.supabase.co/functions/v1/gmail-oauth-callback
+              exactly.
+            </p>
+          ) : null}
+        </div>
+      )}
     </section>
   );
 }

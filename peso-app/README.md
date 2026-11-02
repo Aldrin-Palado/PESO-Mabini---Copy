@@ -90,9 +90,20 @@ and `projects/PROJECT_ID/subscriptions/SUBSCRIPTION_NAME`.
 - `PUBSUB_PUSH_SERVICE_ACCOUNT` set to the selected push-subscription service account email
 - `GMAIL_JOB_SECRET` set to a long, random secret
 
+The deployed project currently has `GOOGLE_PUBSUB_AUDIENCE` and
+`GOOGLE_PUBSUB_SERVICE_ACCOUNT`; the Edge Functions accept those as aliases for the
+`PUBSUB_*` names above. The topic, subscription, and `GMAIL_JOB_SECRET` must still be
+configured. In **Admin → Gmail Setup**, the background service checks show whether those
+required secret names are present; they never display secret values.
+
 Register the redirect URL in the Google OAuth client. The Admin setup requests Gmail read
 and send access, verifies the authorized Google account against `GMAIL_ACCOUNT`, stores the
 refresh token encrypted, and registers the Gmail watch.
+
+If Google reports `401: invalid_client`, confirm that `GOOGLE_CLIENT_ID` and
+`GOOGLE_CLIENT_SECRET` are the pair from the same Google Cloud **Web application** OAuth
+client. A client ID can have the correct format and still belong to another project. Never
+paste the client secret or refresh token into chat or browser code.
 
 In the Supabase SQL Editor, store the project URL and the exact same `GMAIL_JOB_SECRET` in
 Vault, then install the scheduled jobs:

@@ -1,13 +1,49 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-export const URL_BASE = Deno.env.get("SUPABASE_URL")!;
+const environmentValue = (...names: string[]) => {
+  for (const name of names) {
+    const value = Deno.env.get(name)?.trim();
+    if (value) return value;
+  }
+  return "";
+};
+
+export const URL_BASE = environmentValue("SUPABASE_URL");
 export const ADMIN_KEY =
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
-  Deno.env.get("SUPABASE_SECRET_KEY");
-export const CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!;
-export const CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
-export const REDIRECT = Deno.env.get("GMAIL_REDIRECT_URI")!;
-export const GMAIL = Deno.env.get("GMAIL_ACCOUNT")!;
+  environmentValue("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY");
+export const CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")?.trim() ?? "";
+export const CLIENT_SECRET =
+  Deno.env.get("GOOGLE_CLIENT_SECRET")?.trim() ?? "";
+export const REDIRECT = Deno.env.get("GMAIL_REDIRECT_URI")?.trim() ?? "";
+export const GMAIL = environmentValue("GMAIL_ACCOUNT");
+export const PUBSUB_OIDC_AUDIENCE = environmentValue(
+  "PUBSUB_OIDC_AUDIENCE",
+  "GOOGLE_PUBSUB_AUDIENCE",
+);
+export const PUBSUB_PUSH_SERVICE_ACCOUNT = environmentValue(
+  "PUBSUB_PUSH_SERVICE_ACCOUNT",
+  "GOOGLE_PUBSUB_SERVICE_ACCOUNT",
+);
+
+export function gmailConfigurationStatus() {
+  const expectedCallback = `${URL_BASE.replace(/\/+$/, "")}/functions/v1/gmail-oauth-callback`;
+  return {
+    client_id_configured: Boolean(CLIENT_ID),
+    client_id_format_valid: CLIENT_ID.endsWith(".apps.googleusercontent.com"),
+    callback_uri_configured: Boolean(REDIRECT),
+    callback_uri_matches_project: REDIRECT === expectedCallback,
+    pubsub_topic_configured: Boolean(environmentValue("GMAIL_PUBSUB_TOPIC")),
+    pubsub_subscription_configured: Boolean(
+      environmentValue("GMAIL_PUBSUB_SUBSCRIPTION"),
+    ),
+    pubsub_identity_configured: Boolean(
+      PUBSUB_OIDC_AUDIENCE && PUBSUB_PUSH_SERVICE_ACCOUNT,
+    ),
+    delivery_job_secret_configured: Boolean(
+      environmentValue("GMAIL_JOB_SECRET"),
+    ),
+  };
+}
 
 export function requireConfig() {
   if (
@@ -233,9 +269,26 @@ export async function verifyPubSubIdentity(token: string) {
   if (!validSignature) throw new Error("Invalid Pub/Sub identity signature");
 
   const now = Math.floor(Date.now() / 1000);
-  const audience = Deno.env.get("PUBSUB_OIDC_AUDIENCE");
-  const serviceAccount = Deno.env.get("PUBSUB_PUSH_SERVICE_ACCOUNT");
+  const audience = PUBSUB_OIDC_AUDIENCE;
+  const serviceAccount = PUBSUB_PUSH_SERVICE_ACCOUNT;
   const audiences = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
+  console.error("Pub/Sub identity diagnostics:", {
+    audienceConfigured: Boolean(audience),
+    serviceAccountConfigured: Boolean(serviceAccount),
+    audienceMatches: audiences.includes(audience),
+    issuerValid: [
+      "https://accounts.google.com",
+      "accounts.google.com",
+    ].includes(String(claims.iss)),
+    serviceAccountMatches: claims.email === serviceAccount,
+    emailVerified: claims.email_verified === true,
+    expirationValid:
+      typeof claims.exp === "number" && claims.exp > now,
+    issuedAtValid:
+      typeof claims.iat === "number" &&
+      claims.iat <= now + 60 &&
+      claims.iat >= now - 3600,
+  });
   if (
     !audience ||
     !serviceAccount ||

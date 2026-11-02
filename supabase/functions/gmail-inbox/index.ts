@@ -1,5 +1,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { adminDb, GMAIL, requireConfig, responseJson } from "../_shared/gmail.ts";
+import {
+  adminDb,
+  GMAIL,
+  gmailConfigurationStatus,
+  responseJson,
+} from "../_shared/gmail.ts";
 
 Deno.serve(async (request: Request) => {
   const origin = request.headers.get("Origin") ?? undefined;
@@ -18,7 +23,6 @@ Deno.serve(async (request: Request) => {
   }
 
   try {
-    requireConfig();
     const url = Deno.env.get("SUPABASE_URL")!;
     const publicKey =
       Deno.env.get("SUPABASE_ANON_KEY") ??
@@ -45,14 +49,18 @@ Deno.serve(async (request: Request) => {
       return responseJson({ error: "PESO Head/Admin access is required." }, 403, origin);
     }
 
-    const { data: connection, error: connectionError } = await adminDb()
-      .from("gmail_oauth_tokens")
-      .select("account_email, watch_expiration, scope")
-      .eq("account_email", GMAIL.toLowerCase())
-      .maybeSingle();
-    if (connectionError) {
-      console.error("Gmail setup status query failed:", connectionError);
-      return responseJson({ error: "Unable to load Gmail setup status." }, 500, origin);
+    let connection = null;
+    if (GMAIL) {
+      const { data, error: connectionError } = await adminDb()
+        .from("gmail_oauth_tokens")
+        .select("account_email, watch_expiration, scope")
+        .eq("account_email", GMAIL.toLowerCase())
+        .maybeSingle();
+      if (connectionError) {
+        console.error("Gmail setup status query failed:", connectionError);
+        return responseJson({ error: "Unable to load Gmail setup status." }, 500, origin);
+      }
+      connection = data;
     }
 
     return responseJson(
@@ -68,6 +76,7 @@ Deno.serve(async (request: Request) => {
         previously_authorized: Boolean(connection),
         account: connection?.account_email ?? null,
         watch_expires_at: connection?.watch_expiration ?? null,
+        configuration: gmailConfigurationStatus(),
       },
       200,
       origin,

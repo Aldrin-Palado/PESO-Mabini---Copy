@@ -30,6 +30,11 @@ Deno.serve(async (request: Request) => {
 
   try {
     requireConfig();
+    const expectedCallback =
+      `${Deno.env.get("SUPABASE_URL")!.replace(/\/+$/, "")}/functions/v1/gmail-oauth-callback`;
+    if (REDIRECT !== expectedCallback) {
+      throw new Error("GMAIL_REDIRECT_URI does not match the project callback URL");
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const publicKey =
