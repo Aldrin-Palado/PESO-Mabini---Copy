@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "../services/supabase";
+import AppIcon from "../components/AppIcon";
 
 type Staff = {
   peso_staff_id: string;
@@ -7,6 +8,12 @@ type Staff = {
   admin_id: string;
   full_name: string;
   email: string;
+  contact_no: string;
+  is_active: boolean;
+};
+
+type StaffFormValues = {
+  full_name: string;
   contact_no: string;
   is_active: boolean;
 };
@@ -96,6 +103,11 @@ export default function AdminAccounts() {
   const [createPermissions, setCreatePermissions] =
     useState<StaffPermissionValues>(defaultStaffPermissions);
   const [createError, setCreateError] = useState("");
+  const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
+  const [editForm, setEditForm] = useState<StaffFormValues | null>(null);
+  const [savingStaff, setSavingStaff] = useState(false);
+  const [deletingStaffId, setDeletingStaffId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState("");
 
   /* =====================================================
      LOAD STAFF
@@ -516,6 +528,85 @@ export default function AdminAccounts() {
     setCreateError("");
   };
 
+  const openEditStaff = (account: Staff) => {
+    setActionError("");
+    setEditingStaff(account);
+    setEditForm({
+      full_name: account.full_name,
+      contact_no: account.contact_no || "",
+      is_active: account.is_active,
+    });
+  };
+
+  const saveStaffProfile = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+    if (!editingStaff || !editForm) return;
+
+    setSavingStaff(true);
+    setActionError("");
+
+    const { data, error } = await supabase
+      .from("peso_staff")
+      .update({
+        full_name: editForm.full_name.trim(),
+        contact_no: editForm.contact_no.trim() || null,
+        is_active: editForm.is_active,
+      })
+      .eq("peso_staff_id", editingStaff.peso_staff_id)
+      .select("peso_staff_id")
+      .maybeSingle();
+
+    if (error || !data) {
+      console.error("Staff profile update error:", error);
+      setActionError(
+        error?.message || "The staff profile could not be updated.",
+      );
+      setSavingStaff(false);
+      return;
+    }
+
+    setEditingStaff(null);
+    setEditForm(null);
+    setSavingStaff(false);
+    await loadStaff();
+  };
+
+  const deleteStaffProfile = async (account: Staff) => {
+    const confirmed = window.confirm(
+      `Remove ${account.full_name}'s PESO Staff profile? Their sign-in identity will remain, but they will no longer have staff access.`,
+    );
+    if (!confirmed) return;
+
+    setActionError("");
+    setDeletingStaffId(account.peso_staff_id);
+
+    const { data, error } = await supabase
+      .from("peso_staff")
+      .delete()
+      .eq("peso_staff_id", account.peso_staff_id)
+      .select("peso_staff_id")
+      .maybeSingle();
+
+    if (error || !data) {
+      console.error("Staff profile removal error:", error);
+      setActionError(
+        error?.message || "The staff profile could not be removed.",
+      );
+      setDeletingStaffId(null);
+      return;
+    }
+
+    setStaff((previous) =>
+      previous.filter(
+        (staffAccount) =>
+          staffAccount.peso_staff_id !== account.peso_staff_id,
+      ),
+    );
+    setDeletingStaffId(null);
+  };
+
   /* =====================================================
      LOADING
   ===================================================== */
@@ -726,6 +817,15 @@ export default function AdminAccounts() {
         </form>
       )}
 
+      {actionError && (
+        <p
+          role="alert"
+          className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+        >
+          {actionError}
+        </p>
+      )}
+
       {/* =================================================
           STAFF LIST
       ================================================= */}
@@ -801,14 +901,34 @@ export default function AdminAccounts() {
 
                 {/* MANAGE */}
 
-                <button
-                  onClick={() =>
-                    openPermissions(account)
-                  }
-                  className="rounded-xl bg-[#FED442] px-5 py-3 text-sm font-bold text-[#123B70] transition hover:bg-yellow-400"
-                >
-                  Manage Access
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openEditStaff(account)}
+                    disabled={deletingStaffId === account.peso_staff_id}
+                    className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    Edit Profile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openPermissions(account)}
+                    disabled={deletingStaffId === account.peso_staff_id}
+                    className="rounded-xl bg-[#FED442] px-4 py-3 text-sm font-bold text-[#123B70] transition hover:bg-yellow-400 disabled:opacity-50"
+                  >
+                    Manage Access
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void deleteStaffProfile(account)}
+                    disabled={deletingStaffId === account.peso_staff_id}
+                    className="rounded-xl border border-red-200 px-4 py-3 text-sm font-bold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+                  >
+                    {deletingStaffId === account.peso_staff_id
+                      ? "Removing..."
+                      : "Remove Profile"}
+                  </button>
+                </div>
 
               </div>
 
@@ -817,6 +937,103 @@ export default function AdminAccounts() {
         )}
 
       </div>
+
+      {editingStaff && editForm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4">
+          <form
+            onSubmit={(event) => void saveStaffProfile(event)}
+            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+          >
+            <div className="mb-5">
+              <h2 className="text-xl font-black text-[#123B70]">
+                Edit Staff Profile
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Update profile details and staff access status.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <label className="block text-xs font-semibold text-slate-600">
+                Full Name
+                <input
+                  type="text"
+                  required
+                  maxLength={120}
+                  value={editForm.full_name}
+                  onChange={(event) =>
+                    setEditForm({ ...editForm, full_name: event.target.value })
+                  }
+                  disabled={savingStaff}
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50"
+                />
+              </label>
+
+              <label className="block text-xs font-semibold text-slate-600">
+                Sign-in Email
+                <input
+                  type="email"
+                  value={editingStaff.email}
+                  readOnly
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-normal text-slate-500"
+                />
+                <span className="mt-1 block text-[10px] font-normal text-slate-400">
+                  Sign-in email changes must also be made in the authentication
+                  account.
+                </span>
+              </label>
+
+              <label className="block text-xs font-semibold text-slate-600">
+                Contact Number
+                <input
+                  type="tel"
+                  maxLength={30}
+                  value={editForm.contact_no}
+                  onChange={(event) =>
+                    setEditForm({ ...editForm, contact_no: event.target.value })
+                  }
+                  disabled={savingStaff}
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50"
+                />
+              </label>
+
+              <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={editForm.is_active}
+                  onChange={(event) =>
+                    setEditForm({ ...editForm, is_active: event.target.checked })
+                  }
+                  disabled={savingStaff}
+                  className="h-4 w-4 rounded border-slate-300 accent-[#0759AE]"
+                />
+                Active staff account
+              </label>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingStaff(null);
+                  setEditForm(null);
+                }}
+                disabled={savingStaff}
+                className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={savingStaff}
+                className="rounded-lg bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-60"
+              >
+                {savingStaff ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* =================================================
           PERMISSION MODAL
@@ -940,4 +1157,3 @@ export default function AdminAccounts() {
     </div>
   );
 }
-import AppIcon from "../components/AppIcon";
