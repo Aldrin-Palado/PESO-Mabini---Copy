@@ -3,6 +3,8 @@ import { supabase } from "../services/supabase";
 
 const BUCKET = "peso-profile-photos";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const SIGNED_URL_TTL_SECONDS = 3600;
+const SIGNED_URL_REFRESH_BUFFER_MS = 5 * 60 * 1000;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 type ProfileAvatarProps = {
@@ -30,7 +32,9 @@ export default function ProfileAvatar({
   onPhotoStatusChange,
 }: ProfileAvatarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarExpiresAtRef = useRef(0);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -40,7 +44,7 @@ export default function ProfileAvatar({
     const loadAvatar = async () => {
       const { data, error } = await supabase.storage
         .from(BUCKET)
-        .createSignedUrl(`${userId}/avatar`, 3600);
+        .createSignedUrl(`${userId}/avatar`, SIGNED_URL_TTL_SECONDS);
 
       if (cancelled) return;
 
@@ -54,7 +58,10 @@ export default function ProfileAvatar({
         return;
       }
 
+      avatarExpiresAtRef.current =
+        Date.now() + SIGNED_URL_TTL_SECONDS * 1000;
       setAvatarUrl(data.signedUrl);
+      setErrorMessage("");
       onPhotoStatusChange?.(true);
     };
 
@@ -62,7 +69,31 @@ export default function ProfileAvatar({
     return () => {
       cancelled = true;
     };
-  }, [userId, onPhotoStatusChange]);
+  }, [userId, onPhotoStatusChange, refreshKey]);
+
+  useEffect(() => {
+    const refreshExpiredAvatar = () => {
+      if (
+        document.visibilityState === "visible" &&
+        avatarUrl &&
+        Date.now() >=
+          avatarExpiresAtRef.current - SIGNED_URL_REFRESH_BUFFER_MS
+      ) {
+        setRefreshKey((key) => key + 1);
+      }
+    };
+
+    document.addEventListener("visibilitychange", refreshExpiredAvatar);
+    return () =>
+      document.removeEventListener("visibilitychange", refreshExpiredAvatar);
+  }, [avatarUrl]);
+
+  const handleAvatarError = () => {
+    console.error("Profile photo failed to load; requesting a fresh image URL.");
+    setAvatarUrl(null);
+    setErrorMessage("Unable to load profile photo. Refreshing the image...");
+    setRefreshKey((key) => key + 1);
+  };
 
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -98,10 +129,13 @@ export default function ProfileAvatar({
 
       const { data, error: urlError } = await supabase.storage
         .from(BUCKET)
-        .createSignedUrl(filePath, 3600);
+        .createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS);
 
       if (urlError) throw urlError;
+      avatarExpiresAtRef.current =
+        Date.now() + SIGNED_URL_TTL_SECONDS * 1000;
       setAvatarUrl(data.signedUrl);
+      setErrorMessage("");
       onPhotoStatusChange?.(true);
     } catch (error) {
       console.error("Profile photo upload error:", error);
@@ -126,6 +160,7 @@ export default function ProfileAvatar({
           src={avatarUrl}
           alt={`${fullName}'s profile`}
           className="h-full w-full object-cover"
+          onError={handleAvatarError}
         />
       ) : (
         getInitials(fullName)

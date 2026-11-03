@@ -33,25 +33,62 @@ export default function HeroBackground({
   priority = false,
   className = "",
 }: HeroBackgroundProps) {
+  const [retryCount, setRetryCount] = useState(0);
   const [status, setStatus] = useState<"loading" | "loaded" | "error">(
     "loading",
   );
 
   // Reset when the source changes so a swapped hero does not stay hidden.
   useEffect(() => {
+    setRetryCount(0);
     setStatus("loading");
   }, [src]);
 
+  useEffect(() => {
+    if (status !== "error" || retryCount >= 2) return;
+
+    const retryTimer = window.setTimeout(() => {
+      setRetryCount((count) => count + 1);
+      setStatus("loading");
+    }, 1000);
+
+    return () => window.clearTimeout(retryTimer);
+  }, [retryCount, status]);
+
+  useEffect(() => {
+    const retryWhenAvailable = () => {
+      if (document.visibilityState === "visible" && status === "error") {
+        setRetryCount((count) => count + 1);
+        setStatus("loading");
+      }
+    };
+
+    window.addEventListener("online", retryWhenAvailable);
+    document.addEventListener("visibilitychange", retryWhenAvailable);
+    return () => {
+      window.removeEventListener("online", retryWhenAvailable);
+      document.removeEventListener("visibilitychange", retryWhenAvailable);
+    };
+  }, [status]);
+
+  const imageSrc =
+    retryCount === 0
+      ? src
+      : `${src}${src.includes("?") ? "&" : "?"}image-retry=${retryCount}`;
+
   return (
     <img
-      src={src}
+      src={imageSrc}
       alt=""
       aria-hidden="true"
       decoding="async"
       loading={priority ? "eager" : "lazy"}
       fetchPriority={priority ? "high" : "auto"}
       onLoad={() => setStatus("loaded")}
-      onError={() => setStatus("error")}
+      onError={() => {
+        console.error(`Could not load hero image: ${src}`);
+        setStatus("error");
+      }}
       data-status={status}
       className={`hero-media ${
         status === "loaded" ? "opacity-100" : "opacity-0"

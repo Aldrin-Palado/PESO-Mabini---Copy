@@ -160,7 +160,11 @@ function Home() {
         {/* Background image — scaled to any viewport, focal point shifts per
             breakpoint so the photo survives tall, narrow phone screens. */}
 
-        <HeroBackground src={backgroundImage} priority />
+        <HeroBackground
+          src={backgroundImage}
+          priority
+          className="home-hero-media"
+        />
 
         {/* Overlay */}
 
