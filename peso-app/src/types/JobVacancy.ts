@@ -13,6 +13,7 @@ export interface OpenJobVacancyRow {
   image_url: string | null;
   employer_name: string | null;
   job_classification: "local" | "international";
+  employer_verified: boolean;
 }
 
 export interface PublicJobVacancyPreviewRow {

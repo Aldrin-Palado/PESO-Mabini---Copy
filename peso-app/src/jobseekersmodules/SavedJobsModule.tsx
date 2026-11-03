@@ -12,6 +12,7 @@ type Job = {
   id: string;
   title: string;
   company: string;
+  employerVerified: boolean;
   location: string;
   type: string;
   classification: "local" | "international";
@@ -105,6 +106,7 @@ export default function SavedJobsModule({
             id: row.job_vacancy_id,
             title: row.position_title,
             company: row.employer_name || "Company name not provided",
+            employerVerified: row.employer_verified,
             location: row.location || "Location not specified",
             type: row.employment_type || "Type not specified",
             classification: row.job_classification,
@@ -356,6 +358,7 @@ export default function SavedJobsModule({
             id: selectedJob.id,
             title: selectedJob.title,
             company: selectedJob.company,
+            employerVerified: selectedJob.employerVerified,
             location: selectedJob.location,
             employmentType: selectedJob.type,
             classification: selectedJob.classification,

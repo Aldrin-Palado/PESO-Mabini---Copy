@@ -5,6 +5,7 @@ export type JobDetails = {
   id: string;
   title: string;
   company: string;
+  employerVerified?: boolean;
   location?: string | null;
   employmentType?: string | null;
   classification?: string | null;
@@ -112,8 +113,15 @@ export default function JobDetailsModal({
                 {job.company.charAt(0).toUpperCase() || "E"}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-sky-700">
+                <p className="flex min-w-0 items-center gap-1.5 truncate text-sm font-bold text-sky-700">
                   {job.company}
+                  {job.employerVerified && (
+                    <AppIcon
+                      name="check"
+                      title="Verified employer"
+                      className="h-4 w-4 shrink-0 text-blue-600"
+                    />
+                  )}
                 </p>
                 <p className="text-xs text-slate-500">
                   {displayDate(job.datePosted) || "Recently posted"}
@@ -138,7 +146,16 @@ export default function JobDetailsModal({
               >
                 {job.title}
               </h2>
-              <p className="mt-2 text-sm text-slate-600">{job.company}</p>
+              <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-slate-600">
+                {job.company}
+                {job.employerVerified && (
+                  <AppIcon
+                    name="check"
+                    title="Verified employer"
+                    className="h-4 w-4 shrink-0 text-blue-600"
+                  />
+                )}
+              </p>
               <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-600">
                 {job.classification && (
                   <span className="capitalize">{job.classification}</span>

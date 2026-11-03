@@ -31,6 +31,7 @@ type Job = {
   id: string;
   title: string;
   company: string;
+  employerVerified: boolean;
   location: string;
   type: string;
   classification: "local" | "international";
@@ -133,6 +134,7 @@ export default function JobsModule({
             id: row.job_vacancy_id,
             title: row.position_title,
             company: row.employer_name || "Company name not provided",
+            employerVerified: row.employer_verified,
             location: row.location || "Location not specified",
             type: row.employment_type || "Type not specified",
             classification: row.job_classification,
@@ -574,8 +576,15 @@ export default function JobsModule({
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-[11px] font-medium text-slate-400">{postedDate}</p>
-                      <p className="mt-0.5 truncate text-sm font-medium text-slate-700">
+                      <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm font-medium text-slate-700">
                         {job.company}
+                        {job.employerVerified && (
+                          <AppIcon
+                            name="check"
+                            title="Verified employer"
+                            className="h-4 w-4 shrink-0 text-blue-600"
+                          />
+                        )}
                       </p>
                       <h3 className="mt-2 text-lg font-black leading-snug text-slate-950 sm:text-xl">
                         {job.title}
@@ -677,8 +686,15 @@ export default function JobsModule({
                     {selectedJob.company.charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-blue-700">
+                    <p className="flex min-w-0 items-center gap-1.5 truncate text-sm font-bold text-blue-700">
                       {selectedJob.company}
+                      {selectedJob.employerVerified && (
+                        <AppIcon
+                          name="check"
+                          title="Verified employer"
+                          className="h-4 w-4 shrink-0 text-blue-600"
+                        />
+                      )}
                     </p>
                     <p className="text-xs text-slate-500">
                       {selectedJob.datePosted
@@ -709,8 +725,15 @@ export default function JobsModule({
                   >
                     {selectedJob.title}
                   </h2>
-                  <p className="mt-2 text-sm text-slate-600">
+                  <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-slate-600">
                     {selectedJob.company}
+                    {selectedJob.employerVerified && (
+                      <AppIcon
+                        name="check"
+                        title="Verified employer"
+                        className="h-4 w-4 shrink-0 text-blue-600"
+                      />
+                    )}
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-600">
                     <span className="capitalize">{selectedJob.classification}</span>
@@ -919,8 +942,15 @@ export default function JobsModule({
               <>
                 <div className="mb-6 flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-bold text-blue-700">
+                    <p className="inline-flex items-center gap-1.5 text-sm font-bold text-blue-700">
                       {applicationJob.company}
+                      {applicationJob.employerVerified && (
+                        <AppIcon
+                          name="check"
+                          title="Verified employer"
+                          className="h-4 w-4 shrink-0 text-blue-600"
+                        />
+                      )}
                     </p>
                     <h2
                       id="application-form-title"
