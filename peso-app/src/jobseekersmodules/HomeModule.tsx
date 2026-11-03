@@ -71,6 +71,9 @@ export default function HomeModule({
   const [announcementsError, setAnnouncementsError] = useState("");
   const [seenPostIds, setSeenPostIds] = useState<string[]>([]);
   const [seenAnnouncementIds, setSeenAnnouncementIds] = useState<string[]>([]);
+  const [updatesView, setUpdatesView] = useState<"posts" | "announcements">(
+    "posts",
+  );
   const [selectedPESOPost, setSelectedPESOPost] = useState<PESOPost | null>(null);
   const [viewingImages, setViewingImages] = useState<string[] | null>(null);
   const [viewingImageIndex, setViewingImageIndex] = useState(0);
@@ -234,13 +237,15 @@ export default function HomeModule({
             type="button"
             onClick={() => {
               markPESOUpdatesSeen();
-              document.getElementById("job-seeker-peso-updates")?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              });
+              setUpdatesView("posts");
             }}
+            aria-pressed={updatesView === "posts"}
             aria-label={`PESO Updates${unseenPESOUpdates ? `, ${unseenPESOUpdates} new` : ""}`}
-            className="relative flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+            className={`relative flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition ${
+              updatesView === "posts"
+                ? "bg-blue-50 text-blue-700"
+                : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+            }`}
           >
             <span className="relative">
               <AppIcon name="bell" className="h-5 w-5" />
@@ -260,13 +265,15 @@ export default function HomeModule({
             type="button"
             onClick={() => {
               markAnnouncementsSeen();
-              document.getElementById("job-seeker-announcements")?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              });
+              setUpdatesView("announcements");
             }}
+            aria-pressed={updatesView === "announcements"}
             aria-label={`Announcements${unseenAnnouncements ? `, ${unseenAnnouncements} new` : ""}`}
-            className="relative flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+            className={`relative flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition ${
+              updatesView === "announcements"
+                ? "bg-blue-50 text-blue-700"
+                : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+            }`}
           >
             <span className="relative">
               <AppIcon name="megaphone" className="h-5 w-5" />
@@ -283,6 +290,7 @@ export default function HomeModule({
         </div>
       </div>
 
+      {updatesView === "posts" ? (
       <section
         id="job-seeker-peso-updates"
         className="scroll-mt-24 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
@@ -313,7 +321,7 @@ export default function HomeModule({
             There are no posts at the moment.
           </p>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4">
             {pesoPosts.map((post) => {
               const postImages = getPostImages(post);
               return (
@@ -385,10 +393,10 @@ export default function HomeModule({
           </div>
         )}
       </section>
-
+      ) : (
       <section
         id="job-seeker-announcements"
-        className="mx-auto max-w-4xl scroll-mt-24 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+        className="scroll-mt-24 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
         aria-labelledby="job-seeker-announcements-heading"
       >
         <div className="mb-5">
@@ -446,6 +454,7 @@ export default function HomeModule({
           </div>
         )}
       </section>
+      )}
 
       {/* Profile Reminder */}
       <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
