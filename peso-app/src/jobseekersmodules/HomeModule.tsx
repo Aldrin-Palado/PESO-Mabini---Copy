@@ -13,6 +13,7 @@ type PESOPost = {
   content: string;
   category: string;
   image_url: string | null;
+  image_urls: string[] | null;
   created_at: string;
 };
 
@@ -36,6 +37,11 @@ export default function HomeModule({
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState("");
   const [selectedPESOPost, setSelectedPESOPost] = useState<PESOPost | null>(null);
+  const [viewingImages, setViewingImages] = useState<string[] | null>(null);
+  const [viewingImageIndex, setViewingImageIndex] = useState(0);
+
+  const getPostImages = (post: PESOPost) =>
+    [...new Set([...(post.image_urls ?? []), ...(post.image_url ? [post.image_url] : [])])];
 
   const firstName =
     seeker.full_name?.trim().split(" ")[0] || "Job Seeker";
@@ -46,7 +52,7 @@ export default function HomeModule({
     const loadPESOPosts = async () => {
       const { data, error } = await supabase
         .from("peso_posts")
-        .select("id, title, content, category, image_url, created_at")
+        .select("id, title, content, category, image_url, image_urls, created_at")
         .eq("status", "published")
         .order("created_at", { ascending: false })
         .limit(4);
@@ -70,13 +76,26 @@ export default function HomeModule({
   }, []);
 
   useEffect(() => {
-    if (!selectedPESOPost) return;
+    if (!selectedPESOPost && !viewingImages) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSelectedPESOPost(null);
+      if (event.key === "Escape") {
+        if (viewingImages) setViewingImages(null);
+        else setSelectedPESOPost(null);
+      }
+      if (viewingImages?.length) {
+        if (event.key === "ArrowRight") {
+          setViewingImageIndex((index) => (index + 1) % viewingImages.length);
+        }
+        if (event.key === "ArrowLeft") {
+          setViewingImageIndex((index) =>
+            (index - 1 + viewingImages.length) % viewingImages.length,
+          );
+        }
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedPESOPost]);
+  }, [selectedPESOPost, viewingImages]);
 
   return (
     <div className="mx-auto max-w-4xl space-y-5">
@@ -172,18 +191,42 @@ export default function HomeModule({
           </p>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
-            {pesoPosts.map((post) => (
+            {pesoPosts.map((post) => {
+              const postImages = getPostImages(post);
+              return (
                 <article
                   key={post.id}
                   className="overflow-hidden rounded-xl border border-gray-200 bg-white"
                 >
-                  {post.image_url && (
-                    <img
-                      src={post.image_url}
-                      alt=""
-                      loading="lazy"
-                      className="h-48 w-full bg-slate-50 object-cover"
-                    />
+                  {postImages.length > 0 && (
+                    <div className={`grid gap-1 ${postImages.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
+                      {postImages.slice(0, 4).map((imageUrl, index) => (
+                        <button
+                          key={imageUrl}
+                          type="button"
+                          onClick={() => {
+                            setViewingImageIndex(index);
+                            setViewingImages(postImages);
+                          }}
+                          aria-label={`View image ${index + 1} of ${postImages.length} for ${post.title}`}
+                          className="group relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600"
+                        >
+                          <img
+                            src={imageUrl}
+                            alt=""
+                            loading="lazy"
+                            className={`w-full bg-slate-50 object-cover transition group-hover:scale-105 ${
+                              postImages.length === 1 ? "h-48" : "h-36"
+                            }`}
+                          />
+                          {index === 3 && postImages.length > 4 && (
+                            <span className="absolute inset-0 flex items-center justify-center bg-slate-950/60 text-lg font-bold text-white">
+                              +{postImages.length - 4}
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   )}
                   <div className="p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -214,7 +257,8 @@ export default function HomeModule({
                     </button>
                   </div>
                 </article>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
@@ -278,12 +322,35 @@ export default function HomeModule({
                 ×
               </button>
             </div>
-            {selectedPESOPost.image_url && (
-              <img
-                src={selectedPESOPost.image_url}
-                alt=""
-                className="max-h-[45vh] w-full bg-slate-50 object-contain"
-              />
+            {getPostImages(selectedPESOPost).length > 0 && (
+              <div className="space-y-3 bg-slate-50 p-4 sm:p-5">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {getPostImages(selectedPESOPost).map((imageUrl, index) => (
+                    <button
+                      key={imageUrl}
+                      type="button"
+                      onClick={() => {
+                        setViewingImageIndex(index);
+                        setViewingImages(getPostImages(selectedPESOPost));
+                      }}
+                      aria-label={`View image ${index + 1} of ${getPostImages(selectedPESOPost).length}`}
+                      className="group relative overflow-hidden rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    >
+                      <img
+                        src={imageUrl}
+                        alt={`${selectedPESOPost.title}, image ${index + 1}`}
+                        className="h-32 w-full object-cover transition group-hover:scale-105 sm:h-40"
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center bg-slate-950/0 text-sm font-bold text-white transition group-hover:bg-slate-950/35">
+                        View
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-center text-xs text-slate-500">
+                  Select an image to view it larger.
+                </p>
+              </div>
             )}
             <div className="p-5 sm:p-7">
               <time className="text-sm text-slate-500" dateTime={selectedPESOPost.created_at}>
@@ -301,6 +368,63 @@ export default function HomeModule({
               </p>
             </div>
           </section>
+        </div>
+      )}
+
+      {viewingImages && viewingImages.length > 0 && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/95 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setViewingImages(null);
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Image ${viewingImageIndex + 1} of ${viewingImages.length}`}
+        >
+          <button
+            type="button"
+            onClick={() => setViewingImages(null)}
+            aria-label="Close image viewer"
+            className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-3xl text-white hover:bg-white/20"
+          >
+            ×
+          </button>
+          {viewingImages.length > 1 && (
+            <button
+              type="button"
+              onClick={() =>
+                setViewingImageIndex((index) =>
+                  (index - 1 + viewingImages.length) % viewingImages.length,
+                )
+              }
+              aria-label="Previous image"
+              className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-3xl text-white hover:bg-white/20 sm:left-6"
+            >
+              ‹
+            </button>
+          )}
+          <figure className="flex max-h-full max-w-full flex-col items-center gap-3">
+            <img
+              src={viewingImages[viewingImageIndex]}
+              alt={`PESO post image ${viewingImageIndex + 1}`}
+              className="max-h-[82vh] max-w-[85vw] object-contain"
+            />
+            <figcaption className="text-sm text-white/80">
+              {viewingImageIndex + 1} / {viewingImages.length}
+            </figcaption>
+          </figure>
+          {viewingImages.length > 1 && (
+            <button
+              type="button"
+              onClick={() =>
+                setViewingImageIndex((index) => (index + 1) % viewingImages.length)
+              }
+              aria-label="Next image"
+              className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-3xl text-white hover:bg-white/20 sm:right-6"
+            >
+              ›
+            </button>
+          )}
         </div>
       )}
 

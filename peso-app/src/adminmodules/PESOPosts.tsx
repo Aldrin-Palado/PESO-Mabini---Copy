@@ -7,9 +7,15 @@ type PESOPost = {
   content: string;
   category: string;
   image_url: string | null;
+  image_urls: string[] | null;
   status: "published" | "draft";
   created_at: string;
   created_by: string | null;
+};
+
+type SelectedImage = {
+  file: File;
+  previewUrl: string;
 };
 
 const categories = ["Activities", "Achievements", "Events", "Programs"];
@@ -71,12 +77,16 @@ function getStoredImagePath(imageUrl: string | null): string | null {
   return decodeURIComponent(imageUrl.slice(pathStart + marker.length).split("?")[0]);
 }
 
+function getPostImages(post: PESOPost): string[] {
+  return [...new Set([...(post.image_urls ?? []), ...(post.image_url ? [post.image_url] : [])])];
+}
+
 export default function PESOPosts() {
   const [posts, setPosts] = useState<PESOPost[]>([]);
   const [form, setForm] = useState(emptyForm);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState("");
-  const [removeImage, setRemoveImage] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
+  const selectedImagesRef = useRef<SelectedImage[]>([]);
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
   const [editingPost, setEditingPost] = useState<PESOPost | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -95,12 +105,8 @@ export default function PESOPosts() {
   }, []);
 
   useEffect(
-    () => () => {
-      if (imagePreview.startsWith("blob:")) {
-        URL.revokeObjectURL(imagePreview);
-      }
-    },
-    [imagePreview],
+    () => () => selectedImagesRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl)),
+    [],
   );
 
   const fetchPosts = async () => {
@@ -110,7 +116,7 @@ export default function PESOPosts() {
     try {
       const { data, error } = await supabase
         .from("peso_posts")
-        .select("id, title, content, category, image_url, status, created_at, created_by")
+        .select("id, title, content, category, image_url, image_urls, status, created_at, created_by")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -126,32 +132,41 @@ export default function PESOPosts() {
 
   const resetForm = () => {
     setForm(emptyForm);
-    setSelectedImage(null);
-    setImagePreview("");
-    setRemoveImage(false);
+    selectedImagesRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+    selectedImagesRef.current = [];
+    setSelectedImages([]);
+    setExistingImageUrls([]);
     setEditingPost(null);
     setShowForm(false);
     setActionError("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleImageChange = (file?: File) => {
-    if (!file) return;
-    if (!imageTypes.includes(file.type)) {
-      setActionError(`Choose an image in ${imageTypeLabels} format.`);
+  const handleImageChange = (files: FileList | null) => {
+    const newFiles = Array.from(files ?? []);
+    if (newFiles.length === 0) return;
+    const invalidType = newFiles.find((file) => !imageTypes.includes(file.type));
+    if (invalidType) {
+      setActionError(`Choose images in ${imageTypeLabels} format.`);
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setActionError("Image must not exceed 5 MB.");
+    const oversizedImage = newFiles.find((file) => file.size > 5 * 1024 * 1024);
+    if (oversizedImage) {
+      setActionError(`Each image must not exceed 5 MB (${oversizedImage.name}).`);
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
     setActionError("");
-    setSelectedImage(file);
-    setImagePreview(URL.createObjectURL(file));
-    setRemoveImage(false);
+    const additions = newFiles.map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+    const next = [...selectedImagesRef.current, ...additions];
+    selectedImagesRef.current = next;
+    setSelectedImages(next);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleEdit = (post: PESOPost) => {
@@ -162,9 +177,10 @@ export default function PESOPosts() {
       category: post.category,
       status: post.status,
     });
-    setSelectedImage(null);
-    setImagePreview(post.image_url || "");
-    setRemoveImage(false);
+    selectedImagesRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+    selectedImagesRef.current = [];
+    setSelectedImages([]);
+    setExistingImageUrls(getPostImages(post));
     setActionError("");
     setNotice("");
     setShowForm(true);
@@ -174,8 +190,8 @@ export default function PESOPosts() {
 
   const uploadImage = async (
     postId: string,
-  ): Promise<{ url: string; path: string } | null> => {
-    if (!selectedImage) return null;
+    selectedImage: File,
+  ): Promise<{ url: string; path: string }> => {
     const extension = selectedImage.type === "image/jpeg"
       ? "jpg"
       : selectedImage.type === "image/png"
@@ -208,7 +224,7 @@ export default function PESOPosts() {
     setSaving(true);
     setActionError("");
     setNotice("");
-    let uploadedImagePath: string | null = null;
+    const uploadedImagePaths: string[] = [];
     let newlyCreatedPostId: string | null = null;
     let imageCleanupWarning = false;
 
@@ -234,10 +250,16 @@ export default function PESOPosts() {
         throw new Error("The post could not be identified for saving.");
       }
 
-      const uploadedImage = await uploadImage(postId);
-      uploadedImagePath = uploadedImage?.path ?? null;
-      const imageUrl = uploadedImage?.url ??
-        (removeImage ? null : editingPost?.image_url ?? null);
+      const uploadedImages: { url: string; path: string }[] = [];
+      for (const selectedImage of selectedImages) {
+        const uploadedImage = await uploadImage(postId, selectedImage.file);
+        uploadedImages.push(uploadedImage);
+        uploadedImagePaths.push(uploadedImage.path);
+      }
+      const imageUrls = [
+        ...existingImageUrls,
+        ...uploadedImages.map(({ url }) => url),
+      ];
 
       const update = await supabase
         .from("peso_posts")
@@ -246,17 +268,24 @@ export default function PESOPosts() {
           content,
           category: form.category,
           status: form.status,
-          image_url: imageUrl,
+          image_url: imageUrls[0] ?? null,
+          image_urls: imageUrls,
         })
         .eq("id", postId);
       if (update.error) throw update.error;
 
-      if (removeImage || uploadedImage) {
-        const oldPath = getStoredImagePath(editingPost?.image_url ?? null);
-        if (oldPath && oldPath !== uploadedImagePath) {
-          const { error } = await supabase.storage.from(bucketName).remove([oldPath]);
+      if (editingPost) {
+        const oldImageUrls = getPostImages(editingPost);
+        const removedImagePaths = oldImageUrls
+          .filter((url) => !imageUrls.includes(url))
+          .map(getStoredImagePath)
+          .filter((path): path is string => path !== null);
+        if (removedImagePaths.length > 0) {
+          const { error } = await supabase.storage
+            .from(bucketName)
+            .remove(removedImagePaths);
           if (error) {
-            console.error("Could not remove replaced PESO post image:", error);
+            console.error("Could not remove deleted PESO post images:", error);
             imageCleanupWarning = true;
           }
         }
@@ -282,10 +311,10 @@ export default function PESOPosts() {
           console.error("Could not remove incomplete PESO post:", postCleanupError);
         }
       }
-      if (uploadedImagePath) {
+      if (uploadedImagePaths.length > 0) {
         const { error: cleanupError } = await supabase.storage
           .from(bucketName)
-          .remove([uploadedImagePath]);
+          .remove(uploadedImagePaths);
         if (cleanupError) {
           console.error("Could not clean up an unused PESO post image:", cleanupError);
         }
@@ -334,11 +363,13 @@ export default function PESOPosts() {
       const { error } = await supabase.from("peso_posts").delete().eq("id", post.id);
       if (error) throw error;
 
-      const imagePath = getStoredImagePath(post.image_url);
-      if (imagePath) {
+      const imagePaths = getPostImages(post)
+        .map(getStoredImagePath)
+        .filter((path): path is string => path !== null);
+      if (imagePaths.length > 0) {
         const { error: imageError } = await supabase.storage
           .from(bucketName)
-          .remove([imagePath]);
+          .remove(imagePaths);
         if (imageError) {
           console.error("Could not remove deleted PESO post image:", imageError);
           setNotice("Post deleted, but its image could not be removed from storage.");
@@ -496,41 +527,70 @@ export default function PESOPosts() {
             </label>
 
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700">Featured image (optional)</label>
+              <label className="mb-2 block text-sm font-semibold text-gray-700">
+                Post images (optional)
+              </label>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex min-h-40 w-full items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-4 text-center transition hover:border-blue-500 hover:bg-blue-50"
+                className="flex min-h-28 w-full items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-4 text-center transition hover:border-blue-500 hover:bg-blue-50"
               >
-                {imagePreview ? (
-                  <img src={imagePreview} alt="Post image preview" className="max-h-64 rounded-lg object-contain" />
-                ) : (
-                  <span>
-                    <span className="block text-sm font-semibold text-gray-700">Choose an image</span>
-                    <span className="mt-1 block text-xs text-gray-500">{imageTypeLabels} · up to 5 MB</span>
+                <span>
+                  <span className="block text-sm font-semibold text-gray-700">
+                    Add one or more images
                   </span>
-                )}
+                  <span className="mt-1 block text-xs text-gray-500">
+                    {imageTypeLabels} · up to 5 MB each
+                  </span>
+                </span>
               </button>
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
+                multiple
                 className="sr-only"
-                onChange={(event) => handleImageChange(event.target.files?.[0])}
+                onChange={(event) => handleImageChange(event.target.files)}
               />
-              {imagePreview && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedImage(null);
-                    setImagePreview("");
-                    setRemoveImage(Boolean(editingPost?.image_url));
-                    if (fileInputRef.current) fileInputRef.current.value = "";
-                  }}
-                  className="mt-2 text-sm font-medium text-red-600 hover:underline"
-                >
-                  Remove image
-                </button>
+              {(existingImageUrls.length > 0 || selectedImages.length > 0) && (
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {existingImageUrls.map((imageUrl) => (
+                    <div key={imageUrl} className="relative overflow-hidden rounded-lg border border-gray-200">
+                      <img src={imageUrl} alt="Existing post image" className="h-28 w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExistingImageUrls((current) =>
+                            current.filter((url) => url !== imageUrl),
+                          )
+                        }
+                        aria-label="Remove existing image"
+                        className="absolute right-1 top-1 rounded-full bg-slate-950/75 px-2 py-1 text-xs font-bold text-white hover:bg-red-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  {selectedImages.map((image, index) => (
+                    <div key={`${image.file.name}-${image.previewUrl}`} className="relative overflow-hidden rounded-lg border border-gray-200">
+                      <img src={image.previewUrl} alt={image.file.name} className="h-28 w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          URL.revokeObjectURL(image.previewUrl);
+                          const next = selectedImagesRef.current.filter((_, currentIndex) => currentIndex !== index);
+                          selectedImagesRef.current = next;
+                          setSelectedImages(next);
+                        }}
+                        aria-label={`Remove ${image.file.name}`}
+                        className="absolute right-1 top-1 rounded-full bg-slate-950/75 px-2 py-1 text-xs font-bold text-white hover:bg-red-700"
+                      >
+                        Remove
+                      </button>
+                      <p className="truncate px-2 py-1 text-xs text-gray-600">{image.file.name}</p>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 
@@ -620,8 +680,15 @@ export default function PESOPosts() {
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {filteredPosts.map((post) => (
               <article key={post.id} className="overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:shadow-md">
-                {post.image_url ? (
-                  <img src={post.image_url} alt="" className="h-48 w-full bg-slate-50 object-cover" loading="lazy" />
+                {getPostImages(post).length > 0 ? (
+                  <div className="relative">
+                    <img src={getPostImages(post)[0]} alt="" className="h-48 w-full bg-slate-50 object-cover" loading="lazy" />
+                    {getPostImages(post).length > 1 && (
+                      <span className="absolute bottom-2 right-2 rounded-full bg-slate-950/75 px-2.5 py-1 text-xs font-bold text-white">
+                        {getPostImages(post).length} images
+                      </span>
+                    )}
+                  </div>
                 ) : (
                   <div className="flex h-48 items-center justify-center bg-blue-50 text-4xl text-blue-300" aria-hidden="true">
                     PESO
