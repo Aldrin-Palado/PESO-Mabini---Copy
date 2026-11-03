@@ -17,7 +17,6 @@ function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
 
   const routeAuthenticatedUser = async (user: { id: string }) => {
     const { data: admin, error: adminError } = await supabase
@@ -200,36 +199,6 @@ function Login() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    if (googleLoading) return;
-    setGoogleLoading(true);
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/login`,
-          queryParams: {
-            access_type: "offline",
-            prompt: "consent",
-          },
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
-    } catch (error) {
-      console.error("Google login error:", error);
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Google sign-in could not be started. Please try again."
-      );
-      setGoogleLoading(false);
-    }
-  };
-
   return (
     <div className="whirl-page-background min-h-screen">
       <main className="grid min-h-screen lg:grid-cols-2">
@@ -345,36 +314,6 @@ function Login() {
                 {loading ? "Signing In..." : "Sign In"}
               </button>
 
-              <button
-                type="button"
-                onClick={handleGoogleLogin}
-                disabled={loading || googleLoading}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-base font-semibold text-slate-700 shadow-sm transition hover:border-[#315FEA]/50 hover:text-[#315FEA] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 48 48"
-                  className="h-6 w-6"
-                >
-                  <path
-                    fill="#EA4335"
-                    d="M24 9.5c3.5 0 6.7 1.2 9.1 3.5l6.7-6.7C34.8 2.3 29.8 0 24 0 14.8 0 6.8 5.3 2.7 13l7.9 6.1C12.3 14.5 17.5 9.5 24 9.5Z"
-                  />
-                  <path
-                    fill="#4285F4"
-                    d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.5 2.8-2.1 5.2-4.5 6.8l7.3 5.7c4.3-4 6.9-9.9 6.9-16.5Z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M32.2 35.8c-2.1 1.4-4.8 2.2-8.2 2.2-6.5 0-12-4.3-13.9-10.2l-7.9 6.1C5.3 42.7 13.8 48 24 48c7 0 12.9-2.1 17.2-5.8l-9-6.4Z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M10.1 27.8A14.8 14.8 0 0 1 9.6 24c0-1.7.3-3.2.9-4.7L2.7 13C1 16.5.8 20.3.8 24s.2 7.5 1.9 11l7.4-5.7Z"
-                  />
-                </svg>
-                {googleLoading ? "Connecting Google..." : "Sign in with Google"}
-              </button>
             </form>
 
             <div className="mt-8 pt-2 text-center">
