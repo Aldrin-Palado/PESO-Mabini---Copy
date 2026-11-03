@@ -302,13 +302,25 @@ export default function ApplicationsModule({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <ModuleHeader
-          title="Applications"
-          description="Review job applications and update their progress."
-          onRefresh={onRefresh}
-        />
-        <div className="flex flex-wrap gap-1.5 lg:justify-end">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex min-w-0 items-center justify-between gap-4 sm:justify-start">
+          <div className="min-w-0">
+            <h3 className="text-lg font-bold text-slate-900">
+              Applications
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Review job applications and update their progress.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="shrink-0 rounded-md bg-[#203F8B] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#193474]"
+          >
+            Refresh
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-1.5 xl:justify-end">
           {STATUSES.map((status) => (
             <button
               key={status.value}
