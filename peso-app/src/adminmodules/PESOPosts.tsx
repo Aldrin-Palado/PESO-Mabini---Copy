@@ -320,7 +320,7 @@ export default function PESOPosts() {
         }
       }
       setActionError(
-        error instanceof Error ? `Failed to save post: ${error.message}` : "Failed to save PESO post.",
+        `Failed to save PESO post: ${getSupabaseErrorMessage(error)}`,
       );
     } finally {
       setSaving(false);
