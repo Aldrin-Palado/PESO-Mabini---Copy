@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../services/supabase";
+import { openStoredResume } from "../services/resumes";
 
 type Seeker = {
   job_seeker_id: string;
@@ -20,6 +21,11 @@ type Application = {
   company: string;
   date: string;
   status: string;
+  applicantName: string | null;
+  applicantEmail: string | null;
+  contactNumber: string | null;
+  address: string | null;
+  resumeUrl: string | null;
 };
 
 type Props = {
@@ -67,6 +73,10 @@ export default function ApplicationsModule({
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [selectedApplication, setSelectedApplication] =
+    useState<Application | null>(null);
+  const [openingResume, setOpeningResume] = useState(false);
+  const [resumeError, setResumeError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -82,6 +92,11 @@ export default function ApplicationsModule({
           position_title,
           status,
           date_applied,
+          applicant_name,
+          applicant_email,
+          applicant_contact_no,
+          applicant_address,
+          applicant_resume_url,
           employer (
             name
           )
@@ -115,6 +130,11 @@ export default function ApplicationsModule({
               day: "numeric",
             }),
             status: row.status,
+            applicantName: row.applicant_name,
+            applicantEmail: row.applicant_email,
+            contactNumber: row.applicant_contact_no,
+            address: row.applicant_address,
+            resumeUrl: row.applicant_resume_url,
           };
         })
       );
@@ -127,6 +147,23 @@ export default function ApplicationsModule({
       active = false;
     };
   }, [seeker.job_seeker_id]);
+
+  const handleOpenResume = async () => {
+    if (!selectedApplication?.resumeUrl || openingResume) return;
+
+    setOpeningResume(true);
+    setResumeError("");
+    try {
+      await openStoredResume(selectedApplication.resumeUrl);
+    } catch (error) {
+      console.error("Could not open application resume:", error);
+      setResumeError(
+        error instanceof Error ? error.message : "Unable to open the uploaded resume.",
+      );
+    } finally {
+      setOpeningResume(false);
+    }
+  };
 
   const filtered = useMemo(
     () =>
@@ -269,7 +306,8 @@ export default function ApplicationsModule({
                   <button
                     type="button"
                     onClick={() => {
-                      // Application details can be added here later.
+                      setResumeError("");
+                      setSelectedApplication(application);
                     }}
                     className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 transition hover:bg-gray-50"
                   >
@@ -284,6 +322,133 @@ export default function ApplicationsModule({
         )}
 
       </div>
+
+      {selectedApplication && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !openingResume) {
+              setSelectedApplication(null);
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="job-seeker-application-details-title"
+            className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl sm:p-6"
+          >
+            <header className="flex items-start justify-between gap-4">
+              <div>
+                <h2
+                  id="job-seeker-application-details-title"
+                  className="text-lg font-bold text-gray-900"
+                >
+                  Application details
+                </h2>
+                <p className="mt-1 text-sm text-blue-700">
+                  {selectedApplication.job}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedApplication(null)}
+                disabled={openingResume}
+                aria-label="Close application details"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xl text-gray-500 hover:bg-gray-100 disabled:opacity-50"
+              >
+                ×
+              </button>
+            </header>
+
+            <dl className="mt-5 grid gap-4 rounded-xl bg-gray-50 p-4 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Employer
+                </dt>
+                <dd className="mt-1 font-medium text-gray-900">
+                  {selectedApplication.company}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Application date
+                </dt>
+                <dd className="mt-1 font-medium text-gray-900">
+                  {selectedApplication.date}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Status
+                </dt>
+                <dd className="mt-1">
+                  <StatusBadge status={selectedApplication.status} />
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Name submitted
+                </dt>
+                <dd className="mt-1 font-medium text-gray-900">
+                  {selectedApplication.applicantName || seeker.full_name || "Not available"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Email submitted
+                </dt>
+                <dd className="mt-1 break-all font-medium text-gray-900">
+                  {selectedApplication.applicantEmail || seeker.email || "Not available"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Contact number
+                </dt>
+                <dd className="mt-1 font-medium text-gray-900">
+                  {selectedApplication.contactNumber || "Not available"}
+                </dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Address
+                </dt>
+                <dd className="mt-1 whitespace-pre-wrap font-medium text-gray-900">
+                  {selectedApplication.address || "Not available"}
+                </dd>
+              </div>
+            </dl>
+
+            {resumeError && (
+              <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                {resumeError}
+              </p>
+            )}
+
+            <footer className="mt-5 flex flex-wrap justify-end gap-3">
+              {selectedApplication.resumeUrl && (
+                <button
+                  type="button"
+                  onClick={() => void handleOpenResume()}
+                  disabled={openingResume}
+                  className="rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-wait disabled:opacity-60"
+                >
+                  {openingResume ? "Opening resume..." : "View submitted resume"}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setSelectedApplication(null)}
+                disabled={openingResume}
+                className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Close
+              </button>
+            </footer>
+          </section>
+        </div>
+      )}
 
       {/* Find More Jobs */}
       <div className="rounded-2xl border border-blue-100 bg-blue-50 p-5">
