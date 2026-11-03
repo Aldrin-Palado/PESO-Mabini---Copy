@@ -17,6 +17,13 @@ type PESOPost = {
   created_at: string;
 };
 
+type PESOAnnouncement = {
+  id: string;
+  title: string;
+  message: string;
+  created_at: string;
+};
+
 type JobSeekerPage =
   | "Home"
   | "Jobs"
@@ -29,6 +36,29 @@ type Props = {
   onNavigate: (page: JobSeekerPage) => void;
 };
 
+function readSeenIds(storageKey: string): string[] {
+  try {
+    const storedValue = localStorage.getItem(storageKey);
+    if (!storedValue) return [];
+    const parsed: unknown = JSON.parse(storedValue);
+    if (Array.isArray(parsed) && parsed.every((id) => typeof id === "string")) {
+      return parsed;
+    }
+    console.error(`Invalid seen-post data in local storage: ${storageKey}`);
+  } catch (error) {
+    console.error(`Could not read seen-post data from local storage: ${storageKey}`, error);
+  }
+  return [];
+}
+
+function saveSeenIds(storageKey: string, ids: string[]) {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(ids));
+  } catch (error) {
+    console.error(`Could not save seen-post data to local storage: ${storageKey}`, error);
+  }
+}
+
 export default function HomeModule({
   seeker,
   onNavigate,
@@ -36,6 +66,11 @@ export default function HomeModule({
   const [pesoPosts, setPesoPosts] = useState<PESOPost[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState("");
+  const [announcements, setAnnouncements] = useState<PESOAnnouncement[]>([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(true);
+  const [announcementsError, setAnnouncementsError] = useState("");
+  const [seenPostIds, setSeenPostIds] = useState<string[]>([]);
+  const [seenAnnouncementIds, setSeenAnnouncementIds] = useState<string[]>([]);
   const [selectedPESOPost, setSelectedPESOPost] = useState<PESOPost | null>(null);
   const [viewingImages, setViewingImages] = useState<string[] | null>(null);
   const [viewingImageIndex, setViewingImageIndex] = useState(0);
@@ -48,6 +83,12 @@ export default function HomeModule({
 
   useEffect(() => {
     let active = true;
+    setSeenPostIds(
+      readSeenIds(`job-seeker-seen-peso-posts-${seeker.job_seeker_id}`),
+    );
+    setSeenAnnouncementIds(
+      readSeenIds(`job-seeker-seen-peso-announcements-${seeker.job_seeker_id}`),
+    );
 
     const loadPESOPosts = async () => {
       const { data, error } = await supabase
@@ -73,7 +114,64 @@ export default function HomeModule({
     return () => {
       active = false;
     };
+  }, [seeker.job_seeker_id]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadAnnouncements = async () => {
+      const { data, error } = await supabase
+        .from("peso_announcements")
+        .select("id, title, message, created_at")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (!active) return;
+
+      if (error) {
+        console.error("Could not load PESO announcements:", error);
+        setAnnouncementsError(
+          "Announcements are temporarily unavailable. Please try again later.",
+        );
+      } else {
+        setAnnouncements((data ?? []) as PESOAnnouncement[]);
+      }
+
+      setAnnouncementsLoading(false);
+    };
+
+    void loadAnnouncements();
+    return () => {
+      active = false;
+    };
   }, []);
+
+  const markPESOUpdatesSeen = () => {
+    const ids = [...new Set([...seenPostIds, ...pesoPosts.map((post) => post.id)])];
+    setSeenPostIds(ids);
+    saveSeenIds(`job-seeker-seen-peso-posts-${seeker.job_seeker_id}`, ids);
+  };
+
+  const markAnnouncementsSeen = () => {
+    const ids = [
+      ...new Set([
+        ...seenAnnouncementIds,
+        ...announcements.map((announcement) => announcement.id),
+      ]),
+    ];
+    setSeenAnnouncementIds(ids);
+    saveSeenIds(
+      `job-seeker-seen-peso-announcements-${seeker.job_seeker_id}`,
+      ids,
+    );
+  };
+
+  const unseenPESOUpdates = pesoPosts.filter(
+    (post) => !seenPostIds.includes(post.id),
+  ).length;
+  const unseenAnnouncements = announcements.filter(
+    (announcement) => !seenAnnouncementIds.includes(announcement.id),
+  ).length;
 
   useEffect(() => {
     if (!selectedPESOPost && !viewingImages) return;
@@ -98,7 +196,7 @@ export default function HomeModule({
   }, [selectedPESOPost, viewingImages]);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
+    <div className="mx-auto max-w-6xl space-y-5">
 
       {/* Welcome Post */}
       <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
@@ -134,27 +232,52 @@ export default function HomeModule({
 
           <button
             type="button"
-            onClick={() => onNavigate("Jobs")}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+            onClick={() => {
+              markPESOUpdatesSeen();
+              document.getElementById("job-seeker-peso-updates")?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            }}
+            aria-label={`PESO Updates${unseenPESOUpdates ? `, ${unseenPESOUpdates} new` : ""}`}
+            className="relative flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-700"
           >
-            <AppIcon name="briefcase" className="h-5 w-5" />
-            Find Jobs
+            <span className="relative">
+              <AppIcon name="bell" className="h-5 w-5" />
+              {unseenPESOUpdates > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -right-1 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"
+                />
+              )}
+            </span>
+            PESO Updates
           </button>
 
           <div className="w-px bg-gray-200" />
 
           <button
             type="button"
-            onClick={() =>
-              document.getElementById("job-seeker-peso-updates")?.scrollIntoView({
+            onClick={() => {
+              markAnnouncementsSeen();
+              document.getElementById("job-seeker-announcements")?.scrollIntoView({
                 behavior: "smooth",
                 block: "start",
-              })
-            }
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+              });
+            }}
+            aria-label={`Announcements${unseenAnnouncements ? `, ${unseenAnnouncements} new` : ""}`}
+            className="relative flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-700"
           >
-            <AppIcon name="bell" className="h-5 w-5" />
-            PESO Updates
+            <span className="relative">
+              <AppIcon name="megaphone" className="h-5 w-5" />
+              {unseenAnnouncements > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -right-1 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"
+                />
+              )}
+            </span>
+            Announcements
           </button>
 
         </div>
@@ -259,6 +382,67 @@ export default function HomeModule({
                 </article>
               );
             })}
+          </div>
+        )}
+      </section>
+
+      <section
+        id="job-seeker-announcements"
+        className="mx-auto max-w-4xl scroll-mt-24 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+        aria-labelledby="job-seeker-announcements-heading"
+      >
+        <div className="mb-5">
+          <p className="text-xs font-bold uppercase tracking-widest text-red-600">
+            Important
+          </p>
+          <h2
+            id="job-seeker-announcements-heading"
+            className="mt-1 text-lg font-bold text-gray-900"
+          >
+            Announcements
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Important updates from PESO Mabini.
+          </p>
+        </div>
+
+        {announcementsLoading ? (
+          <p className="rounded-xl bg-gray-50 p-5 text-sm text-gray-500">
+            Loading announcements...
+          </p>
+        ) : announcementsError ? (
+          <p role="alert" className="rounded-xl bg-red-50 p-5 text-sm text-red-800">
+            {announcementsError}
+          </p>
+        ) : announcements.length === 0 ? (
+          <p className="rounded-xl bg-gray-50 p-5 text-sm text-gray-500">
+            There are no announcements at the moment.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {announcements.map((announcement) => (
+              <article
+                key={announcement.id}
+                className="rounded-xl border border-gray-200 p-4"
+              >
+                <time
+                  dateTime={announcement.created_at}
+                  className="text-xs text-gray-400"
+                >
+                  {new Date(announcement.created_at).toLocaleDateString("en-PH", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </time>
+                <h3 className="mt-2 font-bold text-gray-900">
+                  {announcement.title}
+                </h3>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-600">
+                  {announcement.message}
+                </p>
+              </article>
+            ))}
           </div>
         )}
       </section>
