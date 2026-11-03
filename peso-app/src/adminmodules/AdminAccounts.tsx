@@ -16,7 +16,6 @@ type Staff = {
 type StaffFormValues = {
   full_name: string;
   contact_no: string;
-  is_active: boolean;
 };
 
 type Permissions = {
@@ -163,7 +162,7 @@ export default function AdminAccounts() {
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
   const [editForm, setEditForm] = useState<StaffFormValues | null>(null);
   const [savingStaff, setSavingStaff] = useState(false);
-  const [deletingStaffId, setDeletingStaffId] = useState<string | null>(null);
+  const [updatingStaffStatusId, setUpdatingStaffStatusId] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
 
   /* =====================================================
@@ -511,7 +510,6 @@ export default function AdminAccounts() {
     setEditForm({
       full_name: account.full_name,
       contact_no: account.contact_no || "",
-      is_active: account.is_active,
     });
   };
 
@@ -529,7 +527,6 @@ export default function AdminAccounts() {
       .update({
         full_name: editForm.full_name.trim(),
         contact_no: editForm.contact_no.trim() || null,
-        is_active: editForm.is_active,
       })
       .eq("peso_staff_id", editingStaff.peso_staff_id)
       .select("peso_staff_id")
@@ -550,38 +547,44 @@ export default function AdminAccounts() {
     await loadStaff();
   };
 
-  const deleteStaffProfile = async (account: Staff) => {
+  const toggleStaffStatus = async (account: Staff) => {
+    const nextIsActive = !account.is_active;
     const confirmed = window.confirm(
-      `Remove ${account.full_name}'s PESO Staff profile? Their sign-in identity will remain, but they will no longer have staff access.`,
+      `${nextIsActive ? "Activate" : "Deactivate"} ${account.full_name}'s staff account? ${
+        nextIsActive
+          ? "They will be able to access the staff dashboard."
+          : "They will no longer be able to access the staff dashboard."
+      }`,
     );
     if (!confirmed) return;
 
     setActionError("");
-    setDeletingStaffId(account.peso_staff_id);
+    setUpdatingStaffStatusId(account.peso_staff_id);
 
     const { data, error } = await supabase
       .from("peso_staff")
-      .delete()
+      .update({ is_active: nextIsActive })
       .eq("peso_staff_id", account.peso_staff_id)
-      .select("peso_staff_id")
+      .select("peso_staff_id, is_active")
       .maybeSingle();
 
     if (error || !data) {
-      console.error("Staff profile removal error:", error);
+      console.error("Staff account status update error:", error);
       setActionError(
-        error?.message || "The staff profile could not be removed.",
+        error?.message || "The staff account status could not be updated.",
       );
-      setDeletingStaffId(null);
+      setUpdatingStaffStatusId(null);
       return;
     }
 
     setStaff((previous) =>
-      previous.filter(
-        (staffAccount) =>
-          staffAccount.peso_staff_id !== account.peso_staff_id,
+      previous.map((staffAccount) =>
+        staffAccount.peso_staff_id === data.peso_staff_id
+          ? { ...staffAccount, is_active: data.is_active }
+          : staffAccount,
       ),
     );
-    setDeletingStaffId(null);
+    setUpdatingStaffStatusId(null);
   };
 
   /* =====================================================
@@ -890,7 +893,7 @@ export default function AdminAccounts() {
                   <button
                     type="button"
                     onClick={() => openEditStaff(account)}
-                    disabled={deletingStaffId === account.peso_staff_id}
+                    disabled={updatingStaffStatusId !== null}
                     className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                   >
                     Edit Profile
@@ -898,20 +901,26 @@ export default function AdminAccounts() {
                   <button
                     type="button"
                     onClick={() => openPermissions(account)}
-                    disabled={deletingStaffId === account.peso_staff_id}
+                    disabled={updatingStaffStatusId !== null}
                     className="rounded-xl bg-[#FED442] px-4 py-3 text-sm font-bold text-[#123B70] transition hover:bg-yellow-400 disabled:opacity-50"
                   >
                     Manage Access
                   </button>
                   <button
                     type="button"
-                    onClick={() => void deleteStaffProfile(account)}
-                    disabled={deletingStaffId === account.peso_staff_id}
-                    className="rounded-xl border border-red-200 px-4 py-3 text-sm font-bold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+                    onClick={() => void toggleStaffStatus(account)}
+                    disabled={updatingStaffStatusId !== null}
+                    className={`rounded-xl border px-4 py-3 text-sm font-bold transition disabled:opacity-50 ${
+                      account.is_active
+                        ? "border-red-200 text-red-700 hover:bg-red-50"
+                        : "border-green-200 text-green-700 hover:bg-green-50"
+                    }`}
                   >
-                    {deletingStaffId === account.peso_staff_id
-                      ? "Removing..."
-                      : "Remove Profile"}
+                    {updatingStaffStatusId === account.peso_staff_id
+                      ? "Updating..."
+                      : account.is_active
+                        ? "Deactivate Account"
+                        : "Activate Account"}
                   </button>
                 </div>
 
@@ -935,7 +944,7 @@ export default function AdminAccounts() {
                   Edit Staff Profile
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Update profile details and staff access status.
+                  Update the staff member's profile details.
                 </p>
               </div>
               {editingStaff.user_id && (
@@ -993,18 +1002,6 @@ export default function AdminAccounts() {
                 />
               </label>
 
-              <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={editForm.is_active}
-                  onChange={(event) =>
-                    setEditForm({ ...editForm, is_active: event.target.checked })
-                  }
-                  disabled={savingStaff}
-                  className="h-4 w-4 rounded border-slate-300 accent-[#0759AE]"
-                />
-                Active staff account
-              </label>
             </div>
 
             <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-4">
