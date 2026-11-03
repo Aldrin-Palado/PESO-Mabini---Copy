@@ -285,15 +285,52 @@ export default function AIChatbotModule({
           Message the PESO MABINI AI assistant
         </label>
         <div className="flex gap-2">
-          <input
-            id="peso-ai-message"
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            maxLength={1000}
-            placeholder="Type your question..."
-            disabled={loading}
-            className="min-w-0 flex-1 rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#0759AE] focus:ring-2 focus:ring-[#0759AE]/15 disabled:bg-slate-100"
-          />
+          <div className="relative min-w-0 flex-1">
+            <input
+              ref={resumeInputRef}
+              id="peso-ai-resume"
+              type="file"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              disabled={loading}
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                setResumeFile(file);
+                setResumeAuthorized(false);
+                setError("");
+              }}
+              className="sr-only"
+            />
+            <button
+              type="button"
+              onClick={() => resumeInputRef.current?.click()}
+              disabled={loading}
+              aria-label="Attach resume"
+              title="Attach resume"
+              className="absolute left-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-[#0759AE] disabled:opacity-50"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-5 w-5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m21.4 11.1-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l9.2-9.2a3.7 3.7 0 0 1 5.2 5.2l-9.2 9.2a1.8 1.8 0 0 1-2.6-2.6l8.5-8.5" />
+              </svg>
+            </button>
+            <input
+              id="peso-ai-message"
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              maxLength={1000}
+              placeholder="Type your question..."
+              disabled={loading}
+              className="min-w-0 w-full rounded-xl border border-slate-300 py-3 pl-12 pr-4 text-sm outline-none transition focus:border-[#0759AE] focus:ring-2 focus:ring-[#0759AE]/15 disabled:bg-slate-100"
+            />
+          </div>
           <button
             type="submit"
             disabled={
@@ -306,43 +343,8 @@ export default function AIChatbotModule({
             Send
           </button>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <input
-            ref={resumeInputRef}
-            id="peso-ai-resume"
-            type="file"
-            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            disabled={loading}
-            onChange={(event) => {
-              const file = event.target.files?.[0] ?? null;
-              setResumeFile(file);
-              setResumeAuthorized(false);
-              setError("");
-            }}
-            className="sr-only"
-          />
-          <button
-            type="button"
-            onClick={() => resumeInputRef.current?.click()}
-            disabled={loading}
-            aria-label="Attach resume"
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="h-4 w-4"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="m21.4 11.1-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l9.2-9.2a3.7 3.7 0 0 1 5.2 5.2l-9.2 9.2a1.8 1.8 0 0 1-2.6-2.6l8.5-8.5" />
-            </svg>
-            Attach resume
-          </button>
-          {resumeFile && (
+        {resumeFile && (
+          <div className="mt-2 flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={() => {
@@ -355,8 +357,8 @@ export default function AIChatbotModule({
             >
               {resumeFile.name} — remove
             </button>
-          )}
-        </div>
+          </div>
+        )}
         {resumeFile && (
           <label className="mt-3 flex items-start gap-2.5 text-xs leading-5 text-slate-600">
             <input
