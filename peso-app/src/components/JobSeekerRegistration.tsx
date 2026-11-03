@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthSideImage from "./AuthSideImage";
 import EmployerRegistration from "./EmployerRegistration";
@@ -13,7 +13,6 @@ function Register() {
   const [accountType, setAccountType] = useState("jobseeker");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
@@ -29,15 +28,6 @@ function Register() {
       [event.target.name]: event.target.value,
     }));
   };
-
-  useEffect(() => {
-    if (!showTerms) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setShowTerms(false);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showTerms]);
 
   if (accountType === "employer") {
     return <EmployerRegistration onBack={() => setAccountType("jobseeker")} />;
@@ -259,16 +249,9 @@ function Register() {
                   required
                   className="mt-1 h-4 w-4 rounded border-slate-300 accent-[#315FEA] focus:ring-[#315FEA]"
                 />
-                <span className="text-sm text-slate-600">
-                  I agree to the{" "}
-                  <button
-                    type="button"
-                    onClick={() => setShowTerms(true)}
-                    className="font-semibold text-[#315FEA] underline decoration-[#315FEA]/50 underline-offset-2 hover:text-[#123B70]"
-                  >
-                    terms and conditions
-                  </button>{" "}
-                  of PESO-Mabini
+                <span className="text-sm text-slate-500">
+                  I agree to the PESO MABINI terms and conditions and understand
+                  that my information will be used for employment services.
                 </span>
               </label>
 
@@ -302,118 +285,6 @@ function Register() {
           </div>
         </section>
       </main>
-      {showTerms && (
-        <div
-          className="fixed inset-0 z-[120] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setShowTerms(false);
-          }}
-        >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="peso-terms-title"
-            className="my-auto max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl"
-          >
-            <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-5 sm:px-7">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-[#315FEA]">
-                  PESO-Mabini
-                </p>
-                <h2 id="peso-terms-title" className="mt-1 text-2xl font-bold text-[#102A4C]">
-                  Terms and Conditions
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Please read these terms before creating your account.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowTerms(false)}
-                aria-label="Close terms and conditions"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-2xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-              >
-                ×
-              </button>
-            </header>
-            <div className="max-h-[calc(90vh-160px)] space-y-5 overflow-y-auto px-5 py-6 text-sm leading-6 text-slate-600 sm:px-7">
-              <section>
-                <h3 className="font-bold text-slate-900">1. Using PESO-Mabini</h3>
-                <p className="mt-1">
-                  The PESO-Mabini portal supports job seekers in finding employment
-                  opportunities and connecting with employers. You agree to use the
-                  portal only for lawful job-search and employment-related purposes.
-                </p>
-              </section>
-              <section>
-                <h3 className="font-bold text-slate-900">2. Your account and information</h3>
-                <p className="mt-1">
-                  Provide accurate, current information and keep your sign-in
-                  credentials secure. Update your profile when your contact or
-                  employment information changes. You are responsible for activity
-                  carried out through your account.
-                </p>
-              </section>
-              <section>
-                <h3 className="font-bold text-slate-900">3. Applications and communications</h3>
-                <p className="mt-1">
-                  When you apply for a job, the information and documents you submit
-                  may be made available to the employer for recruitment and
-                  application review. Keep application details truthful and do not
-                  submit information or documents that you are not authorized to
-                  share.
-                </p>
-              </section>
-              <section>
-                <h3 className="font-bold text-slate-900">4. Respectful and appropriate use</h3>
-                <p className="mt-1">
-                  Do not misuse the portal, interfere with its operation, impersonate
-                  another person, or post unlawful, misleading, abusive, or
-                  unauthorized material. PESO-Mabini may restrict access when
-                  necessary to protect users or the service.
-                </p>
-              </section>
-              <section>
-                <h3 className="font-bold text-slate-900">5. Employment opportunities</h3>
-                <p className="mt-1">
-                  Job details are provided to help you evaluate opportunities.
-                  Applying does not guarantee an interview, employment, or placement.
-                  Confirm important job and employer details directly before making
-                  decisions.
-                </p>
-              </section>
-              <section>
-                <h3 className="font-bold text-slate-900">6. Personal information</h3>
-                <p className="mt-1">
-                  Information you provide is used to operate employment services,
-                  support your applications, and communicate with you. Information
-                  included in an application is shared with the relevant employer.
-                  Handle personal information responsibly and consult the applicable
-                  PESO-Mabini privacy notice for details about its collection and
-                  handling.
-                </p>
-              </section>
-              <section>
-                <h3 className="font-bold text-slate-900">7. Changes and acceptance</h3>
-                <p className="mt-1">
-                  These terms may be updated as the portal or its services change.
-                  By checking the agreement box and creating an account, you confirm
-                  that you have read and agree to these terms.
-                </p>
-              </section>
-            </div>
-            <footer className="flex justify-end border-t border-slate-100 px-5 py-4 sm:px-7">
-              <button
-                type="button"
-                onClick={() => setShowTerms(false)}
-                className="rounded-xl bg-[#315FEA] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#244FD4]"
-              >
-                Close
-              </button>
-            </footer>
-          </section>
-        </div>
-      )}
     </div>
   );
 }

@@ -907,30 +907,35 @@ export default function AdminDashboard() {
     );
   };
 
-  const setEmployerActive = async (
-    employerId: string,
-    isActive: boolean,
-  ) => {
+  const deleteEmployer = async (employerId: string) => {
     const { data, error } = await supabase
       .from("employer")
-      .update({ is_active: isActive })
+      .delete()
       .eq("employer_id", employerId)
-      .select("*")
+      .select("employer_id")
       .maybeSingle();
 
     if (error) {
-      console.error("Employer account status update error:", error);
-      throw new Error(`Employer account status could not be updated: ${error.message}`);
+      console.error("Employer deletion error:", error);
+      throw new Error(`Employer could not be deleted: ${error.message}`);
     }
     if (!data) {
-      throw new Error("Employer account status was not updated because the record no longer exists.");
+      throw new Error("Employer was not deleted because the record no longer exists.");
     }
 
     setEmployers((current) =>
-      current.map((employer) =>
-        employer.employer_id === employerId ? data : employer,
-      ),
+      current.filter((employer) => employer.employer_id !== employerId),
     );
+    setJobPosts((current) =>
+      current.filter((job) => job.employer_id !== employerId),
+    );
+    setApplications((current) =>
+      current.filter((application) => application.employer_id !== employerId),
+    );
+    setCounts((current) => ({
+      ...current,
+      employers: Math.max(0, current.employers - 1),
+    }));
   };
 
   const updateJobSeeker = async (
@@ -1452,7 +1457,7 @@ export default function AdminDashboard() {
             loading={moduleLoading}
             onRefresh={loadEmployers}
             onUpdate={updateEmployer}
-            onSetActive={setEmployerActive}
+            onDelete={deleteEmployer}
             ModuleHeader={ModuleHeader}
             LoadingMessage={LoadingMessage}
             EmptyMessage={EmptyMessage}

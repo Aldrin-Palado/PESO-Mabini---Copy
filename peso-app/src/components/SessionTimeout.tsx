@@ -22,9 +22,6 @@ function SessionTimeout() {
     let monitoredStaffUserId: string | null = null;
     let staffStatusCheckTimer: number | undefined;
     let checkingStaffStatus = false;
-    let monitoredEmployerUserId: string | null = null;
-    let employerStatusCheckTimer: number | undefined;
-    let checkingEmployerStatus = false;
 
     const getStorageKey = (id: string) => `${STORAGE_KEY_PREFIX}${id}`;
 
@@ -32,14 +29,6 @@ function SessionTimeout() {
       if (expirationTimer !== undefined) {
         window.clearTimeout(expirationTimer);
         expirationTimer = undefined;
-      }
-    };
-
-    const stopEmployerStatusMonitoring = () => {
-      monitoredEmployerUserId = null;
-      if (employerStatusCheckTimer !== undefined) {
-        window.clearInterval(employerStatusCheckTimer);
-        employerStatusCheckTimer = undefined;
       }
     };
 
@@ -101,60 +90,6 @@ function SessionTimeout() {
       staffStatusCheckTimer = window.setInterval(() => {
         if (document.visibilityState === "visible") {
           void checkStaffStatus(id);
-        }
-      }, STAFF_STATUS_CHECK_INTERVAL_MS);
-    };
-
-    const checkEmployerStatus = async (id: string) => {
-      if (
-        disposed ||
-        checkingEmployerStatus ||
-        monitoredEmployerUserId !== id
-      ) {
-        return;
-      }
-
-      checkingEmployerStatus = true;
-      try {
-        const { data: employer, error } = await supabase
-          .from("employer")
-          .select("is_active")
-          .eq("user_id", id)
-          .maybeSingle();
-
-        if (error) {
-          console.error("Could not verify Employer account status:", error);
-          return;
-        }
-
-        if (
-          monitoredEmployerUserId !== id ||
-          employer?.is_active === true
-        ) {
-          return;
-        }
-
-        stopEmployerStatusMonitoring();
-        const { error: signOutError } = await supabase.auth.signOut();
-        if (signOutError) {
-          console.error("Could not sign out inactive Employer account:", signOutError);
-        }
-
-        if (!disposed) {
-          alert("This Employer account is inactive. Please contact PESO Mabini.");
-          navigate("/login", { replace: true });
-        }
-      } finally {
-        checkingEmployerStatus = false;
-      }
-    };
-
-    const startEmployerStatusMonitoring = (id: string) => {
-      stopEmployerStatusMonitoring();
-      monitoredEmployerUserId = id;
-      employerStatusCheckTimer = window.setInterval(() => {
-        if (document.visibilityState === "visible") {
-          void checkEmployerStatus(id);
         }
       }, STAFF_STATUS_CHECK_INTERVAL_MS);
     };
@@ -225,9 +160,6 @@ function SessionTimeout() {
       if (monitoredStaffUserId && monitoredStaffUserId !== id) {
         stopStaffStatusMonitoring();
       }
-      if (monitoredEmployerUserId && monitoredEmployerUserId !== id) {
-        stopEmployerStatusMonitoring();
-      }
 
       if (
         !resetActivity &&
@@ -256,7 +188,6 @@ function SessionTimeout() {
       if (admin) {
         if (checkVersion === sessionCheckVersion) {
           stopStaffStatusMonitoring();
-          stopEmployerStatusMonitoring();
           skippedUserId = id;
           clearSession();
         }
@@ -312,7 +243,7 @@ function SessionTimeout() {
 
       const { data: employer, error: employerError } = await supabase
         .from("employer")
-        .select("employer_id, is_active")
+        .select("employer_id")
         .eq("user_id", id)
         .maybeSingle();
 
@@ -323,29 +254,10 @@ function SessionTimeout() {
 
       if (checkVersion !== sessionCheckVersion) return;
 
-      if (employer && !employer.is_active) {
-        skippedUserId = id;
-        const { error: signOutError } = await supabase.auth.signOut();
-        if (signOutError) {
-          console.error("Could not sign out inactive Employer account:", signOutError);
-        }
-        if (!disposed) {
-          alert("This Employer account is inactive. Please contact PESO Mabini.");
-          navigate("/login", { replace: true });
-        }
-        return;
-      }
-
       if (!jobSeeker && !employer) {
         skippedUserId = id;
         clearSession();
         return;
-      }
-
-      if (employer) {
-        startEmployerStatusMonitoring(id);
-      } else {
-        stopEmployerStatusMonitoring();
       }
 
       userId = id;
@@ -430,9 +342,6 @@ function SessionTimeout() {
         if (monitoredStaffUserId) {
           void checkStaffStatus(monitoredStaffUserId);
         }
-        if (monitoredEmployerUserId) {
-          void checkEmployerStatus(monitoredEmployerUserId);
-        }
       }
     };
 
@@ -447,7 +356,6 @@ function SessionTimeout() {
         if (event === "SIGNED_OUT") {
           skippedUserId = null;
           stopStaffStatusMonitoring();
-          stopEmployerStatusMonitoring();
           clearSession();
         } else if (session?.user) {
           void activateSession(session.user.id, event === "SIGNED_IN");
@@ -479,7 +387,6 @@ function SessionTimeout() {
       disposed = true;
       clearTimer();
       stopStaffStatusMonitoring();
-      stopEmployerStatusMonitoring();
       authListener.subscription.unsubscribe();
       document.removeEventListener("pointerdown", recordActivity);
       document.removeEventListener("pointermove", recordActivity);

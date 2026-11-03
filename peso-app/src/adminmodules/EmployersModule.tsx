@@ -1,17 +1,8 @@
 import React, { useState, type FormEvent } from "react";
-import { supabase } from "../services/supabase";
-import AppIcon from "../components/AppIcon";
-
-type VerificationDocument = {
-  label: string;
-  file_name: string;
-  storage_path: string;
-};
 
 type Employer = {
   id?: string;
   employer_id?: string;
-  user_id?: string | null;
   company_name?: string;
   business_name?: string;
   full_name?: string;
@@ -25,9 +16,6 @@ type Employer = {
   is_verified?: boolean;
   status?: string;
   created_at?: string;
-  updated_at?: string;
-  logo_url?: string | null;
-  verification_documents?: VerificationDocument[] | null;
   [key: string]: any;
 };
 
@@ -43,7 +31,7 @@ type Props = {
     employerId: string,
     values: EmployerFormValues,
   ) => Promise<void>;
-  onSetActive: (employerId: string, isActive: boolean) => Promise<void>;
+  onDelete: (employerId: string) => Promise<void>;
 
   ModuleHeader: React.ComponentType<{
     title: string;
@@ -75,7 +63,7 @@ export default function EmployersModule({
   loading,
   onRefresh,
   onUpdate,
-  onSetActive,
+  onDelete,
   ModuleHeader,
   LoadingMessage,
   EmptyMessage,
@@ -83,30 +71,16 @@ export default function EmployersModule({
   const [editingEmployer, setEditingEmployer] = useState<Employer | null>(null);
   const [formValues, setFormValues] = useState<EmployerFormValues | null>(null);
   const [saving, setSaving] = useState(false);
-  const [updatingActiveId, setUpdatingActiveId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [appliedStatusFilter, setAppliedStatusFilter] = useState("all");
-  const [accountFilter, setAccountFilter] = useState("all");
-  const [appliedAccountFilter, setAppliedAccountFilter] = useState("all");
-  const [documentsEmployer, setDocumentsEmployer] = useState<Employer | null>(null);
-  const [signedDocuments, setSignedDocuments] = useState<
-    Array<VerificationDocument & { url: string }>
-  >([]);
-  const [documentsLoading, setDocumentsLoading] = useState(false);
 
   const visibleEmployers = employers.filter((employer) => {
-    const matchesVerification =
-      appliedStatusFilter === "all" ||
-      (appliedStatusFilter === "verified"
-        ? employer.is_verified === true
-        : employer.is_verified !== true);
-    const matchesAccount =
-      appliedAccountFilter === "all" ||
-      (appliedAccountFilter === "active"
-        ? employer.is_active !== false
-        : employer.is_active === false);
-    return matchesVerification && matchesAccount;
+    if (appliedStatusFilter === "all") return true;
+    return appliedStatusFilter === "verified"
+      ? employer.is_verified === true
+      : employer.is_verified !== true;
   });
 
   const startEditing = (employer: Employer) => {
@@ -142,38 +116,7 @@ export default function EmployersModule({
     }
   };
 
-  const viewVerificationDocuments = async (employer: Employer) => {
-    const documents = employer.verification_documents ?? [];
-    setDocumentsEmployer(employer);
-    setSignedDocuments([]);
-    setDocumentsLoading(true);
-    setActionError("");
-
-    try {
-      const signed = await Promise.all(
-        documents.map(async (document) => {
-          const { data, error } = await supabase.storage
-            .from("employer-verification-documents")
-            .createSignedUrl(document.storage_path, 300);
-          if (error) {
-            throw new Error(`Could not open ${document.label}: ${error.message}`);
-          }
-          return { ...document, url: data.signedUrl };
-        }),
-      );
-      setSignedDocuments(signed);
-    } catch (error) {
-      setActionError(
-        error instanceof Error
-          ? error.message
-          : "Employer documents could not be opened.",
-      );
-    } finally {
-      setDocumentsLoading(false);
-    }
-  };
-
-  const toggleEmployerActive = async (employer: Employer) => {
+  const deleteEmployer = async (employer: Employer) => {
     const employerId = employer.employer_id;
     if (!employerId) return;
     const name =
@@ -181,27 +124,21 @@ export default function EmployersModule({
       employer.company_name ||
       employer.business_name ||
       "this employer";
-    const isActive = employer.is_active !== false;
-    const action = isActive ? "deactivate" : "activate";
     const confirmed = window.confirm(
-      `${action === "deactivate" ? "Deactivate" : "Activate"} ${name}'s account? ${
-        isActive
-          ? "They will no longer be able to access the employer portal."
-          : "They will be able to access the employer portal again."
-      }`,
+      `Delete ${name}'s profile? This permanently deletes their job posts and applications. Their sign-in account may remain active.`,
     );
     if (!confirmed) return;
 
-    setUpdatingActiveId(employerId);
+    setDeletingId(employerId);
     setActionError("");
     try {
-      await onSetActive(employerId, !isActive);
+      await onDelete(employerId);
     } catch (error) {
       setActionError(
-        error instanceof Error ? error.message : "Unable to update employer account status.",
+        error instanceof Error ? error.message : "Unable to delete employer.",
       );
     } finally {
-      setUpdatingActiveId(null);
+      setDeletingId(null);
     }
   };
 
@@ -226,7 +163,7 @@ export default function EmployersModule({
         </p>
       )}
 
-      <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.4fr)_minmax(160px,1fr)_minmax(160px,1fr)_auto] xl:items-end">
+      <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(180px,1fr)_auto] lg:items-end">
         <label className="block text-[11px] font-semibold text-slate-600">
           Search (Name / Email / Phone)
           <input
@@ -237,7 +174,7 @@ export default function EmployersModule({
           />
         </label>
         <label className="block text-[11px] font-semibold text-slate-600">
-          Verification status
+          Status
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
@@ -248,18 +185,6 @@ export default function EmployersModule({
             <option value="pending">Pending verification</option>
           </select>
         </label>
-        <label className="block text-[11px] font-semibold text-slate-600">
-          Account status
-          <select
-            value={accountFilter}
-            onChange={(event) => setAccountFilter(event.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-xs font-normal text-slate-800"
-          >
-            <option value="all">All accounts</option>
-            <option value="active">Active</option>
-            <option value="deactivated">Deactivated</option>
-          </select>
-        </label>
         <div className="flex justify-end gap-2">
           <button
             type="button"
@@ -267,8 +192,6 @@ export default function EmployersModule({
               setSearch("");
               setStatusFilter("all");
               setAppliedStatusFilter("all");
-              setAccountFilter("all");
-              setAppliedAccountFilter("all");
             }}
             className="rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
           >
@@ -276,10 +199,7 @@ export default function EmployersModule({
           </button>
           <button
             type="button"
-            onClick={() => {
-              setAppliedStatusFilter(statusFilter);
-              setAppliedAccountFilter(accountFilter);
-            }}
+            onClick={() => setAppliedStatusFilter(statusFilter)}
             className="rounded-md border border-blue-200 px-3 py-2 text-xs font-semibold text-[#0759AE] hover:bg-blue-50"
           >
             Apply Filters
@@ -312,23 +232,20 @@ export default function EmployersModule({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] table-fixed">
-              <thead className="bg-gradient-to-r from-[#1766B4] to-[#124A91] text-left">
+            <table className="w-full min-w-[600px] table-fixed xl:min-w-0">
+              <thead className="bg-slate-50 text-left">
                 <tr>
                   {[
-                    ["Company", "w-[18%]"],
-                    ["Email", "w-[18%]"],
-                    ["Contact Person", "w-[14%]"],
-                    ["Phone", "w-[12%]"],
-                    ["Location", "w-[17%]"],
-                    ["Status", "w-[11%]"],
-                    ["Actions", "w-[20%]"],
+                    ["Company", "w-[22%] xl:w-[19%]"],
+                    ["Email", "w-[24%] xl:w-[18%]"],
+                    ["Contact Person", "hidden w-[14%] xl:table-cell"],
+                    ["Phone", "w-[14%] xl:w-[13%]"],
+                    ["Location", "w-[18%] xl:w-[15%]"],
+                    ["Status", "w-[10%]"],
+                    ["Actions", "w-[12%] xl:w-[11%]"],
                   ].map(([label, width]) => (
-                    <th key={label} className={`${width} px-3 py-4 text-[10px] font-bold uppercase tracking-wide text-white`}>
-                      <span className="inline-flex items-center gap-1">
-                        {label}
-                        <span aria-hidden="true" className="text-blue-200/80">↕</span>
-                      </span>
+                    <th key={label} className={`${width} px-2 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500`}>
+                      {label}
                     </th>
                   ))}
                 </tr>
@@ -354,89 +271,49 @@ export default function EmployersModule({
                           employer.employer_id ||
                           index
                         }
-                        className={`align-middle transition hover:bg-blue-50/70 ${
-                          index % 2 === 0 ? "bg-white" : "bg-blue-50/50"
-                        } ${employer.is_active === false ? "opacity-70" : ""}`}
+                        className="align-middle hover:bg-slate-50"
                       >
-                        <td className="px-3 py-3.5">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-[#1766B4]">
-                              <AppIcon name="building" className="h-5 w-5" />
-                            </span>
-                            <span className="truncate text-sm font-bold text-slate-900" title={name}>
-                              {name}
-                            </span>
-                          </div>
+                        <td className="truncate px-2 py-2 text-[11px] font-semibold text-slate-800" title={name}>
+                          {name}
                         </td>
-                        <td className="truncate px-3 py-3.5 text-sm text-slate-700" title={employer.email || ""}>
+                        <td className="truncate px-2 py-2 text-[10px] text-slate-600" title={employer.email || ""}>
                           {employer.email || "-"}
                         </td>
-                        <td className="truncate px-3 py-3.5 text-sm text-slate-700" title={employer.contact_person || ""}>
+                        <td className="hidden truncate px-2 py-2 text-[10px] text-slate-600 xl:table-cell" title={employer.contact_person || ""}>
                           {employer.contact_person || "-"}
                         </td>
-                        <td className="truncate px-3 py-3.5 text-sm text-slate-700">
+                        <td className="truncate px-2 py-2 text-[10px] text-slate-600">
                           {employer.contact_no || employer.phone || "-"}
                         </td>
-                        <td className="px-3 py-3.5 text-sm text-slate-700" title={employer.address || ""}>
-                          <span className="flex items-start gap-2">
-                            <AppIcon name="mapPin" className="mt-0.5 h-4 w-4 shrink-0 text-[#1766B4]" />
-                            <span className="line-clamp-2">{employer.address || "-"}</span>
+                        <td className="truncate px-2 py-2 text-[10px] text-slate-600" title={employer.address || ""}>
+                          {employer.address || "-"}
+                        </td>
+                        <td className="px-2 py-2">
+                          <span title={status} className={`inline-flex max-w-full truncate rounded-full px-2 py-1 text-[10px] font-semibold ${
+                            employer.is_verified
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-amber-50 text-amber-700"
+                          }`}>
+                            {status}
                           </span>
                         </td>
                         <td className="px-2 py-2">
-                          <div className="flex flex-col items-start gap-1.5">
-                            <span title={status} className={`inline-flex max-w-full items-center gap-1.5 truncate rounded-full px-3 py-2 text-xs font-bold ${
-                              employer.is_verified
-                                ? "bg-emerald-100 text-emerald-800"
-                                : "bg-amber-100 text-amber-800"
-                            }`}>
-                              <AppIcon name={employer.is_verified ? "check" : "clock"} className="h-3.5 w-3.5 shrink-0" />
-                              {status}
-                            </span>
-                            <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                              employer.is_active === false
-                                ? "bg-slate-200 text-slate-700"
-                                : "bg-blue-100 text-blue-800"
-                            }`}>
-                              {employer.is_active === false ? "Deactivated" : "Active"}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-2 py-2">
-                          <div className="flex flex-wrap items-center gap-1.5">
+                          <div className="flex flex-wrap items-center gap-1">
                             <button
                               type="button"
                               onClick={() => startEditing(employer)}
-                              disabled={!employer.employer_id || updatingActiveId === employer.employer_id}
-                              className="inline-flex items-center gap-1 rounded-lg border border-blue-300 bg-white px-2.5 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                              disabled={!employer.employer_id || deletingId === employer.employer_id}
+                              className="rounded-md border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                             >
-                              <AppIcon name="wrench" className="h-3.5 w-3.5" />
                               Edit
                             </button>
                             <button
                               type="button"
-                              onClick={() => void viewVerificationDocuments(employer)}
-                              disabled={documentsLoading}
-                              className="inline-flex items-center gap-1 rounded-lg border border-blue-300 bg-white px-2.5 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                              onClick={() => void deleteEmployer(employer)}
+                              disabled={!employer.employer_id || deletingId === employer.employer_id}
+                              className="rounded-md border border-red-200 px-2 py-1 text-[10px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
                             >
-                              <AppIcon name="file" className="h-3.5 w-3.5" />
-                              Details
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void toggleEmployerActive(employer)}
-                              disabled={!employer.employer_id || updatingActiveId === employer.employer_id}
-                              className={`rounded-lg border px-2.5 py-2 text-xs font-semibold disabled:opacity-50 ${
-                                employer.is_active === false
-                                  ? "border-emerald-300 bg-white text-emerald-700 hover:bg-emerald-50"
-                                  : "border-orange-300 bg-white text-orange-700 hover:bg-orange-50"
-                              }`}
-                            >
-                              {updatingActiveId === employer.employer_id
-                                ? "Saving..."
-                                : employer.is_active === false
-                                  ? "Activate"
-                                  : "Deactivate"}
+                              {deletingId === employer.employer_id ? "..." : "Delete"}
                             </button>
                           </div>
                         </td>
@@ -547,103 +424,6 @@ export default function EmployersModule({
               </button>
             </div>
           </form>
-        </div>
-      )}
-
-      {documentsEmployer && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setDocumentsEmployer(null);
-          }}
-        >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="employer-details-title"
-            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 id="employer-details-title" className="text-lg font-bold text-slate-900">
-                  Employer details
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  {documentsEmployer.name || documentsEmployer.company_name || "Employer"}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDocumentsEmployer(null)}
-                aria-label="Close verification documents"
-                className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-slate-500 hover:bg-slate-100"
-              >
-                ×
-              </button>
-            </div>
-            <section aria-labelledby="employer-profile-details" className="mt-5">
-              <h3 id="employer-profile-details" className="text-sm font-bold text-slate-800">
-                Company and contact information
-              </h3>
-              <dl className="mt-3 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
-                {[
-                  ["Company name", documentsEmployer.name || documentsEmployer.company_name || documentsEmployer.business_name || documentsEmployer.full_name],
-                  ["Employer ID", documentsEmployer.employer_id],
-                  ["Company email", documentsEmployer.email],
-                  ["Owner / representative", documentsEmployer.contact_person],
-                  ["Contact number", documentsEmployer.contact_no || documentsEmployer.phone],
-                  ["Business address", documentsEmployer.address],
-                  ["Verification status", documentsEmployer.is_verified ? "Verified" : "Pending verification"],
-                  ["Registered on", documentsEmployer.created_at ? new Date(documentsEmployer.created_at).toLocaleString("en-PH") : null],
-                  ["Last updated", documentsEmployer.updated_at ? new Date(documentsEmployer.updated_at).toLocaleString("en-PH") : null],
-                ].map(([label, value]) => (
-                  <div key={label} className={label === "Business address" ? "sm:col-span-2" : ""}>
-                    <dt className="text-xs font-semibold text-slate-500">{label}</dt>
-                    <dd className="mt-1 break-words text-sm text-slate-800">{value || "Not provided"}</dd>
-                  </div>
-                ))}
-              </dl>
-            </section>
-            <section aria-labelledby="employer-verification-documents" className="mt-6">
-              <h3 id="employer-verification-documents" className="text-sm font-bold text-slate-800">
-                Verification attachments
-              </h3>
-            {documentsLoading ? (
-              <p className="py-8 text-center text-sm text-slate-500">Preparing secure document links...</p>
-            ) : signedDocuments.length === 0 ? (
-              <p className="py-8 text-center text-sm text-slate-500">
-                No verification documents have been uploaded.
-              </p>
-            ) : (
-              <ul className="mt-5 divide-y divide-slate-100">
-                {signedDocuments.map((document) => (
-                  <li
-                    key={document.storage_path}
-                    className="flex items-center justify-between gap-4 py-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-800">{document.label}</p>
-                      <p className="truncate text-xs text-slate-500">{document.file_name}</p>
-                    </div>
-                    <a
-                      href={document.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
-                    >
-                      Open file
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-            </section>
-            {actionError && (
-              <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-                {actionError}
-              </p>
-            )}
-          </section>
         </div>
       )}
 
