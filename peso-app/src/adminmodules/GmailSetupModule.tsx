@@ -22,7 +22,9 @@ export default function GmailSetupModule() {
   const [status, setStatus] = useState<GmailSetupStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [authorizing, setAuthorizing] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   const loadStatus = useCallback(async () => {
     setLoading(true);
@@ -46,6 +48,7 @@ export default function GmailSetupModule() {
   const authorize = async () => {
     setAuthorizing(true);
     setError("");
+    setNotice("");
     const { data, error: startError } = await supabase.functions.invoke<{
       authorization_url?: string;
       url?: string;
@@ -77,6 +80,45 @@ export default function GmailSetupModule() {
     }
 
     window.location.assign(parsedUrl.toString());
+  };
+
+  const disconnect = async () => {
+    if (
+      !window.confirm(
+        "Log out and disconnect the official Gmail account from PESO-Hub? Gmail message sending and synchronization will stop.",
+      )
+    ) {
+      return;
+    }
+
+    setDisconnecting(true);
+    setError("");
+    setNotice("");
+    const { data, error: disconnectError } = await supabase.functions.invoke<{
+      disconnected?: boolean;
+      google_revoked?: boolean;
+      warning?: string;
+      error?: string;
+    }>("gmail-oauth-disconnect", { body: {} });
+
+    if (disconnectError || !data?.disconnected) {
+      setError(
+        data?.error ||
+          disconnectError?.message ||
+          "Could not disconnect the Gmail account.",
+      );
+    } else {
+      if (data.warning) setNotice(data.warning);
+      else if (!data.google_revoked) {
+        setNotice(
+          "Gmail was disconnected from PESO-Hub. Google did not confirm revoking authorization.",
+        );
+      } else {
+        setNotice("Gmail has been logged out and disconnected from PESO-Hub.");
+      }
+      await loadStatus();
+    }
+    setDisconnecting(false);
   };
 
   return (
@@ -112,17 +154,27 @@ export default function GmailSetupModule() {
             Check setup status again
           </button>
         ) : status?.connected ? (
-          <div className="space-y-2">
-            <p className="font-bold text-emerald-800">
-              Official Gmail account authorized
-            </p>
-            <p className="text-sm text-slate-700">{status.account}</p>
-            <p className="text-sm text-slate-500">
-              Background synchronization is active.
-              {status.watch_expires_at
-                ? ` Notifications renew automatically; next watch expiration is ${new Date(status.watch_expires_at).toLocaleString()}.`
-                : ""}
-            </p>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <p className="font-bold text-emerald-800">
+                Official Gmail account logged in
+              </p>
+              <p className="text-sm text-slate-700">{status.account}</p>
+              <p className="text-sm text-slate-500">
+                Background synchronization is active.
+                {status.watch_expires_at
+                  ? ` Notifications renew automatically; next watch expiration is ${new Date(status.watch_expires_at).toLocaleString()}.`
+                  : ""}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void disconnect()}
+              disabled={disconnecting}
+              className="rounded-xl border border-red-200 px-4 py-2.5 text-sm font-bold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+            >
+              {disconnecting ? "Logging out..." : "Log out of Gmail"}
+            </button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -140,12 +192,20 @@ export default function GmailSetupModule() {
               {authorizing
                 ? "Opening Google..."
                 : status?.previously_authorized
-                ? "Complete Gmail authorization"
-                : "Authorize PESO Gmail"}
+                ? "Log in to Gmail again"
+                : "Log in to Gmail"}
             </button>
           </div>
         )}
       </div>
+      {notice && (
+        <p
+          role="status"
+          className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800"
+        >
+          {notice}
+        </p>
+      )}
       {status?.configuration && (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="font-bold text-[#123B70]">Background service checks</h2>

@@ -454,6 +454,11 @@ enabled = true
 verify_jwt = true
 entrypoint = "./functions/gmail-inbox/index.ts"
 
+[functions.gmail-oauth-disconnect]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/gmail-oauth-disconnect/index.ts"
+
 [functions.gmail-watch-renewal]
 enabled = true
 verify_jwt = false
