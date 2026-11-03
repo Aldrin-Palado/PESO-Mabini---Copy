@@ -146,6 +146,10 @@ If either Vault secret already exists, update it in Vault rather than creating a
 The scheduling function returns `true` when both jobs are installed. It can be called again
 after changing a Vault secret.
 
+PESO-Hub now queues a background delivery request as soon as a new message is created.
+The scheduled one-minute worker remains enabled as a retry and recovery fallback. Immediate
+delivery requires both Vault secrets above and the deployed `gmail-deliver-queued` function.
+
 ### Apply and deploy
 
 Run these commands from the repository root. The database migration is in `peso-app`; the

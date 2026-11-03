@@ -11,7 +11,6 @@ export type AdminModule =
   | "Applications"
   | "Messages"
   | "Announcement"
-  | "Gmail Setup"
   | "PESO Posts"
   | "Analytics & Reports"
   | "Admin Accounts"
@@ -66,7 +65,6 @@ export default function AdminSidebar({
 
   // Administrative-only modules
   const adminModules: AdminModule[] = [
-    "Gmail Setup",
     "Admin Accounts",
     "Admin Audit Logs",
   ];
@@ -74,7 +72,6 @@ export default function AdminSidebar({
   const canAccess = (module: AdminModule) => {
     // Administrative modules are ONLY accessible by Admin
     if (
-      module === "Gmail Setup" ||
       module === "Admin Accounts" ||
       module === "Admin Audit Logs"
     ) {
