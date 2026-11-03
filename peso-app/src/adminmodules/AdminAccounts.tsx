@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "../services/supabase";
 import AppIcon from "../components/AppIcon";
+import ProfileAvatar from "../components/ProfileAvatar";
 
 type Staff = {
   peso_staff_id: string;
@@ -74,6 +75,63 @@ const defaultStaffPermissions: StaffPermissionValues = {
   notifications: false,
 };
 
+async function logStaffAccountCreation(
+  staffAccount: { peso_staff_id: string; full_name: string; email: string },
+): Promise<string> {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+  if (userError) throw userError;
+  if (!user) throw new Error("The current admin account could not be identified.");
+
+  const { data: admin, error: adminError } = await supabase
+    .from("peso_admin")
+    .select("admin_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (adminError) throw adminError;
+  if (!admin) throw new Error("The current admin record could not be found.");
+
+  let metadata: {
+    ip_address?: string | null;
+    user_agent?: string | null;
+  } | null = null;
+  let metadataWarning = "";
+  const metadataResult = await supabase.functions.invoke("audit-metadata", {
+    body: {},
+  });
+  if (metadataResult.error) {
+    console.error("Audit metadata collection error:", metadataResult.error);
+    metadataWarning = metadataResult.error.message;
+  } else {
+    metadata = metadataResult.data;
+  }
+
+  const { error: logError } = await supabase.from("admin_activity_log").insert({
+    admin_id: admin.admin_id,
+    action: "Created staff account",
+    details: {
+      area: "Admin Accounts",
+      staff: {
+        peso_staff_id: staffAccount.peso_staff_id,
+        full_name: staffAccount.full_name,
+        email: staffAccount.email,
+      },
+      ip_address: metadata?.ip_address ?? null,
+      user_agent:
+        metadata?.user_agent ??
+        (typeof navigator !== "undefined" ? navigator.userAgent : null),
+      device:
+        typeof navigator !== "undefined" ? navigator.platform : null,
+    },
+  });
+  if (logError) throw logError;
+
+  return metadataWarning ||
+    (!metadata?.ip_address ? "The server did not provide an IP address." : "");
+}
+
 export default function AdminAccounts() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,7 +143,6 @@ export default function AdminAccounts() {
     useState<Permissions | null>(null);
 
   const [saving, setSaving] = useState(false);
-  const [adminId, setAdminId] = useState<string | null>(null);
 
   // CREATE STAFF STATES
   const [showCreateModal, setShowCreateModal] =
@@ -140,26 +197,7 @@ export default function AdminAccounts() {
 
   useEffect(() => {
     loadStaff();
-    loadCurrentAdmin();
   }, []);
-
-  const loadCurrentAdmin = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: admin } = await supabase
-        .from("peso_admin")
-        .select("admin_id")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .maybeSingle();
-      if (admin) setAdminId(admin.admin_id);
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   /* =====================================================
      CREATE STAFF ACCOUNT
@@ -275,8 +313,23 @@ export default function AdminAccounts() {
         return;
       }
 
+      let auditWarning = "";
+      try {
+        auditWarning = await logStaffAccountCreation({
+          peso_staff_id: staffAccount.peso_staff_id,
+          full_name: form.full_name.trim(),
+          email,
+        });
+      } catch (error) {
+        console.error("Staff account audit log error:", error);
+        auditWarning =
+          error instanceof Error ? error.message : "Unexpected audit log error.";
+      }
+
       alert(
-        "PESO Staff account created successfully."
+        auditWarning
+          ? `PESO Staff account created, but its creation audit details could not be fully recorded: ${auditWarning}`
+          : "PESO Staff account created and audit log recorded.",
       );
 
       // Clear form
@@ -424,83 +477,7 @@ export default function AdminAccounts() {
       return;
     }
 
-    // Log to admin activity log
-    if (adminId) {
-      let metadataErrorMessage = "";
-      let metadata: {
-        ip_address?: string | null;
-        user_agent?: string | null;
-      } | null = null;
-      try {
-        const result = await supabase.functions.invoke("audit-metadata", {
-          body: {},
-        });
-        if (result.error) {
-          console.error("Audit metadata collection error:", result.error);
-          metadataErrorMessage = result.error.message;
-        } else {
-          metadata = result.data;
-        }
-      } catch (error) {
-        console.error("Audit metadata collection error:", error);
-        metadataErrorMessage =
-          error instanceof Error ? error.message : "Unexpected metadata error.";
-      }
-
-      const details = {
-        area: "Admin Accounts",
-        staff: {
-          full_name: selectedStaff.full_name,
-          email: selectedStaff.email,
-        },
-        permissions,
-        ip_address: metadata?.ip_address ?? null,
-        user_agent:
-          metadata?.user_agent ??
-          (typeof navigator !== "undefined" ? navigator.userAgent : null),
-        device:
-          typeof navigator !== "undefined"
-            ? navigator.platform
-            : null,
-      };
-
-      try {
-        const { error: logError } = await supabase
-          .from("admin_activity_log")
-          .insert({
-            admin_id: adminId,
-            peso_staff_id: selectedStaff.peso_staff_id,
-            action: "Updated staff permissions",
-            details,
-          });
-        if (logError) throw logError;
-      } catch (logError) {
-        console.error("Audit log error:", logError);
-        alert(
-          `Permissions were saved, but the audit log could not be recorded: ${
-            logError instanceof Error ? logError.message : "Unexpected error."
-          }`,
-        );
-        setSaving(false);
-        setSelectedStaff(null);
-        setPermissions(null);
-        return;
-      }
-
-      if (!metadata?.ip_address && !metadataErrorMessage) {
-        metadataErrorMessage = "The server did not provide an IP address.";
-      }
-
-      alert(
-        metadataErrorMessage
-          ? `Permissions saved and logged. Device information was recorded, but the IP address could not be collected: ${metadataErrorMessage}`
-          : "Permissions saved and audit log recorded.",
-      );
-    } else {
-      alert(
-        "Permissions were saved, but the audit log could not be recorded because the admin account could not be identified.",
-      );
-    }
+    alert("Permissions saved and audit log recorded.");
 
     setSaving(false);
 
@@ -861,11 +838,19 @@ export default function AdminAccounts() {
 
                 <div className="flex items-center gap-4">
 
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 font-black text-[#0446A7]">
-                    {account.full_name
-                      ?.charAt(0)
-                      .toUpperCase()}
-                  </div>
+                  {account.user_id ? (
+                    <ProfileAvatar
+                      key={account.user_id}
+                      userId={account.user_id}
+                      fullName={account.full_name}
+                      size="small"
+                      showControls={false}
+                    />
+                  ) : (
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 font-black text-[#0446A7]">
+                      {account.full_name?.charAt(0).toUpperCase()}
+                    </div>
+                  )}
 
                   <div>
 
@@ -944,13 +929,24 @@ export default function AdminAccounts() {
             onSubmit={(event) => void saveStaffProfile(event)}
             className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
           >
-            <div className="mb-5">
-              <h2 className="text-xl font-black text-[#123B70]">
-                Edit Staff Profile
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Update profile details and staff access status.
-              </p>
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-black text-[#123B70]">
+                  Edit Staff Profile
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Update profile details and staff access status.
+                </p>
+              </div>
+              {editingStaff.user_id && (
+                <ProfileAvatar
+                  key={editingStaff.user_id}
+                  userId={editingStaff.user_id}
+                  fullName={editingStaff.full_name}
+                  size="small"
+                  showControls={false}
+                />
+              )}
             </div>
 
             <div className="space-y-4">
@@ -1062,15 +1058,28 @@ export default function AdminAccounts() {
 
                 </div>
 
-                <button
-                  onClick={() => {
-                    setSelectedStaff(null);
-                    setPermissions(null);
-                  }}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-500"
-                >
-                  ×
-                </button>
+                <div className="flex items-center gap-3">
+                  {selectedStaff.user_id && (
+                    <ProfileAvatar
+                      key={selectedStaff.user_id}
+                      userId={selectedStaff.user_id}
+                      fullName={selectedStaff.full_name}
+                      size="small"
+                      showControls={false}
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedStaff(null);
+                      setPermissions(null);
+                    }}
+                    aria-label="Close Manage Access"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-500"
+                  >
+                    ×
+                  </button>
+                </div>
 
               </div>
 

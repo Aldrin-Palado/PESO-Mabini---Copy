@@ -10,6 +10,25 @@
    npm run dev
    ```
 
+## Admin/staff audit logs
+
+Admin and staff changes to job posts, applications, employers, job seekers, staff
+accounts and permissions, PESO posts, and announcements are recorded automatically.
+The audit entry includes the request IP when Supabase supplies a forwarded-IP header,
+plus the browser user-agent/device information. Apply the migration from the workspace
+root so new changes are captured:
+
+```sh
+npm exec --prefix ./peso-app -- supabase --workdir ./peso-app db push
+```
+
+Existing audit entries are not backfilled; this metadata is recorded for changes made
+after the migration is applied.
+
+Staff profile photos appear in Admin Accounts when available. They remain private;
+the profile-photo migration grants signed-photo reads for other accounts to active
+admins only. Apply pending migrations with the same `supabase db push` command.
+
 ## Gemini AI features
 
 The public homepage chat and job-seeker AI assistant and job matching call the `peso-ai`
