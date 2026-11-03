@@ -10,6 +10,11 @@ type MessageContact = {
   role: string;
 };
 
+type MessageParticipant = Pick<
+  PesoMessage,
+  "sender_user_id" | "recipient_user_id"
+>;
+
 type PesoMessage = {
   message_id: string;
   employer_id: string | null;
@@ -63,6 +68,8 @@ export default function DirectMessages({
   const [decisionError, setDecisionError] = useState("");
   const [applicationsLoading, setApplicationsLoading] = useState(false);
   const [draft, setDraft] = useState("");
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [resolvingRecipient, setResolvingRecipient] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -168,7 +175,33 @@ export default function DirectMessages({
       if (contactsError) {
         setError(`Could not load contacts: ${contactsError.message}`);
       } else {
-        const availableContacts = (data ?? []) as MessageContact[];
+        const allContacts = (data ?? []) as MessageContact[];
+        const { data: participantRows, error: participantsError } =
+          await supabase
+            .from("peso_messages")
+            .select("sender_user_id, recipient_user_id")
+            .or(`sender_user_id.eq.${user.id},recipient_user_id.eq.${user.id}`);
+
+        if (participantsError) {
+          setError(`Could not load conversations: ${participantsError.message}`);
+          setLoading(false);
+          return;
+        }
+        if (cancelled) return;
+
+        const conversationUserIds = new Set(
+          ((participantRows ?? []) as MessageParticipant[]).map((message) =>
+            message.sender_user_id === user.id
+              ? message.recipient_user_id
+              : message.sender_user_id,
+          ),
+        );
+        const availableContacts =
+          mode === "staff"
+            ? allContacts
+            : allContacts.filter((contact) =>
+                conversationUserIds.has(contact.user_id),
+              );
         setContacts(availableContacts);
         setSelectedUserId((current) =>
           availableContacts.some(
@@ -190,6 +223,44 @@ export default function DirectMessages({
       cancelled = true;
     };
   }, [initialContactId, mode]);
+
+  const startConversationByEmail = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+    const email = recipientEmail.trim().toLowerCase();
+    if (!email || resolvingRecipient) return;
+
+    setResolvingRecipient(true);
+    setError("");
+    try {
+      const { data, error: recipientError } = await supabase.rpc(
+        "get_peso_message_contact_by_email",
+        { candidate_email: email },
+      );
+
+      if (recipientError) {
+        setError(`Could not find that PESO account: ${recipientError.message}`);
+      } else {
+        const contact = (data?.[0] ?? null) as MessageContact | null;
+        if (!contact) {
+          setError("No registered PESO account was found for that email.");
+        } else {
+          setContacts((current) => [
+            contact,
+            ...current.filter((item) => item.user_id !== contact.user_id),
+          ]);
+          setSelectedUserId(contact.user_id);
+          setRecipientEmail("");
+        }
+      }
+    } catch (recipientError) {
+      console.error("Could not resolve message recipient:", recipientError);
+      setError("Could not look up that PESO account. Please try again.");
+    } finally {
+      setResolvingRecipient(false);
+    }
+  };
 
   const loadMessages = useCallback(
     async (showLoading: boolean) => {
@@ -456,9 +527,44 @@ export default function DirectMessages({
             <h2 className="border-b border-slate-100 px-4 py-4 font-bold text-slate-800">
               Contacts
             </h2>
+            {(mode === "admin" || mode === "employer") && (
+              <form
+                onSubmit={(event) => void startConversationByEmail(event)}
+                className="space-y-2 border-b border-slate-100 p-3"
+              >
+                <label
+                  htmlFor="new-message-recipient-email"
+                  className="block text-xs font-semibold text-slate-600"
+                >
+                  Start a conversation by email
+                </label>
+                <input
+                  id="new-message-recipient-email"
+                  type="email"
+                  required
+                  value={recipientEmail}
+                  onChange={(event) => setRecipientEmail(event.target.value)}
+                  placeholder="name@example.com"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+                <button
+                  type="submit"
+                  disabled={resolvingRecipient || !recipientEmail.trim()}
+                  className="w-full rounded-lg bg-[#0446A7] px-3 py-2 text-xs font-bold text-white hover:bg-[#123B70] disabled:opacity-50"
+                >
+                  {resolvingRecipient ? "Finding account..." : "Start conversation"}
+                </button>
+              </form>
+            )}
             <div className="max-h-72 overflow-y-auto md:max-h-[32rem]">
               {contacts.length === 0 && !loading && !error ? (
-                <p className="p-4 text-sm text-slate-500">No other PESO users found.</p>
+                <p className="p-4 text-sm text-slate-500">
+                  {mode === "job_seeker"
+                    ? "No conversations yet. A PESO admin or employer must message you first."
+                    : mode === "staff"
+                      ? "No other PESO users found."
+                      : "No conversations yet. Enter an email above to start one."}
+                </p>
               ) : contacts.length === 0 && loading ? (
                 <p className="p-4 text-sm text-slate-500">Loading contacts...</p>
               ) : (

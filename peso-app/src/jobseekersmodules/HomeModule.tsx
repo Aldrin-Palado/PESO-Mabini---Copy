@@ -33,6 +33,7 @@ type JobSeekerPage =
 
 type Props = {
   seeker: Seeker;
+  profileComplete: boolean;
   onNavigate: (page: JobSeekerPage) => void;
 };
 
@@ -61,6 +62,7 @@ function saveSeenIds(storageKey: string, ids: string[]) {
 
 export default function HomeModule({
   seeker,
+  profileComplete,
   onNavigate,
 }: Props) {
   const [pesoPosts, setPesoPosts] = useState<PESOPost[]>([]);
@@ -456,38 +458,32 @@ export default function HomeModule({
       </section>
       )}
 
-      {/* Profile Reminder */}
-      <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
-
-        <div className="flex gap-3">
-
-          <div className="text-xl">
-            <AppIcon name="lightbulb" className="h-6 w-6 text-yellow-700" />
-          </div>
-
-          <div className="flex-1">
-
-            <h3 className="font-semibold text-yellow-900">
-              Keep your profile updated
-            </h3>
-
-            <p className="mt-1 text-sm leading-5 text-yellow-800">
-              Employers can better understand your qualifications when
-              your education, skills, experience, and contact information
-              are complete.
-            </p>
-
-            <button
-              type="button"
-              onClick={() => onNavigate("Profile")}
-              className="mt-3 text-sm font-bold text-yellow-900 underline hover:text-yellow-700"
-            >
-              Update My Profile <AppIcon name="arrowRight" className="ml-1 inline h-4 w-4" />
-            </button>
-
+      {!profileComplete && (
+        <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+          <div className="flex gap-3">
+            <div className="text-xl">
+              <AppIcon name="lightbulb" className="h-6 w-6 text-yellow-700" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-yellow-900">
+                Keep your profile updated
+              </h3>
+              <p className="mt-1 text-sm leading-5 text-yellow-800">
+                Employers can better understand your qualifications when
+                your education, skills, experience, and contact information
+                are complete.
+              </p>
+              <button
+                type="button"
+                onClick={() => onNavigate("Profile")}
+                className="mt-3 text-sm font-bold text-yellow-900 underline hover:text-yellow-700"
+              >
+                Update My Profile <AppIcon name="arrowRight" className="ml-1 inline h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {selectedPESOPost && (
         <div

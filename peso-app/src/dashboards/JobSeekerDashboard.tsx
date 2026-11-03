@@ -1356,6 +1356,9 @@ export default function JobSeekerDashboard() {
         return (
           <HomeModule
             seeker={seeker}
+            profileComplete={areJobSeekerProfileSectionsComplete(
+              seeker.registration_details,
+            )}
             onNavigate={(page) =>
               handlePageChange(
                 page === "Applications"
@@ -1465,6 +1468,9 @@ export default function JobSeekerDashboard() {
         return (
           <HomeModule
             seeker={seeker}
+            profileComplete={areJobSeekerProfileSectionsComplete(
+              seeker.registration_details,
+            )}
             onNavigate={(page) =>
               handlePageChange(
                 page === "Applications"

@@ -579,11 +579,12 @@ export default function JobsModule({
                       <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm font-medium text-slate-700">
                         {job.company}
                         {job.employerVerified && (
-                          <AppIcon
-                            name="check"
+                          <span
                             title="Verified employer"
-                            className="h-4 w-4 shrink-0 text-blue-600"
-                          />
+                            className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white"
+                          >
+                            <AppIcon name="check" className="h-3 w-3" />
+                          </span>
                         )}
                       </p>
                       <h3 className="mt-2 text-lg font-black leading-snug text-slate-950 sm:text-xl">
@@ -689,11 +690,12 @@ export default function JobsModule({
                     <p className="flex min-w-0 items-center gap-1.5 truncate text-sm font-bold text-blue-700">
                       {selectedJob.company}
                       {selectedJob.employerVerified && (
-                        <AppIcon
-                          name="check"
+                        <span
                           title="Verified employer"
-                          className="h-4 w-4 shrink-0 text-blue-600"
-                        />
+                          className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white"
+                        >
+                          <AppIcon name="check" className="h-3 w-3" />
+                        </span>
                       )}
                     </p>
                     <p className="text-xs text-slate-500">
@@ -728,11 +730,12 @@ export default function JobsModule({
                   <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-slate-600">
                     {selectedJob.company}
                     {selectedJob.employerVerified && (
-                      <AppIcon
-                        name="check"
+                      <span
                         title="Verified employer"
-                        className="h-4 w-4 shrink-0 text-blue-600"
-                      />
+                        className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white"
+                      >
+                        <AppIcon name="check" className="h-3 w-3" />
+                      </span>
                     )}
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-600">
@@ -945,11 +948,12 @@ export default function JobsModule({
                     <p className="inline-flex items-center gap-1.5 text-sm font-bold text-blue-700">
                       {applicationJob.company}
                       {applicationJob.employerVerified && (
-                        <AppIcon
-                          name="check"
+                        <span
                           title="Verified employer"
-                          className="h-4 w-4 shrink-0 text-blue-600"
-                        />
+                          className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white"
+                        >
+                          <AppIcon name="check" className="h-3 w-3" />
+                        </span>
                       )}
                     </p>
                     <h2
