@@ -14,6 +14,11 @@ import MessagesModule from "../employersmodules/MessagesModule";
 
 import { supabase } from "../services/supabase";
 
+const portalBackground = new URL(
+  "../assets/images/bry-bg.png",
+  import.meta.url,
+).href;
+
 /* =========================
    TYPES
 ========================= */
@@ -691,7 +696,15 @@ export default function EmployerDashboard() {
   ========================= */
 
   return (
-    <div className="min-h-screen bg-[#F5F8FC]">
+    <div className="relative isolate min-h-screen">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: `linear-gradient(rgba(245, 248, 252, 0.88), rgba(245, 248, 252, 0.88)), url("${portalBackground}")`,
+        }}
+      />
+
       {/* Sidebar */}
       <EmployersSidebar
         activeMenu={activeMenu as EmployerMenuName}

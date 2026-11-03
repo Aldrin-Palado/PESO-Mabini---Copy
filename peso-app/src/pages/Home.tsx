@@ -9,7 +9,7 @@ import type { PublicJobVacancyPreviewRow } from "../types/JobVacancy";
 import { supabase } from "../services/supabase";
 
 const backgroundImage = new URL(
-  "../assets/images/bg-image.png",
+  "../assets/images/bry-bg.png",
   import.meta.url,
 ).href;
 

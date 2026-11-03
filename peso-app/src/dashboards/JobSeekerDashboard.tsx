@@ -29,6 +29,11 @@ import {
   isJobSeekerProfileComplete,
 } from "../services/jobSeekerProfile";
 
+const portalBackground = new URL(
+  "../assets/images/bry-bg.png",
+  import.meta.url,
+).href;
+
 // =====================================================
 // TYPES
 // =====================================================
@@ -1565,7 +1570,14 @@ export default function JobSeekerDashboard() {
   */
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="relative isolate min-h-screen">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: `linear-gradient(rgba(248, 250, 252, 0.88), rgba(248, 250, 252, 0.88)), url("${portalBackground}")`,
+        }}
+      />
 
       {/* =================================================
           SIDEBAR
