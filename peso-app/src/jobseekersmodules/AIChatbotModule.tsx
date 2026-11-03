@@ -5,6 +5,17 @@ import { supabase } from "../services/supabase";
 
 const maxResumeBytes = 500_000;
 
+function isResumeFileTypeValid(file: File, bytes: Uint8Array) {
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  if (extension === "pdf") {
+    return new TextDecoder().decode(bytes.subarray(0, 5)) === "%PDF-";
+  }
+  if (extension === "doc") {
+    return bytes.subarray(0, 8).join(",") === "208,207,17,224,161,177,26,225";
+  }
+  return extension === "docx" && bytes[0] === 0x50 && bytes[1] === 0x4b;
+}
+
 type ChatJob = {
   id: string;
   title: string;
@@ -69,6 +80,10 @@ export default function AIChatbotModule({
 
       try {
         const bytes = new Uint8Array(await resumeFile.arrayBuffer());
+        if (!isResumeFileTypeValid(resumeFile, bytes)) {
+          setError("The file contents do not match a valid PDF, DOC, or DOCX resume.");
+          return;
+        }
         let binary = "";
         const chunkSize = 0x8000;
         for (let index = 0; index < bytes.length; index += chunkSize) {
@@ -310,8 +325,21 @@ export default function AIChatbotModule({
             type="button"
             onClick={() => resumeInputRef.current?.click()}
             disabled={loading}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+            aria-label="Attach resume"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
           >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-4 w-4"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m21.4 11.1-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l9.2-9.2a3.7 3.7 0 0 1 5.2 5.2l-9.2 9.2a1.8 1.8 0 0 1-2.6-2.6l8.5-8.5" />
+            </svg>
             Attach resume
           </button>
           {resumeFile && (
