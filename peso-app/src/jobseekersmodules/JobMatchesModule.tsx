@@ -3,6 +3,17 @@ import { invokePesoAI } from "../services/pesoAi";
 
 const maxResumeBytes = 500_000;
 
+function isResumeFileTypeValid(file: File, bytes: Uint8Array) {
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  if (extension === "pdf") {
+    return new TextDecoder().decode(bytes.subarray(0, 5)) === "%PDF-";
+  }
+  if (extension === "doc") {
+    return bytes.subarray(0, 8).join(",") === "208,207,17,224,161,177,26,225";
+  }
+  return extension === "docx" && bytes[0] === 0x50 && bytes[1] === 0x4b;
+}
+
 type JobMatch = {
   job: {
     id: string;
@@ -40,32 +51,32 @@ export default function JobMatchesModule() {
 
     try {
       if (!resume && profile.trim().length < 10) {
-        throw new Error("Enter at least 10 characters about your skills or upload a PDF resume.");
+        throw new Error("Enter at least 10 characters about your skills or upload a PDF, DOC, or DOCX resume.");
       }
 
-      let resumeBase64: string | undefined;
+      let encodedResume: { fileName: string; data: string } | undefined;
       if (resume) {
         if (!authorized) {
           throw new Error("Please authorize sending your resume for AI analysis.");
         }
         if (resume.size > maxResumeBytes) {
-          throw new Error("Resume PDF must be 500 KB or smaller.");
+          throw new Error("Resume files must be 500 KB or smaller.");
         }
         const bytes = new Uint8Array(await resume.arrayBuffer());
-        if (new TextDecoder().decode(bytes.subarray(0, 5)) !== "%PDF-") {
-          throw new Error("The selected file is not a valid PDF document.");
+        if (!isResumeFileTypeValid(resume, bytes)) {
+          throw new Error("Choose a valid PDF, DOC, or DOCX resume.");
         }
         let binary = "";
         const chunkSize = 0x8000;
         for (let index = 0; index < bytes.length; index += chunkSize) {
           binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
         }
-        resumeBase64 = btoa(binary);
+        encodedResume = { fileName: resume.name, data: btoa(binary) };
       }
 
       const result = await invokePesoAI<{ matches: JobMatch[] }>(
         "job-matches",
-        resumeBase64 ? { resumeBase64 } : { profileText: profile },
+        encodedResume ? { resume: encodedResume } : { profileText: profile },
       );
       setMatches(result.matches);
       setHasSearched(true);
@@ -93,7 +104,7 @@ export default function JobMatchesModule() {
         </p>
         <h2 className="mt-1 text-2xl font-black text-[#123B70]">AI Job Matching</h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-          Upload a PDF resume or describe your skills to compare your profile with open
+          Upload a PDF, DOC, or DOCX resume or describe your skills to compare your profile with open
           vacancies and the requirements employers submitted. Resume files are sent to
           Google Gemini for this analysis and are not stored. Recommendations are not hiring
           decisions.
@@ -102,12 +113,12 @@ export default function JobMatchesModule() {
 
       <form onSubmit={findMatches} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <label htmlFor="job-match-resume" className="text-sm font-bold text-slate-800">
-          Upload resume (PDF, up to 500 KB)
+          Upload resume (PDF, DOC, or DOCX, up to 500 KB)
         </label>
         <input
           id="job-match-resume"
           type="file"
-          accept="application/pdf,.pdf"
+          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           disabled={loading}
           onChange={(event) => {
             const selectedFile = event.target.files?.[0] ?? null;
@@ -173,7 +184,7 @@ export default function JobMatchesModule() {
           <p className="text-xs text-slate-500">
             {resumeFile
               ? "Your resume is scanned after you authorize AI analysis. Use the button to scan it again."
-              : "Upload a PDF resume or enter at least 10 characters. For manual entry, do not include your name, address, contact information, or other sensitive details."}
+              : "Upload a PDF, DOC, or DOCX resume or enter at least 10 characters. For manual entry, do not include your name, address, contact information, or other sensitive details."}
           </p>
           <button
             type="submit"

@@ -319,7 +319,6 @@ export default function JobSeekersModule({
       <ModuleHeader
         title="Job Seekers Management"
         description="View and manage registered job seekers of PESO Mabini."
-        onRefresh={onRefresh}
       />
 
       {loadError && (

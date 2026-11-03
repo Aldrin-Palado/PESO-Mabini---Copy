@@ -1,4 +1,5 @@
 import React from "react";
+import AppIcon from "./AppIcon";
 
 const pesoLogo = new URL("../assets/images/Peso-logo.png", import.meta.url).href;
 
@@ -30,7 +31,7 @@ const menuItems: {
   },
   {
     label: "Jobs",
-    icon: "💼",
+    icon: "briefcase",
   },
   {
     label: "Saved Jobs",
@@ -145,7 +146,11 @@ export default function JobSeekerSidebar({
                   }`}
                 >
                   <span className="flex w-5 justify-center text-lg">
-                    {item.icon}
+                    {item.icon === "briefcase" ? (
+                      <AppIcon name="briefcase" className="h-5 w-5" />
+                    ) : (
+                      item.icon
+                    )}
                   </span>
 
                   <span>{item.label}</span>
