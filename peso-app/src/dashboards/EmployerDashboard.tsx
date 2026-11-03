@@ -722,7 +722,7 @@ export default function EmployerDashboard() {
       />
 
       {/* Main Content */}
-      <main className="min-h-screen lg:ml-72">
+      <main className="min-h-screen lg:ml-64">
         {/* Header */}
         <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
           <div className="flex items-center justify-between gap-3 px-4 pl-20 py-4 sm:px-6 sm:pl-20 lg:px-8">

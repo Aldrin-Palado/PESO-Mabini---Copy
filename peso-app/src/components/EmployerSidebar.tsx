@@ -56,12 +56,12 @@ function EmployersSidebar({
       {/* Sidebar */}
       <aside
         aria-label="Employer navigation"
-        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[85vw] flex-col overflow-y-auto bg-[#0446A7] text-white transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-64 max-w-[85vw] flex-col border-r border-blue-100 bg-white text-slate-700 shadow-xl transition-transform duration-300 ease-out motion-reduce:transition-none lg:translate-x-0 lg:shadow-none ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Branding */}
-        <div className="flex items-center justify-between gap-2 border-b border-white/10 px-5 py-5">
+        <div className="flex min-h-20 items-center justify-between gap-3 border-b border-blue-100 px-5 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <img
               src={pesoLogo}
@@ -71,13 +71,11 @@ function EmployersSidebar({
               className="h-11 w-11 shrink-0 rounded-xl bg-white object-contain shadow-sm"
             />
             <div className="min-w-0">
-              <h1 className="text-[1.35rem] font-black leading-tight">
-                <span className="block whitespace-nowrap text-white">PESO</span>
-                <span className="block whitespace-nowrap text-red-500">MABINI</span>
+              <h1 className="whitespace-nowrap text-lg font-bold">
+                <span className="text-blue-800">PESO </span>
+                <span className="text-red-600">MABINI</span>
               </h1>
-              <p className="mt-0.5 truncate text-xs text-white/80">
-                Employer Portal
-              </p>
+              <p className="text-xs text-gray-500">Employer</p>
             </div>
           </div>
 
@@ -85,16 +83,16 @@ function EmployersSidebar({
             type="button"
             onClick={() => setIsSidebarOpen(false)}
             aria-label="Close navigation"
-            className="rounded-lg px-2 py-1 text-2xl hover:bg-white/10 lg:hidden"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-2xl text-slate-500 transition hover:bg-slate-100 lg:hidden"
           >
             ×
           </button>
         </div>
 
         {/* Navigation */}
-        <div className="flex-1 px-4 py-5">
-          <p className="mb-3 px-3 text-xs font-bold uppercase tracking-wider text-blue-200">
-            Employer Portal
+        <div className="flex-1 overflow-y-auto px-4 py-6">
+          <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
+            Main Menu
           </p>
 
           <nav className="space-y-1">
@@ -107,19 +105,13 @@ function EmployersSidebar({
                   type="button"
                   onClick={() => handleNavigation(item.name)}
                   aria-current={active ? "page" : undefined}
-                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
+                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium transition ${
                     active
-                      ? "bg-white text-[#0446A7] shadow-sm"
-                      : "text-blue-50 hover:bg-white/10"
+                      ? "bg-blue-700 text-white shadow-sm"
+                      : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
                   }`}
                 >
-                  <span
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                      active
-                        ? "bg-[#FED442] text-[#123B70]"
-                        : "bg-white/10 text-white"
-                    }`}
-                  >
+                  <span className="flex w-5 justify-center text-lg">
                     {item.icon}
                   </span>
 
@@ -131,13 +123,15 @@ function EmployersSidebar({
         </div>
 
         {/* Logout */}
-        <div className="mt-auto border-t border-white/10 p-4">
+        <div className="border-t border-blue-100 p-4">
           <button
             type="button"
             onClick={onSignOut}
-            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-blue-50 transition hover:bg-white/10"
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50"
           >
-            <span aria-hidden="true">↪</span>
+            <span className="flex w-5 justify-center text-lg" aria-hidden="true">
+              ↪
+            </span>
             Logout
           </button>
         </div>
