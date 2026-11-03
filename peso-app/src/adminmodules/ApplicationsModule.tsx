@@ -302,25 +302,14 @@ export default function ApplicationsModule({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex min-w-0 items-center justify-between gap-4 sm:justify-start">
-          <div className="min-w-0">
-            <h3 className="text-lg font-bold text-slate-900">
-              Applications
-            </h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Review job applications and update their progress.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onRefresh}
-            className="shrink-0 rounded-md bg-[#203F8B] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#193474]"
-          >
-            Refresh
-          </button>
+      <div className="space-y-3">
+        <div>
+          <h3 className="text-lg font-bold text-slate-900">Applications</h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Review job applications and update their progress.
+          </p>
         </div>
-        <div className="flex flex-wrap gap-1.5 xl:justify-end">
+        <div className="flex flex-wrap gap-2">
           {STATUSES.map((status) => (
             <button
               key={status.value}
@@ -329,7 +318,7 @@ export default function ApplicationsModule({
                 setStatusFilter(statusFilter === status.value ? "All" : status.value)
               }
               aria-pressed={statusFilter === status.value}
-              className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${status.color} ${
+              className={`rounded-full px-2.5 py-1.5 text-[10px] font-semibold transition ${status.color} ${
                 statusFilter === status.value ? "ring-2 ring-blue-500 ring-offset-1" : ""
               }`}
             >
@@ -360,24 +349,24 @@ export default function ApplicationsModule({
         </p>
       )}
 
-      <section className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(190px,1.4fr)_minmax(120px,0.8fr)_minmax(140px,0.9fr)_minmax(120px,0.7fr)_minmax(120px,0.7fr)]">
-          <label className="text-[10px] font-semibold text-slate-600">
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-12">
+          <label className="text-[11px] font-semibold text-slate-600 sm:col-span-2 xl:col-span-3">
             Search (Applicant / Job / Employer)
             <input
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Name, job, or company..."
-              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-2 text-xs font-normal outline-none focus:border-blue-500"
+              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
           </label>
-          <label className="text-[10px] font-semibold text-slate-600">
+          <label className="text-[11px] font-semibold text-slate-600 xl:col-span-2">
             Status
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-2 text-xs font-normal"
+              className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal"
             >
               <option value="All">All</option>
               {STATUSES.map((status) => (
@@ -385,64 +374,77 @@ export default function ApplicationsModule({
               ))}
             </select>
           </label>
-          <label className="text-[10px] font-semibold text-slate-600">
+          <label className="text-[11px] font-semibold text-slate-600 xl:col-span-2">
             Employer
             <select
               value={employerFilter}
               onChange={(event) => setEmployerFilter(event.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-2 text-xs font-normal"
+              className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal"
             >
               <option value="all">All</option>
               {employers.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
             </select>
           </label>
-          <label className="text-[10px] font-semibold text-slate-600">
+          <label className="text-[11px] font-semibold text-slate-600 xl:col-span-2">
             Job
             <select
               value={jobFilter}
               onChange={(event) => setJobFilter(event.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-2 text-xs font-normal"
+              className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal"
             >
               <option value="all">All</option>
               {jobs.map((job) => <option key={job} value={job}>{job}</option>)}
             </select>
           </label>
-          <div className="grid grid-cols-2 gap-2">
-            <label className="text-[10px] font-semibold text-slate-600">
+          <div className="grid grid-cols-2 gap-2 xl:col-span-3">
+            <label className="text-[11px] font-semibold text-slate-600">
               Date from
               <input
                 type="date"
                 value={dateFrom}
                 onChange={(event) => setDateFrom(event.target.value)}
-                className="mt-1 w-full min-w-0 rounded-md border border-slate-300 px-2 py-2 text-xs"
+                className="mt-1.5 w-full min-w-0 rounded-lg border border-slate-300 px-2.5 py-2.5 text-sm"
               />
             </label>
-            <label className="text-[10px] font-semibold text-slate-600">
+            <label className="text-[11px] font-semibold text-slate-600">
               Date to
               <input
                 type="date"
                 value={dateTo}
                 onChange={(event) => setDateTo(event.target.value)}
-                className="mt-1 w-full min-w-0 rounded-md border border-slate-300 px-2 py-2 text-xs"
+                className="mt-1.5 w-full min-w-0 rounded-lg border border-slate-300 px-2.5 py-2.5 text-sm"
               />
             </label>
           </div>
         </div>
-        <div className="mt-2 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={applyFilters}
-            className="rounded-md bg-[#0759AE] px-3 py-1.5 text-[11px] font-bold text-white hover:bg-[#064A91]"
-          >
-            Apply
-          </button>
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50"
-          >
-            Clear
-          </button>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+          <p className="text-xs text-slate-400">
+            Refine the list by applicant, status, employer, job, or date.
+          </p>
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={applyFilters}
+              className="rounded-lg bg-[#0759AE] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#064A91]"
+            >
+              Apply
+            </button>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={loading}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-50"
+            >
+              {loading ? "Refreshing..." : "Refresh"}
+            </button>
+          </div>
         </div>
       </section>
 
