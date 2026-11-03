@@ -1643,9 +1643,15 @@ export default function AdminDashboard() {
               <span className="hidden rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-800 sm:inline-flex">
                 {account?.role === "superadmin" ? "PESO Head" : "PESO Staff"}
               </span>
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-sm font-bold text-[#203F8B]">
-                {account?.role === "superadmin" ? "PH" : "PS"}
-              </span>
+              {account?.user_id && (
+                <ProfileAvatar
+                  key={account.user_id}
+                  userId={account.user_id}
+                  fullName={account.full_name}
+                  size="small"
+                  showControls={false}
+                />
+              )}
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-slate-800">
                   {account?.full_name}
@@ -1994,7 +2000,7 @@ function MyProfile({
   account: Account | null;
   onSave: (values: Pick<Account, "full_name" | "contact_no">) => Promise<void>;
 }) {
-  const [editing, setEditing] = useState(true);
+  const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
@@ -2019,151 +2025,127 @@ function MyProfile({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Profile</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Manage your PESO Mabini account information.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-[#123B70]">Profile</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Manage your PESO Mabini account information.
+          </p>
+        </div>
+        {!editing && (
+          <button
+            type="button"
+            onClick={() => {
+              setError("");
+              setEditing(true);
+            }}
+            className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#123B70]"
+          >
+            Edit Profile
+          </button>
+        )}
       </div>
 
       {error && (
-        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {error}
         </p>
       )}
 
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(230px,0.7fr)_minmax(0,1.5fr)]">
-        <section className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+      <form
+        onSubmit={handleSubmit}
+        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+      >
+        <div className="flex flex-col gap-5 border-b border-slate-100 bg-slate-50 px-6 py-6 sm:flex-row sm:items-center">
           {account?.user_id && (
-            <div className="flex justify-center">
-              <ProfileAvatar
-                userId={account.user_id}
-                fullName={account.full_name}
-                size="large"
-                showControls={false}
-              />
-            </div>
+            <ProfileAvatar
+              userId={account.user_id}
+              fullName={account.full_name}
+              size="large"
+            />
           )}
-          <h2 className="mt-4 text-lg font-bold text-slate-900">
-            {account?.full_name || "PESO User"}
-          </h2>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {account?.role === "superadmin" ? "Super Admin" : "PESO Staff"}
-          </p>
-          <p className="mt-3 break-words text-sm text-slate-500">
-            {account?.email || "Email not available"}
-          </p>
-        </section>
-
-        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
-          <div className="mb-5">
-            <h2 className="text-lg font-bold text-slate-900">
-              Edit Profile Picture
+          <div className="min-w-0">
+            <h2 className="text-lg font-black text-[#123B70]">
+              {account?.full_name || "PESO User"}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Update your account details and profile picture.
+              {account?.role === "superadmin" ? "Super Admin" : "PESO Staff"}
+            </p>
+            <p className="mt-1 break-words text-sm text-slate-500">
+              {account?.email || "Email not available"}
             </p>
           </div>
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <label className="block text-xs font-semibold text-slate-600">
-              Full Name
+        <div className="grid gap-5 p-6 sm:grid-cols-2">
+          <label className="block text-sm font-bold text-slate-700">
+            Full Name
+            <input
+              value={editing ? form.full_name : account?.full_name ?? ""}
+              onChange={(event) => setForm({ ...form, full_name: event.target.value })}
+              required
+              maxLength={120}
+              disabled={!editing || saving}
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-700 outline-none transition focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-500"
+            />
+          </label>
+
+          <label className="block text-sm font-bold text-slate-700">
+            Email
+            <input
+              type="email"
+              value={account?.email ?? ""}
+              readOnly
+              aria-describedby="admin-profile-email-note"
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-500 outline-none disabled:bg-slate-50"
+            />
+            <span id="admin-profile-email-note" className="mt-1 block text-xs font-normal text-slate-400">
+              Contact the super admin to change your sign-in email.
+            </span>
+          </label>
+
+          {account?.role === "staff" && (
+            <label className="block text-sm font-bold text-slate-700">
+              Contact Number
               <input
-                value={editing ? form.full_name : account?.full_name ?? ""}
-                onChange={(event) => setForm({ ...form, full_name: event.target.value })}
-                required
-                maxLength={120}
+                type="tel"
+                value={editing ? form.contact_no : account.contact_no ?? ""}
+                onChange={(event) => setForm({ ...form, contact_no: event.target.value })}
+                maxLength={30}
                 disabled={!editing || saving}
-                className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50"
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-700 outline-none transition focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-500"
               />
             </label>
+          )}
 
-            <label className="block text-xs font-semibold text-slate-600">
-              Email
-              <input
-                type="email"
-                value={account?.email ?? ""}
-                readOnly
-                aria-describedby="admin-profile-email-note"
-                className="mt-1.5 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-500"
-              />
-              <span id="admin-profile-email-note" className="mt-1 block text-[11px] font-normal text-slate-400">
-                Contact the super admin to change your sign-in email.
-              </span>
-            </label>
-
-            {account?.role === "staff" && (
-              <label className="block text-xs font-semibold text-slate-600">
-                Contact Number
-                <input
-                  type="tel"
-                  value={editing ? form.contact_no : account.contact_no ?? ""}
-                  onChange={(event) => setForm({ ...form, contact_no: event.target.value })}
-                  maxLength={30}
-                  disabled={!editing || saving}
-                  className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50"
-                />
-              </label>
-            )}
-
-            <div className="border-t border-slate-100 pt-4">
-              <p className="mb-2 text-xs font-semibold text-slate-600">
-                Profile Picture
-              </p>
-              {account?.user_id && (
-                <ProfileAvatar
-                  key={account.user_id}
-                  userId={account.user_id}
-                  fullName={account.full_name}
-                />
-              )}
+          {editing && (
+            <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-5 sm:col-span-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setForm({
+                    full_name: account?.full_name ?? "",
+                    contact_no: account?.contact_no ?? "",
+                  });
+                  setError("");
+                  setEditing(false);
+                }}
+                disabled={saving}
+                className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#123B70] disabled:opacity-60"
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
             </div>
-
-            <div className="flex flex-wrap gap-2 pt-1">
-              {editing ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setForm({
-                        full_name: account?.full_name ?? "",
-                        contact_no: account?.contact_no ?? "",
-                      });
-                      setError("");
-                      setEditing(false);
-                    }}
-                    disabled={saving}
-                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="rounded-lg bg-[#0759AE] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#064A91] disabled:opacity-60"
-                  >
-                    {saving ? "Saving..." : "Save Changes"}
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setError("");
-                    setEditing(true);
-                  }}
-                  className="rounded-lg bg-[#0759AE] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#064A91]"
-                >
-                  Edit Profile
-                </button>
-              )}
-            </div>
-            <p className="text-[11px] text-slate-400">
-              Profile picture uploads are saved immediately. Name and contact updates are saved when you select Save Changes.
-            </p>
-          </form>
-        </section>
-      </div>
+          )}
+        </div>
+      </form>
     </div>
   );
 }

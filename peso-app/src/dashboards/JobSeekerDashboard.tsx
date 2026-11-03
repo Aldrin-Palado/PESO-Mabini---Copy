@@ -595,32 +595,6 @@ export default function JobSeekerDashboard() {
       return null;
     }
 
-    const profileFields = [
-      {
-        label: "Full Name",
-        value: seeker.full_name || "Not provided",
-      },
-      {
-        label: "Email Address",
-        value: seeker.email || "Not provided",
-      },
-      {
-        label: "Contact Number",
-        value:
-          seeker.contact_no || "Not provided",
-      },
-      {
-        label: "Address",
-        value:
-          seeker.address || "Not provided",
-      },
-      {
-        label: "Resume / CV",
-        value: seeker.resume_url
-          ? "Resume uploaded"
-          : "No resume uploaded",
-      },
-    ];
     const savedScreeningDetails = parseScreeningDetails(seeker.registration_details);
     const incompleteSections = getIncompleteJobSeekerProfileSections(
       seeker.registration_details,
@@ -669,7 +643,7 @@ export default function JobSeekerDashboard() {
           </p>
         )}
 
-        <section className="rounded-3xl border border-blue-100 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-xl font-black text-[#123B70]">
@@ -734,145 +708,126 @@ export default function JobSeekerDashboard() {
         </section>
 
         {/* PROFILE CARD */}
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-
-          {/* PROFILE HEADER */}
-          <div className="bg-gradient-to-r from-[#123B70] to-[#0446A7] px-6 py-8 text-white">
-
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <form onSubmit={saveProfile}>
+            <div className="flex flex-col gap-5 border-b border-slate-100 bg-slate-50 px-6 py-6 sm:flex-row sm:items-center">
               <ProfileAvatar
                 userId={seeker.user_id}
                 fullName={seeker.full_name}
-                size="small"
-                showControls={false}
+                size="large"
                 onPhotoStatusChange={setHasProfilePhoto}
               />
-
-              {/* NAME */}
-              <div>
-                <h2 className="text-2xl font-black">
-                  {seeker.full_name ||
-                    "Job Seeker"}
+              <div className="min-w-0">
+                <h2 className="text-lg font-black text-[#123B70]">
+                  {seeker.full_name || "Job Seeker"}
                 </h2>
-
-                <p className="mt-1 text-sm text-blue-100">
-                  Job Seeker
+                <p className="mt-1 text-sm text-slate-500">Job Seeker</p>
+                <p className="mt-1 break-words text-sm text-slate-500">
+                  {seeker.email || "Not provided"}
                 </p>
               </div>
-
             </div>
 
-          </div>
+            <div className="grid gap-5 p-6 sm:grid-cols-2">
+              <label className="block text-sm font-bold text-slate-700">
+                Full Name
+                <input
+                  value={editingProfile ? profileForm.full_name : seeker.full_name}
+                  onChange={(event) => setProfileForm({ ...profileForm, full_name: event.target.value })}
+                  required
+                  maxLength={120}
+                  disabled={!editingProfile || savingProfile}
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-700 outline-none transition focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-500"
+                />
+              </label>
 
-          {/* INFORMATION */}
-          <form onSubmit={saveProfile}>
-            <div className="grid gap-4 p-6 sm:grid-cols-2">
-              {editingProfile ? (
-                <>
-                  <label className="rounded-2xl bg-slate-50 p-4 text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Full Name
-                    <input
-                      value={profileForm.full_name}
-                      onChange={(event) => setProfileForm({ ...profileForm, full_name: event.target.value })}
-                      required
-                      maxLength={120}
-                      className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    />
-                  </label>
-                  <div className="rounded-2xl bg-slate-50 p-4">
-                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                      Email Address
-                    </p>
-                    <p className="mt-2 break-words text-sm font-bold text-slate-800">
-                      {seeker.email || "Not provided"}
-                    </p>
-                    <p className="mt-1 text-xs font-normal text-slate-500">
-                      Contact support to change your sign-in email.
-                    </p>
-                  </div>
-                  <label className="rounded-2xl bg-slate-50 p-4 text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Contact Number
-                    <input
-                      type="tel"
-                      value={profileForm.contact_no}
-                      onChange={(event) => setProfileForm({ ...profileForm, contact_no: event.target.value })}
-                      maxLength={30}
-                      className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    />
-                  </label>
-                  <label className="rounded-2xl bg-slate-50 p-4 text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Address
-                    <textarea
-                      value={profileForm.address}
-                      onChange={(event) => setProfileForm({ ...profileForm, address: event.target.value })}
-                      maxLength={300}
-                      rows={2}
-                      className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    />
-                  </label>
-                  <div className="rounded-2xl bg-slate-50 p-4 sm:col-span-2">
-                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                      Resume / CV
-                    </p>
-                    <p className="mt-2 text-sm font-bold text-slate-800">
-                      {seeker.resume_url ? "Resume uploaded" : "No resume uploaded"}
-                    </p>
-                    <p className="mt-1 text-xs font-normal text-slate-500">
-                      Use the resume controls below to upload or replace your resume.
-                    </p>
-                  </div>
-                </>
-              ) : (
-                profileFields.map((field) => (
-                  <div key={field.label} className="rounded-2xl bg-slate-50 p-4">
-                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                      {field.label}
-                    </p>
-                    <p className="mt-2 break-words text-sm font-bold text-slate-800">
-                      {field.value}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
+              <label className="block text-sm font-bold text-slate-700">
+                Email Address
+                <input
+                  type="email"
+                  value={seeker.email || ""}
+                  readOnly
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-500"
+                />
+                <span className="mt-1 block text-xs font-normal text-slate-400">
+                  Contact support to change your sign-in email.
+                </span>
+              </label>
 
-            <div className="flex justify-end gap-3 px-6 pb-6">
+              <label className="block text-sm font-bold text-slate-700">
+                Contact Number
+                <input
+                  type="tel"
+                  value={editingProfile ? profileForm.contact_no : seeker.contact_no || ""}
+                  onChange={(event) => setProfileForm({ ...profileForm, contact_no: event.target.value })}
+                  maxLength={30}
+                  disabled={!editingProfile || savingProfile}
+                  placeholder="Not provided"
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-700 outline-none transition focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-500"
+                />
+              </label>
+
+              <label className="block text-sm font-bold text-slate-700">
+                Address
+                <textarea
+                  value={editingProfile ? profileForm.address : seeker.address || ""}
+                  onChange={(event) => setProfileForm({ ...profileForm, address: event.target.value })}
+                  maxLength={300}
+                  rows={2}
+                  disabled={!editingProfile || savingProfile}
+                  placeholder="Not provided"
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-700 outline-none transition focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-500"
+                />
+              </label>
+
+              <label className="block text-sm font-bold text-slate-700 sm:col-span-2">
+                Resume / CV
+                <input
+                  value={seeker.resume_url ? "Resume uploaded" : "No resume uploaded"}
+                  readOnly
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-500"
+                />
+                <span className="mt-1 block text-xs font-normal text-slate-400">
+                  Use the resume controls below to upload or replace your resume.
+                </span>
+              </label>
+
               {editingProfile ? (
-                <>
+                <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-5 sm:col-span-2">
                   <button
                     type="button"
                     onClick={() => setEditingProfile(false)}
                     disabled={savingProfile}
-                    className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                    className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={savingProfile}
-                    className="rounded-full bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#064A91] disabled:cursor-wait disabled:opacity-60"
+                    className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#123B70] disabled:cursor-wait disabled:opacity-60"
                   >
                     {savingProfile ? "Saving..." : "Save Changes"}
                   </button>
-                </>
+                </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={startProfileEdit}
-                  className="rounded-full bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#064A91]"
-                >
-                  Edit Profile
-                </button>
+                <div className="flex justify-end border-t border-slate-100 pt-5 sm:col-span-2">
+                  <button
+                    type="button"
+                    onClick={startProfileEdit}
+                    className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#123B70]"
+                  >
+                    Edit Profile
+                  </button>
+                </div>
               )}
             </div>
           </form>
-
         </div>
 
         <form
           onSubmit={saveScreening}
-          className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+          className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
         >
           <div className="flex flex-col gap-3 border-b border-slate-100 p-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -1094,20 +1049,8 @@ export default function JobSeekerDashboard() {
           )}
         </form>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-black text-[#123B70]">Profile picture</h2>
-          <p className="mb-5 mt-1 text-sm text-slate-500">
-            Add a clear photo so employers can recognize you.
-          </p>
-          <ProfileAvatar
-            userId={seeker.user_id}
-            fullName={seeker.full_name}
-            onPhotoStatusChange={setHasProfilePhoto}
-          />
-        </div>
-
         {/* RESUME */}
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-black text-[#123B70]">Resume / CV</h2>
           <p className="mt-1 text-sm text-slate-500">
             Upload a {RESUME_FORMATS_LABEL} file up to 5 MB. Your resume is stored privately.
@@ -1163,7 +1106,7 @@ export default function JobSeekerDashboard() {
         </div>
 
         {/* ACCOUNT INFORMATION */}
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
           <h2 className="text-xl font-black text-[#123B70]">
             Account Information
@@ -1202,7 +1145,7 @@ export default function JobSeekerDashboard() {
         </div>
 
         {/* ACCOUNT ACTIONS */}
-        <div className="rounded-3xl border border-red-100 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-red-100 bg-white p-6 shadow-sm">
 
           <h2 className="text-lg font-black text-slate-800">
             Account Actions

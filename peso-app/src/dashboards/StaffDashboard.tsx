@@ -746,13 +746,13 @@ export default function StaffDashboard() {
 
             </div>
 
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0446A7] font-black text-white">
-
-              {staff.full_name
-                .charAt(0)
-                .toUpperCase()}
-
-            </div>
+            <ProfileAvatar
+              key={staff.user_id}
+              userId={staff.user_id}
+              fullName={staff.full_name}
+              size="small"
+              showControls={false}
+            />
 
           </div>
 
@@ -1310,110 +1310,127 @@ function MyProfile({
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-[#123B70]">My Profile</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Your PESO MABINI staff account information.
+          </p>
+        </div>
+        {!editing && (
+          <button
+            type="button"
+            onClick={() => {
+              setError("");
+              setEditing(true);
+            }}
+            className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#123B70]"
+          >
+            Edit Profile
+          </button>
+        )}
+      </div>
 
-      <div>
-
-        <h2 className="text-2xl font-black text-[#123B70]">
-          My Profile
-        </h2>
-
-        <p className="mt-1 text-slate-500">
-          Your PESO MABINI staff account information.
+      {error && (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
         </p>
+      )}
 
-      </div>
-
-      <div className="max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-
-        <ProfileAvatar
-          userId={staff.user_id}
-          fullName={staff.full_name}
-        />
-
-        {error && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-        <form onSubmit={handleSubmit} className="space-y-4">
-
-          {editing ? (
-            <label className="block text-xs font-bold uppercase tracking-wide text-slate-400">
-              Full Name
-              <input
-                value={form.full_name}
-                onChange={(event) => setForm({ ...form, full_name: event.target.value })}
-                required
-                maxLength={120}
-                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-800"
-              />
-            </label>
-          ) : (
-            <ProfileField label="Full Name" value={staff.full_name} />
-          )}
-
-          <ProfileField
-            label="Email"
-            value={staff.email}
+      <form
+        onSubmit={handleSubmit}
+        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+      >
+        <div className="flex flex-col gap-5 border-b border-slate-100 bg-slate-50 px-6 py-6 sm:flex-row sm:items-center">
+          <ProfileAvatar
+            userId={staff.user_id}
+            fullName={staff.full_name}
+            size="large"
           />
-
-          {editing ? (
-            <label className="block text-xs font-bold uppercase tracking-wide text-slate-400">
-              Contact Number
-              <input
-                type="tel"
-                value={form.contact_no}
-                onChange={(event) => setForm({ ...form, contact_no: event.target.value })}
-                maxLength={30}
-                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm font-semibold normal-case tracking-normal text-slate-800"
-              />
-            </label>
-          ) : (
-            <ProfileField label="Contact Number" value={staff.contact_no || "Not provided"} />
-          )}
-
-          <ProfileField
-            label="Role"
-            value="PESO Staff"
-          />
-
-          <div className="flex justify-end gap-3 pt-2">
-            {editing ? (
-              <>
-                <button type="button" onClick={() => { setForm({ full_name: staff.full_name, contact_no: staff.contact_no ?? "" }); setEditing(false); }} disabled={saving} className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Cancel</button>
-                <button type="submit" disabled={saving} className="rounded-full bg-[#203F8B] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{saving ? "Saving..." : "Save Changes"}</button>
-              </>
-            ) : (
-              <button type="button" onClick={() => { setError(""); setEditing(true); }} className="rounded-full bg-[#203F8B] px-4 py-2 text-sm font-semibold text-white">Edit Profile</button>
-            )}
+          <div className="min-w-0">
+            <h3 className="text-lg font-black text-[#123B70]">
+              {staff.full_name}
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">PESO Staff</p>
+            <p className="mt-1 break-words text-sm text-slate-500">
+              {staff.email}
+            </p>
           </div>
-        </form>
+        </div>
 
-      </div>
+        <div className="grid gap-5 p-6 sm:grid-cols-2">
+          <label className="block text-sm font-bold text-slate-700">
+            Full Name
+            <input
+              value={editing ? form.full_name : staff.full_name}
+              onChange={(event) => setForm({ ...form, full_name: event.target.value })}
+              required
+              maxLength={120}
+              disabled={!editing || saving}
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-700 outline-none transition focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-500"
+            />
+          </label>
 
-    </div>
-  );
-}
+          <label className="block text-sm font-bold text-slate-700">
+            Email
+            <input
+              type="email"
+              value={staff.email}
+              readOnly
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-500"
+            />
+          </label>
 
+          <label className="block text-sm font-bold text-slate-700">
+            Contact Number
+            <input
+              type="tel"
+              value={editing ? form.contact_no : staff.contact_no ?? ""}
+              onChange={(event) => setForm({ ...form, contact_no: event.target.value })}
+              maxLength={30}
+              disabled={!editing || saving}
+              placeholder="Not provided"
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-700 outline-none transition focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-500"
+            />
+          </label>
 
-/* =========================================================
-   PROFILE FIELD
-========================================================= */
+          <label className="block text-sm font-bold text-slate-700">
+            Role
+            <input
+              value="PESO Staff"
+              disabled
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-500"
+            />
+          </label>
 
-function ProfileField({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-
-  return (
-    <div>
-
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-        {label}
-      </p>
-
-      <p className="mt-1 font-semibold text-slate-800">
-        {value}
-      </p>
+          {editing && (
+            <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-5 sm:col-span-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setForm({
+                    full_name: staff.full_name,
+                    contact_no: staff.contact_no ?? "",
+                  });
+                  setError("");
+                  setEditing(false);
+                }}
+                disabled={saving}
+                className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#123B70] disabled:opacity-60"
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          )}
+        </div>
+      </form>
 
     </div>
   );
