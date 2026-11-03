@@ -873,105 +873,117 @@ export default function AdminAccounts() {
             </p>
           </div>
         ) : (
-          filteredStaff.map((account) => (
-            <div
-              key={account.peso_staff_id}
-              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-            >
-
-              <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-
-                {/* STAFF INFORMATION */}
-
-                <div className="flex items-center gap-4">
-
-                  {account.user_id ? (
-                    <ProfileAvatar
-                      key={account.user_id}
-                      userId={account.user_id}
-                      fullName={account.full_name}
-                      size="small"
-                      showControls={false}
-                    />
-                  ) : (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 font-black text-[#0446A7]">
-                      {account.full_name?.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-
-                  <div>
-
-                    <h2 className="font-black text-slate-800">
-                      {account.full_name}
-                    </h2>
-
-                    <p className="text-sm text-slate-500">
-                      {account.email}
-                    </p>
-
-                    {account.contact_no && (
-                      <p className="text-sm text-slate-400">
-                        {account.contact_no}
-                      </p>
-                    )}
-
-                    <span
-                      className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-bold ${
-                        account.is_active
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+            <table className="w-full min-w-[420px] table-fixed md:min-w-0">
+              <thead className="bg-slate-50 text-left">
+                <tr>
+                  <th className="w-[32%] px-2 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500 sm:w-[30%]">
+                    Staff Member
+                  </th>
+                  <th className="w-[28%] px-2 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500 sm:w-[27%]">
+                    Email
+                  </th>
+                  <th className="hidden w-[15%] px-2 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500 lg:table-cell">
+                    Contact
+                  </th>
+                  <th className="w-[15%] px-2 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500 sm:w-[14%]">
+                    Status
+                  </th>
+                  <th className="w-[25%] px-2 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500 sm:w-[29%]">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredStaff.map((account) => (
+                  <tr
+                    key={account.peso_staff_id}
+                    className="align-middle hover:bg-slate-50"
+                  >
+                    <td className="px-2 py-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        {account.user_id ? (
+                          <ProfileAvatar
+                            key={account.user_id}
+                            userId={account.user_id}
+                            fullName={account.full_name}
+                            size="small"
+                            showControls={false}
+                          />
+                        ) : (
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-black text-[#0446A7]">
+                            {account.full_name?.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <span
+                          className="truncate text-[11px] font-semibold text-slate-800"
+                          title={account.full_name}
+                        >
+                          {account.full_name}
+                        </span>
+                      </div>
+                    </td>
+                    <td
+                      className="truncate px-2 py-2 text-[10px] text-slate-600"
+                      title={account.email}
                     >
-                      {account.is_active
-                        ? "Active"
-                        : "Deactivated"}
-                    </span>
-
-                  </div>
-
-                </div>
-
-                {/* MANAGE */}
-
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => openEditStaff(account)}
-                    disabled={updatingStaffStatusId !== null}
-                    className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    Edit Profile
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openPermissions(account)}
-                    disabled={updatingStaffStatusId !== null}
-                    className="rounded-xl bg-[#FED442] px-4 py-3 text-sm font-bold text-[#123B70] transition hover:bg-yellow-400 disabled:opacity-50"
-                  >
-                    Manage Access
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void toggleStaffStatus(account)}
-                    disabled={updatingStaffStatusId !== null}
-                    className={`rounded-xl border px-4 py-3 text-sm font-bold transition disabled:opacity-50 ${
-                      account.is_active
-                        ? "border-red-200 text-red-700 hover:bg-red-50"
-                        : "border-green-200 text-green-700 hover:bg-green-50"
-                    }`}
-                  >
-                    {updatingStaffStatusId === account.peso_staff_id
-                      ? "Updating..."
-                      : account.is_active
-                        ? "Deactivate Account"
-                        : "Activate Account"}
-                  </button>
-                </div>
-
-              </div>
-
-            </div>
-          ))
+                      {account.email}
+                    </td>
+                    <td className="hidden truncate px-2 py-2 text-[10px] text-slate-600 lg:table-cell">
+                      {account.contact_no || "-"}
+                    </td>
+                    <td className="px-2 py-2">
+                      <span
+                        className={`inline-flex whitespace-nowrap rounded-full px-2 py-1 text-[10px] font-semibold ${
+                          account.is_active
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-red-50 text-red-700"
+                        }`}
+                      >
+                        {account.is_active ? "Active" : "Deactivated"}
+                      </span>
+                    </td>
+                    <td className="px-2 py-2">
+                      <div className="flex flex-wrap items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openEditStaff(account)}
+                          disabled={updatingStaffStatusId !== null}
+                          className="whitespace-nowrap rounded-md border border-slate-200 px-1.5 py-1 text-[9px] font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openPermissions(account)}
+                          disabled={updatingStaffStatusId !== null}
+                          className="whitespace-nowrap rounded-md border border-yellow-200 bg-yellow-50 px-1.5 py-1 text-[9px] font-semibold text-[#123B70] transition hover:bg-yellow-100 disabled:opacity-50"
+                        >
+                          Access
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void toggleStaffStatus(account)}
+                          disabled={updatingStaffStatusId !== null}
+                          className={`whitespace-nowrap rounded-md border px-1.5 py-1 text-[9px] font-semibold transition disabled:opacity-50 ${
+                            account.is_active
+                              ? "border-red-200 text-red-700 hover:bg-red-50"
+                              : "border-green-200 text-green-700 hover:bg-green-50"
+                          }`}
+                        >
+                          {updatingStaffStatusId === account.peso_staff_id
+                            ? "Updating..."
+                            : account.is_active
+                              ? "Deactivate"
+                              : "Activate"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
       </div>

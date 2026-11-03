@@ -42,11 +42,15 @@ type Props = {
 
   TableHeader: React.ComponentType<{
     children: React.ReactNode;
+    className?: string;
+    compact?: boolean;
   }>;
 
   TableCell: React.ComponentType<{
     children: React.ReactNode;
     bold?: boolean;
+    className?: string;
+    compact?: boolean;
   }>;
 
   StatusBadge: React.ComponentType<{
@@ -160,41 +164,41 @@ export default function JobPostsModule({
         ) : (
           <div className="overflow-x-auto">
 
-            <table className="w-full">
+            <table className="w-full min-w-[480px] table-fixed sm:min-w-[600px] md:min-w-[700px] lg:min-w-[760px] xl:min-w-0">
 
               <thead className="bg-[#F7F9FC]">
 
                 <tr>
 
-                  <TableHeader>
+                  <TableHeader compact className="text-[10px]">
                     Job Title
                   </TableHeader>
 
-                  <TableHeader>
+                  <TableHeader compact className="text-[10px]">
                     Employer
                   </TableHeader>
 
-                  <TableHeader>
+                  <TableHeader compact className="hidden text-[10px] lg:table-cell">
                     Location
                   </TableHeader>
 
-                  <TableHeader>
+                  <TableHeader compact className="hidden text-[10px] xl:table-cell">
                     Employment Type
                   </TableHeader>
 
-                  <TableHeader>
+                  <TableHeader compact className="text-[10px]">
                     Salary Range
                   </TableHeader>
 
-                  <TableHeader>
+                  <TableHeader compact className="hidden text-[10px] md:table-cell">
                     Openings
                   </TableHeader>
 
-                  <TableHeader>
+                  <TableHeader compact className="text-[10px]">
                     Status
                   </TableHeader>
 
-                  <TableHeader>
+                  <TableHeader compact className="hidden text-[10px] sm:table-cell">
                     Date Posted
                   </TableHeader>
 
@@ -238,46 +242,46 @@ export default function JobPostsModule({
                       className="transition-colors hover:bg-blue-50/40"
                     >
 
-                      <TableCell bold>
-                        <div>
+                      <TableCell bold compact>
+                        <div className="min-w-0">
                           <p>{title}</p>
                           {job.description && (
-                            <p className="mt-1 max-w-xs truncate text-xs font-normal text-slate-500">
+                            <p className="mt-0.5 truncate text-[10px] font-normal text-slate-500">
                               {job.description}
                             </p>
                           )}
                         </div>
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell compact className="truncate">
                         {employer || job.employer_id || "-"}
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell compact className="hidden truncate lg:table-cell">
                         {job.location || "-"}
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell compact className="hidden truncate xl:table-cell">
                         {job.employment_type || "-"}
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell compact className="truncate">
                         {job.salary_min != null || job.salary_max != null
                           ? `${job.salary_min ?? "-"} – ${job.salary_max ?? "-"}`
                           : "-"}
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell compact className="hidden md:table-cell">
                         {job.vacancies_available ?? "-"}
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell compact>
                         <StatusBadge
                           status={displayStatus}
                         />
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell compact className="hidden whitespace-nowrap sm:table-cell">
                         {formatDate(
                           job.date_posted || job.created_at
                         )}

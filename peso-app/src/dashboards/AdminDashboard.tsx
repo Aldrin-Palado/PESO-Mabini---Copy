@@ -2346,11 +2346,15 @@ function SummaryRow({
 
 function TableHeader({
   children,
+  className = "",
+  compact = false,
 }: {
   children: React.ReactNode;
+  className?: string;
+  compact?: boolean;
 }) {
   return (
-    <th className="whitespace-nowrap border-b border-slate-200 px-4 py-3 text-left text-[0.65rem] font-bold uppercase tracking-[0.08em] text-slate-500">
+    <th className={`whitespace-nowrap border-b border-slate-200 ${compact ? "px-2 py-2" : "px-4 py-3"} text-left text-[0.65rem] font-bold uppercase tracking-[0.08em] text-slate-500 ${className}`}>
       {children}
     </th>
   );
@@ -2359,13 +2363,17 @@ function TableHeader({
 function TableCell({
   children,
   bold = false,
+  className = "",
+  compact = false,
 }: {
   children: React.ReactNode;
   bold?: boolean;
+  className?: string;
+  compact?: boolean;
 }) {
   return (
     <td
-      className={`px-4 py-3 text-sm ${
+      className={`${compact ? "px-2 py-2" : "px-4 py-3"} ${compact ? "text-xs" : "text-sm"} ${className} ${
         bold
           ? "font-semibold text-slate-700"
           : "text-slate-600"

@@ -429,22 +429,22 @@ export default function JobSeekersModule({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1520px] table-fixed">
+            <table className="w-full min-w-[640px] table-fixed md:min-w-0">
               <thead className="bg-slate-50 text-left">
                 <tr>
                   {[
-                    ["Name", "w-[190px]"],
-                    ["Email", "w-[210px]"],
-                    ["Phone", "w-[135px]"],
-                    ["Gender", "w-[100px]"],
-                    ["Education", "w-[150px]"],
-                    ["Location", "w-[190px]"],
-                    ["Status", "w-[100px]"],
-                    ["Applications", "w-[95px]"],
-                    ["Created", "w-[120px]"],
-                    ["Actions", "w-[230px]"],
+                    ["Name", "w-[22%] md:w-[18%] xl:w-[16%] 2xl:w-[12%]"],
+                    ["Email", "w-[27%] md:w-[22%] xl:w-[23%] 2xl:w-[16%]"],
+                    ["Phone", "w-[17%] md:w-[15%] xl:w-[15%] 2xl:w-[10%]"],
+                    ["Gender", "hidden w-[8%] 2xl:table-cell"],
+                    ["Education", "hidden w-[10%] 2xl:table-cell"],
+                    ["Location", "hidden w-[16%] md:table-cell md:w-[16%] xl:w-[18%] 2xl:w-[13%]"],
+                    ["Status", "w-[14%] md:w-[12%] xl:w-[11%] 2xl:w-[8%]"],
+                    ["Applications", "hidden w-[6%] 2xl:table-cell"],
+                    ["Created", "hidden w-[8%] 2xl:table-cell"],
+                    ["Actions", "w-[20%] md:w-[17%] xl:w-[17%] 2xl:w-[9%]"],
                   ].map(([label, width]) => (
-                    <th key={label} className={`${width} whitespace-nowrap px-3 py-2.5 text-[10px] font-bold uppercase tracking-wide text-slate-500`}>
+                    <th key={label} className={`${width} whitespace-nowrap px-2 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500`}>
                       {label}
                     </th>
                   ))}
@@ -479,44 +479,44 @@ export default function JobSeekersModule({
                         key={rowId}
                         className="align-middle hover:bg-slate-50"
                       >
-                        <td className="px-3 py-3 text-[11px] font-semibold text-slate-800" title={name}>
+                        <td className="truncate px-2 py-2 text-[11px] font-semibold text-slate-800" title={name}>
                           <span className="block truncate">{name}</span>
                         </td>
-                        <td className="px-3 py-3 text-[10px] text-slate-600" title={jobSeeker.email || ""}>
+                        <td className="truncate px-2 py-2 text-[10px] text-slate-600" title={jobSeeker.email || ""}>
                           <span className="block truncate">{jobSeeker.email || "-"}</span>
                         </td>
-                        <td className="px-3 py-3 text-[10px] text-slate-600" title={jobSeeker.contact_no || jobSeeker.phone || ""}>
+                        <td className="truncate px-2 py-2 text-[10px] text-slate-600" title={jobSeeker.contact_no || jobSeeker.phone || ""}>
                           <span className="block truncate">{jobSeeker.contact_no || jobSeeker.phone || "-"}</span>
                         </td>
-                        <td className="px-3 py-3 text-[10px] text-slate-600" title={String(gender)}>
+                        <td className="hidden truncate px-2 py-2 text-[10px] text-slate-600 2xl:table-cell" title={String(gender)}>
                           <span className="block truncate">{gender}</span>
                         </td>
-                        <td className="px-3 py-3 text-[10px] text-slate-600" title={String(education)}>
+                        <td className="hidden truncate px-2 py-2 text-[10px] text-slate-600 2xl:table-cell" title={String(education)}>
                           <span className="block truncate">{education}</span>
                         </td>
-                        <td className="px-3 py-3 text-[10px] text-slate-600" title={String(location)}>
+                        <td className="hidden truncate px-2 py-2 text-[10px] text-slate-600 md:table-cell" title={String(location)}>
                           <span className="block truncate">{location}</span>
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="px-2 py-2">
                           <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-1 text-[10px] font-semibold ${
                             isActive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
                           }`}>{status}</span>
                         </td>
-                        <td className="px-3 py-3 text-center text-[10px] text-slate-600">
+                        <td className="hidden px-2 py-2 text-center text-[10px] text-slate-600 2xl:table-cell">
                           {applicationCounts[jobSeeker.job_seeker_id || ""] ?? 0}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-[10px] text-slate-500">
+                        <td className="hidden whitespace-nowrap px-2 py-2 text-[10px] text-slate-500 2xl:table-cell">
                           {jobSeeker.created_at
                             ? new Date(jobSeeker.created_at).toLocaleDateString()
                             : "-"}
                         </td>
-                        <td className="px-3 py-3">
-                          <div className="flex flex-nowrap items-center gap-1.5">
+                        <td className="px-2 py-2">
+                          <div className="flex flex-wrap items-center gap-1">
                             <button
                               type="button"
                               onClick={() => setScreeningSeeker(jobSeeker)}
                               title="View screening details"
-                              className="whitespace-nowrap rounded-md border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-50"
+                              className="whitespace-nowrap rounded-md border border-slate-200 px-1.5 py-1 text-[9px] font-semibold text-slate-700 hover:bg-slate-50"
                             >
                               Details
                             </button>
@@ -527,19 +527,19 @@ export default function JobSeekersModule({
                               }}
                               title="Edit job seeker"
                               disabled={!jobSeeker.job_seeker_id || deletingId === jobSeeker.job_seeker_id}
-                              className="whitespace-nowrap rounded-md border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                              className="whitespace-nowrap rounded-md border border-slate-200 px-1.5 py-1 text-[9px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                             >
                               Edit
                             </button>
                           </div>
-                          <div className="mt-1 flex flex-nowrap items-center gap-1.5">
+                          <div className="mt-1 flex flex-wrap items-center gap-1">
                             {jobSeeker.resume_url && (
                               <button
                                 type="button"
                                 onClick={() => void openResume(jobSeeker, rowId)}
                                 disabled={openingResumeId === rowId}
                                 title="View resume"
-                                className="whitespace-nowrap rounded-md border border-blue-200 px-2 py-1 text-[10px] font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                                className="whitespace-nowrap rounded-md border border-blue-200 px-1.5 py-1 text-[9px] font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
                               >
                                 {openingResumeId === rowId ? "..." : "Resume"}
                               </button>
@@ -548,7 +548,7 @@ export default function JobSeekersModule({
                               type="button"
                               onClick={() => void deleteJobSeeker(jobSeeker)}
                               disabled={!jobSeeker.job_seeker_id || deletingId === jobSeeker.job_seeker_id}
-                              className="whitespace-nowrap rounded-md border border-red-200 px-2 py-1 text-[10px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                              className="whitespace-nowrap rounded-md border border-red-200 px-1.5 py-1 text-[9px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
                             >
                               {deletingId === jobSeeker.job_seeker_id ? "..." : "Delete"}
                             </button>

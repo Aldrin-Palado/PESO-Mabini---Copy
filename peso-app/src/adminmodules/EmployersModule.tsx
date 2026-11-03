@@ -232,19 +232,19 @@ export default function EmployersModule({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] table-fixed">
+            <table className="w-full min-w-[600px] table-fixed xl:min-w-0">
               <thead className="bg-slate-50 text-left">
                 <tr>
                   {[
-                    ["Company", "w-[19%]"],
-                    ["Email", "w-[18%]"],
-                    ["Contact Person", "w-[16%]"],
-                    ["Phone", "w-[13%]"],
-                    ["Location", "w-[15%]"],
+                    ["Company", "w-[22%] xl:w-[19%]"],
+                    ["Email", "w-[24%] xl:w-[18%]"],
+                    ["Contact Person", "hidden w-[14%] xl:table-cell"],
+                    ["Phone", "w-[14%] xl:w-[13%]"],
+                    ["Location", "w-[18%] xl:w-[15%]"],
                     ["Status", "w-[10%]"],
-                    ["Actions", "w-[9%]"],
+                    ["Actions", "w-[12%] xl:w-[11%]"],
                   ].map(([label, width]) => (
-                    <th key={label} className={`${width} px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500`}>
+                    <th key={label} className={`${width} px-2 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500`}>
                       {label}
                     </th>
                   ))}
@@ -273,23 +273,23 @@ export default function EmployersModule({
                         }
                         className="align-middle hover:bg-slate-50"
                       >
-                        <td className="truncate px-3 py-2.5 text-[11px] font-semibold text-slate-800" title={name}>
+                        <td className="truncate px-2 py-2 text-[11px] font-semibold text-slate-800" title={name}>
                           {name}
                         </td>
-                        <td className="truncate px-3 py-2.5 text-[10px] text-slate-600" title={employer.email || ""}>
+                        <td className="truncate px-2 py-2 text-[10px] text-slate-600" title={employer.email || ""}>
                           {employer.email || "-"}
                         </td>
-                        <td className="truncate px-3 py-2.5 text-[10px] text-slate-600" title={employer.contact_person || ""}>
+                        <td className="hidden truncate px-2 py-2 text-[10px] text-slate-600 xl:table-cell" title={employer.contact_person || ""}>
                           {employer.contact_person || "-"}
                         </td>
-                        <td className="truncate px-3 py-2.5 text-[10px] text-slate-600">
+                        <td className="truncate px-2 py-2 text-[10px] text-slate-600">
                           {employer.contact_no || employer.phone || "-"}
                         </td>
-                        <td className="truncate px-3 py-2.5 text-[10px] text-slate-600" title={employer.address || ""}>
+                        <td className="truncate px-2 py-2 text-[10px] text-slate-600" title={employer.address || ""}>
                           {employer.address || "-"}
                         </td>
-                        <td className="px-3 py-2.5">
-                          <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${
+                        <td className="px-2 py-2">
+                          <span title={status} className={`inline-flex max-w-full truncate rounded-full px-2 py-1 text-[10px] font-semibold ${
                             employer.is_verified
                               ? "bg-emerald-50 text-emerald-700"
                               : "bg-amber-50 text-amber-700"
@@ -297,8 +297,8 @@ export default function EmployersModule({
                             {status}
                           </span>
                         </td>
-                        <td className="px-3 py-2.5">
-                          <div className="flex items-center gap-1">
+                        <td className="px-2 py-2">
+                          <div className="flex flex-wrap items-center gap-1">
                             <button
                               type="button"
                               onClick={() => startEditing(employer)}
