@@ -25,6 +25,26 @@ const jobCategories = [
   "Other",
 ];
 
+const verificationRequirements = [
+  { key: "businessRegistration", label: "DTI or SEC business registration" },
+  { key: "businessPermit", label: "Mayor's / Business Permit" },
+  { key: "birCertificate", label: "BIR Certificate of Registration (Form 2303) — optional" },
+  { key: "governmentId", label: "Valid government ID of owner / authorized representative" },
+  { key: "authorizationLetter", label: "Authorization letter, if the representative is not the owner" },
+] as const;
+
+const verificationBucket = "employer-verification-documents";
+const allowedVerificationTypes = ["application/pdf", "image/jpeg", "image/png"];
+const maxVerificationFileSize = 10 * 1024 * 1024;
+
+type VerificationDocument = {
+  key: string;
+  label: string;
+  file_name: string;
+  storage_path: string;
+  uploaded_at: string;
+};
+
 const fieldClassName =
   "mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0759AE] focus:ring-2 focus:ring-[#0759AE]/15";
 
@@ -32,6 +52,9 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [registrationCreated, setRegistrationCreated] = useState(false);
+  const [registrationError, setRegistrationError] = useState("");
+  const [verificationFiles, setVerificationFiles] = useState<Record<string, File>>({});
   const [jobTypes, setJobTypes] = useState<string[]>([]);
   const [otherJobTypes, setOtherJobTypes] = useState("");
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
@@ -73,6 +96,73 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
       : []),
   ];
 
+  const uploadVerificationDocuments = async (userId: string) => {
+    const uploadedPaths: string[] = [];
+
+    try {
+      const documents: VerificationDocument[] = [];
+      for (const requirement of verificationRequirements) {
+        const file = verificationFiles[requirement.key];
+        if (!file) continue;
+
+        const extension = file.name.split(".").pop()?.toLowerCase() || "file";
+        const storagePath = `${userId}/${crypto.randomUUID()}.${extension}`;
+        const { error: uploadError } = await supabase.storage
+          .from(verificationBucket)
+          .upload(storagePath, file, {
+            cacheControl: "3600",
+            contentType: file.type,
+            upsert: false,
+          });
+        if (uploadError) {
+          throw new Error(`Could not upload ${requirement.label}: ${uploadError.message}`);
+        }
+
+        uploadedPaths.push(storagePath);
+        documents.push({
+          key: requirement.key,
+          label: requirement.label,
+          file_name: file.name,
+          storage_path: storagePath,
+          uploaded_at: new Date().toISOString(),
+        });
+      }
+
+      if (documents.length === 0) return;
+
+      const { data: employerRow, error: updateError } = await supabase
+        .from("employer")
+        .update({ verification_documents: documents })
+        .eq("user_id", userId)
+        .select("employer_id")
+        .maybeSingle();
+      if (updateError) {
+        throw new Error(`Documents uploaded but could not be attached to the employer profile: ${updateError.message}`);
+      }
+      if (!employerRow) {
+        throw new Error("Documents uploaded, but the employer profile could not be found.");
+      }
+    } catch (error) {
+      if (uploadedPaths.length > 0) {
+        const { error: cleanupError } = await supabase.storage
+          .from(verificationBucket)
+          .remove(uploadedPaths);
+        if (cleanupError) {
+          console.error("Could not clean up employer verification documents:", cleanupError);
+        }
+      }
+      throw error;
+    }
+  };
+
+  const completeRegistration = async (userId: string) => {
+    await uploadVerificationDocuments(userId);
+    alert(
+      "Employer registration submitted. Please check your email to confirm your account. PESO Mabini will review your company details before verification.",
+    );
+    navigate("/login", { replace: true });
+  };
+
   const continueToNextStep = () => {
     const formElement = document.getElementById(
       "employer-registration-form",
@@ -106,19 +196,44 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    setRegistrationError("");
+    setLoading(true);
+    try {
+      if (registrationCreated) {
+        let {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        if (!session) {
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: form.email.trim().toLowerCase(),
+            password: form.password,
+          });
+          if (error) throw new Error(`Sign in after email confirmation failed: ${error.message}`);
+          session = data.session;
+        }
+        if (!session?.user.id) {
+          throw new Error("Please confirm your email, then sign in to upload the selected documents.");
+        }
+
+        await completeRegistration(session.user.id);
+        return;
+      }
+
     if (form.password !== form.confirmPassword) {
-      alert("Passwords do not match.");
+      setRegistrationError("Passwords do not match.");
+      setLoading(false);
       setStep(0);
       return;
     }
     if (!privacyAccepted) {
-      alert("Please accept the data privacy notice to continue.");
+      setRegistrationError("Please accept the data privacy notice to continue.");
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-
-    try {
       const email = form.email.trim().toLowerCase();
       const contactPerson = form.contactPerson.trim();
       const { data, error } = await supabase.auth.signUp({
@@ -145,13 +260,21 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
         );
       }
 
-      alert(
-        "Employer registration submitted. Please check your email to confirm your account. PESO Mabini will review your company details before verification.",
-      );
-      navigate("/login", { replace: true });
+      if (Object.keys(verificationFiles).length > 0 && !data.session) {
+        setRegistrationCreated(true);
+        setRegistrationError(
+          "Your account has been created. Confirm your email, then return here and select “I confirmed — upload documents” to securely submit your files.",
+        );
+        return;
+      }
+
+      if (Object.keys(verificationFiles).length > 0) {
+        setRegistrationCreated(true);
+      }
+      await completeRegistration(data.user.id);
     } catch (error) {
       console.error("Employer registration error:", error);
-      alert(
+      setRegistrationError(
         error instanceof Error
           ? error.message
           : "Unable to submit employer registration. Please try again.",
@@ -502,18 +625,84 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
 
                 <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
                   <h3 className="text-sm font-bold text-amber-950">
-                    Before you submit
+                    Employer verification requirements
                   </h3>
                   <p className="mt-1 text-xs text-amber-900">
-                    Keep these documents available. PESO Mabini may request them
-                    during verification:
+                    Upload available documents now, or submit them later if PESO
+                    Mabini requests them before verifying your account. Documents
+                    are stored privately and are only available to you and authorized
+                    PESO staff.
                   </p>
                   <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-amber-900">
-                    <li>DTI / SEC registration and current business permit</li>
-                    <li>Valid ID of the owner or authorized representative</li>
-                    <li>Authorization letter when the representative is not the owner</li>
-                    <li>Optional BIR Certificate of Registration (Form 2303)</li>
+                    <li>DTI or SEC business registration</li>
+                    <li>Mayor&apos;s / Business Permit</li>
+                    <li>BIR Certificate of Registration (Form 2303) — optional</li>
+                    <li>Valid government ID of the owner / authorized representative</li>
+                    <li>Authorization letter, if the representative is not the owner</li>
                   </ul>
+                </div>
+
+                <div className="mt-5 space-y-4">
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Upload verification documents (optional)
+                  </h3>
+                  {verificationRequirements.map((requirement) => (
+                    <label
+                      key={requirement.key}
+                      className="block rounded-xl border border-slate-200 bg-white p-4"
+                    >
+                      <span className="block text-sm font-semibold text-slate-700">
+                        {requirement.label}
+                      </span>
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                        disabled={loading && registrationCreated}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                            event.target.value = "";
+                            if (!file) return;
+                          if (!allowedVerificationTypes.includes(file.type)) {
+                            setRegistrationError("Upload documents as PDF, JPG, or PNG files.");
+                            return;
+                          }
+                          if (file.size > maxVerificationFileSize) {
+                            setRegistrationError(`${file.name} exceeds the 10 MB per-file limit.`);
+                            return;
+                          }
+                          setRegistrationError("");
+                          setVerificationFiles((current) => ({
+                            ...current,
+                            [requirement.key]: file,
+                          }));
+                        }}
+                        className="mt-2 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#0759AE] hover:file:bg-blue-100"
+                      />
+                      <span className="mt-1 block text-xs text-slate-500">
+                        PDF, JPG, or PNG · up to 10 MB
+                      </span>
+                      {verificationFiles[requirement.key] && (
+                        <span className="mt-2 flex items-center justify-between gap-3 text-xs text-emerald-700">
+                          <span className="truncate">
+                            Selected: {verificationFiles[requirement.key].name}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setVerificationFiles((current) => {
+                                const next = { ...current };
+                                delete next[requirement.key];
+                                return next;
+                              });
+                            }}
+                            className="shrink-0 font-semibold text-red-600 hover:underline"
+                          >
+                            Remove
+                          </button>
+                        </span>
+                      )}
+                    </label>
+                  ))}
                 </div>
 
                 <dl className="mt-5 grid gap-x-6 gap-y-4 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2">
@@ -595,6 +784,15 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
               </section>
             )}
 
+            {registrationError && (
+              <p
+                role="alert"
+                className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+              >
+                {registrationError}
+              </p>
+            )}
+
             <div className="mt-7 flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
@@ -622,7 +820,11 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
                   disabled={loading || !privacyAccepted}
                   className="rounded-full bg-emerald-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {loading ? "Submitting..." : "Submit Registration"}
+                  {loading
+                    ? "Submitting..."
+                    : registrationCreated
+                      ? "I confirmed — upload documents"
+                      : "Submit Registration"}
                 </button>
               )}
             </div>

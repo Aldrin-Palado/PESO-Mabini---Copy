@@ -1,8 +1,16 @@
 import React, { useState, type FormEvent } from "react";
+import { supabase } from "../services/supabase";
+
+type VerificationDocument = {
+  label: string;
+  file_name: string;
+  storage_path: string;
+};
 
 type Employer = {
   id?: string;
   employer_id?: string;
+  user_id?: string | null;
   company_name?: string;
   business_name?: string;
   full_name?: string;
@@ -16,6 +24,9 @@ type Employer = {
   is_verified?: boolean;
   status?: string;
   created_at?: string;
+  updated_at?: string;
+  logo_url?: string | null;
+  verification_documents?: VerificationDocument[] | null;
   [key: string]: any;
 };
 
@@ -75,6 +86,11 @@ export default function EmployersModule({
   const [actionError, setActionError] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [appliedStatusFilter, setAppliedStatusFilter] = useState("all");
+  const [documentsEmployer, setDocumentsEmployer] = useState<Employer | null>(null);
+  const [signedDocuments, setSignedDocuments] = useState<
+    Array<VerificationDocument & { url: string }>
+  >([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
 
   const visibleEmployers = employers.filter((employer) => {
     if (appliedStatusFilter === "all") return true;
@@ -113,6 +129,37 @@ export default function EmployersModule({
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const viewVerificationDocuments = async (employer: Employer) => {
+    const documents = employer.verification_documents ?? [];
+    setDocumentsEmployer(employer);
+    setSignedDocuments([]);
+    setDocumentsLoading(true);
+    setActionError("");
+
+    try {
+      const signed = await Promise.all(
+        documents.map(async (document) => {
+          const { data, error } = await supabase.storage
+            .from("employer-verification-documents")
+            .createSignedUrl(document.storage_path, 300);
+          if (error) {
+            throw new Error(`Could not open ${document.label}: ${error.message}`);
+          }
+          return { ...document, url: data.signedUrl };
+        }),
+      );
+      setSignedDocuments(signed);
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "Employer documents could not be opened.",
+      );
+    } finally {
+      setDocumentsLoading(false);
     }
   };
 
@@ -309,6 +356,14 @@ export default function EmployersModule({
                             </button>
                             <button
                               type="button"
+                              onClick={() => void viewVerificationDocuments(employer)}
+                              disabled={documentsLoading}
+                              className="rounded-md border border-blue-200 px-2 py-1 text-[10px] font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                            >
+                              Details
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => void deleteEmployer(employer)}
                               disabled={!employer.employer_id || deletingId === employer.employer_id}
                               className="rounded-md border border-red-200 px-2 py-1 text-[10px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
@@ -424,6 +479,103 @@ export default function EmployersModule({
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {documentsEmployer && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setDocumentsEmployer(null);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="employer-details-title"
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 id="employer-details-title" className="text-lg font-bold text-slate-900">
+                  Employer details
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  {documentsEmployer.name || documentsEmployer.company_name || "Employer"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDocumentsEmployer(null)}
+                aria-label="Close verification documents"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-slate-500 hover:bg-slate-100"
+              >
+                ×
+              </button>
+            </div>
+            <section aria-labelledby="employer-profile-details" className="mt-5">
+              <h3 id="employer-profile-details" className="text-sm font-bold text-slate-800">
+                Company and contact information
+              </h3>
+              <dl className="mt-3 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
+                {[
+                  ["Company name", documentsEmployer.name || documentsEmployer.company_name || documentsEmployer.business_name || documentsEmployer.full_name],
+                  ["Employer ID", documentsEmployer.employer_id],
+                  ["Company email", documentsEmployer.email],
+                  ["Owner / representative", documentsEmployer.contact_person],
+                  ["Contact number", documentsEmployer.contact_no || documentsEmployer.phone],
+                  ["Business address", documentsEmployer.address],
+                  ["Verification status", documentsEmployer.is_verified ? "Verified" : "Pending verification"],
+                  ["Registered on", documentsEmployer.created_at ? new Date(documentsEmployer.created_at).toLocaleString("en-PH") : null],
+                  ["Last updated", documentsEmployer.updated_at ? new Date(documentsEmployer.updated_at).toLocaleString("en-PH") : null],
+                ].map(([label, value]) => (
+                  <div key={label} className={label === "Business address" ? "sm:col-span-2" : ""}>
+                    <dt className="text-xs font-semibold text-slate-500">{label}</dt>
+                    <dd className="mt-1 break-words text-sm text-slate-800">{value || "Not provided"}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+            <section aria-labelledby="employer-verification-documents" className="mt-6">
+              <h3 id="employer-verification-documents" className="text-sm font-bold text-slate-800">
+                Verification attachments
+              </h3>
+            {documentsLoading ? (
+              <p className="py-8 text-center text-sm text-slate-500">Preparing secure document links...</p>
+            ) : signedDocuments.length === 0 ? (
+              <p className="py-8 text-center text-sm text-slate-500">
+                No verification documents have been uploaded.
+              </p>
+            ) : (
+              <ul className="mt-5 divide-y divide-slate-100">
+                {signedDocuments.map((document) => (
+                  <li
+                    key={document.storage_path}
+                    className="flex items-center justify-between gap-4 py-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-800">{document.label}</p>
+                      <p className="truncate text-xs text-slate-500">{document.file_name}</p>
+                    </div>
+                    <a
+                      href={document.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                    >
+                      Open file
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+            </section>
+            {actionError && (
+              <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                {actionError}
+              </p>
+            )}
+          </section>
         </div>
       )}
 
