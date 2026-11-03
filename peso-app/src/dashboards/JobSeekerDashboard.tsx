@@ -23,6 +23,7 @@ import MessagesModule from "../jobseekersmodules/MessagesModule";
 import AIChatbotModule from "../jobseekersmodules/AIChatbotModule";
 import JobMatchesModule from "../jobseekersmodules/JobMatchesModule";
 import {
+  areJobSeekerProfileSectionsComplete,
   JOB_SEEKER_PROFILE_SECTION_TITLES,
   getIncompleteJobSeekerProfileSections,
   isJobSeekerProfileComplete,
@@ -871,6 +872,7 @@ export default function JobSeekerDashboard() {
                 userId={seeker.user_id}
                 fullName={seeker.full_name}
                 size="large"
+                showControls={editingProfile}
                 onPhotoStatusChange={setHasProfilePhoto}
               />
               <div className="min-w-0">
@@ -1375,9 +1377,8 @@ export default function JobSeekerDashboard() {
                 ? location.state.jobId
                 : new URLSearchParams(location.search).get("job") ?? undefined
             }
-            profileComplete={isJobSeekerProfileComplete(
+            profileComplete={areJobSeekerProfileSectionsComplete(
               seeker.registration_details,
-              seeker.resume_url,
             )}
             onNavigate={(page) =>
               handlePageChange(

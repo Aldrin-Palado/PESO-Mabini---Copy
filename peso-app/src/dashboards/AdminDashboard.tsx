@@ -2197,6 +2197,7 @@ function MyProfile({
               userId={account.user_id}
               fullName={account.full_name}
               size="large"
+              showControls={editing}
             />
           )}
           <div className="min-w-0">

@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { supabase } from "../services/supabase";
 import AppIcon from "../components/AppIcon";
+import {
+  RESUME_ACCEPT,
+  RESUME_BUCKET,
+  RESUME_FORMATS_LABEL,
+  RESUME_MIME_TYPES,
+  getResumeExtension,
+} from "../services/resumes";
 import type { OpenJobVacancyRow } from "../types/JobVacancy";
 
 type Seeker = {
   job_seeker_id: string;
+  user_id: string;
   full_name?: string | null;
   email?: string | null;
   contact_no?: string | null;
@@ -73,6 +81,7 @@ export default function JobsModule({
   const [applicationError, setApplicationError] = useState("");
   const [applicationSubmitting, setApplicationSubmitting] = useState(false);
   const [applicationSubmitted, setApplicationSubmitted] = useState(false);
+  const [applicationResumeFile, setApplicationResumeFile] = useState<File | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -283,6 +292,7 @@ export default function JobsModule({
     });
     setApplicationError("");
     setApplicationSubmitted(false);
+    setApplicationResumeFile(null);
     setApplicationJob(job);
   };
 
@@ -302,8 +312,28 @@ export default function JobsModule({
       return;
     }
 
+    const resumeExtension = applicationResumeFile
+      ? getResumeExtension(applicationResumeFile.name)
+      : "";
+    if (
+      applicationResumeFile &&
+      !RESUME_MIME_TYPES[resumeExtension]
+    ) {
+      setApplicationError(`Please choose a ${RESUME_FORMATS_LABEL} file.`);
+      return;
+    }
+    if (applicationResumeFile && applicationResumeFile.size > 5 * 1024 * 1024) {
+      setApplicationError("Resume must not exceed 5 MB.");
+      return;
+    }
+    if (!applicationResumeFile && !seeker.resume_url) {
+      setApplicationError("Please upload a resume before submitting your application.");
+      return;
+    }
+
     setApplicationSubmitting(true);
     setApplicationError("");
+    let uploadedResumePath: string | null = null;
 
     try {
       const { data: jobRow, error: jobError } = await supabase
@@ -334,6 +364,22 @@ export default function JobsModule({
         throw new Error("You have already applied for this position.");
       }
 
+      let applicantResumeUrl = seeker.resume_url || null;
+      if (applicationResumeFile) {
+        const resumePath = `${seeker.user_id}/applications/${applicationJob.id}/${Date.now()}.${resumeExtension}`;
+        const { error: uploadError } = await supabase.storage
+          .from(RESUME_BUCKET)
+          .upload(resumePath, applicationResumeFile, {
+            upsert: false,
+            contentType: RESUME_MIME_TYPES[resumeExtension],
+          });
+        if (uploadError) {
+          throw new Error(`Unable to upload your resume: ${uploadError.message}`);
+        }
+        uploadedResumePath = resumePath;
+        applicantResumeUrl = resumePath;
+      }
+
       const { error: insertError } = await supabase.from("application").insert({
         employer_id: jobRow.employer_id,
         job_seeker_id: seeker.job_seeker_id,
@@ -342,7 +388,7 @@ export default function JobsModule({
         applicant_email: applicationDetails.email.trim(),
         applicant_contact_no: applicationDetails.contactNumber.trim(),
         applicant_address: applicationDetails.address.trim(),
-        applicant_resume_url: seeker.resume_url || null,
+        applicant_resume_url: applicantResumeUrl,
       });
 
       if (insertError) {
@@ -354,6 +400,14 @@ export default function JobsModule({
 
       setApplicationSubmitted(true);
     } catch (error) {
+      if (uploadedResumePath) {
+        const { error: cleanupError } = await supabase.storage
+          .from(RESUME_BUCKET)
+          .remove([uploadedResumePath]);
+        if (cleanupError) {
+          console.error("Could not remove unlinked application resume:", cleanupError);
+        }
+      }
       console.error("Error submitting job application:", error);
       setApplicationError(
         error instanceof Error
@@ -866,7 +920,7 @@ export default function JobsModule({
                       Apply for {applicationJob.title}
                     </h2>
                     <p className="mt-2 text-sm text-slate-500">
-                      Confirm your contact details before submitting.
+                      Confirm your contact details and resume before submitting.
                     </p>
                   </div>
                   <button
@@ -951,6 +1005,28 @@ export default function JobsModule({
                       }
                       className="w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                     />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+                      Resume
+                    </span>
+                    <input
+                      type="file"
+                      accept={RESUME_ACCEPT}
+                      disabled={applicationSubmitting}
+                      onChange={(event) => {
+                        setApplicationResumeFile(event.target.files?.[0] ?? null);
+                        event.target.value = "";
+                      }}
+                      className="block w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-60"
+                    />
+                    <span className="mt-1.5 block text-xs text-slate-500">
+                      {applicationResumeFile
+                        ? `Selected: ${applicationResumeFile.name}`
+                        : seeker.resume_url
+                          ? `Your profile resume will be attached if you do not choose another. Upload a ${RESUME_FORMATS_LABEL} file up to 5 MB to use a different resume.`
+                          : `Upload a ${RESUME_FORMATS_LABEL} file up to 5 MB.`}
+                    </span>
                   </label>
 
                   {applicationError && (

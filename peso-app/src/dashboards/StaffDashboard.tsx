@@ -1346,6 +1346,7 @@ function MyProfile({
             userId={staff.user_id}
             fullName={staff.full_name}
             size="large"
+            showControls={editing}
           />
           <div className="min-w-0">
             <h3 className="text-lg font-black text-[#123B70]">

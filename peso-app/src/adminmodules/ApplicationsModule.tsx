@@ -119,6 +119,9 @@ export default function ApplicationsModule({
   const [decisionNotice, setDecisionNotice] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [expandedApplicants, setExpandedApplicants] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [actionError, setActionError] = useState("");
   const [resumeError, setResumeError] = useState("");
   const [openingResumeId, setOpeningResumeId] = useState<string | null>(null);
@@ -519,18 +522,54 @@ export default function ApplicationsModule({
                       <p className="truncate text-[9px] text-slate-400">{group.email}</p>
                     </div>
                   </div>
-                  <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[9px] font-semibold text-slate-500 ring-1 ring-slate-200">
-                    {group.applications.length} application{group.applications.length === 1 ? "" : "s"}
-                  </span>
+                  <button
+                    type="button"
+                    aria-expanded={expandedApplicants.has(group.key)}
+                    aria-controls={
+                      expandedApplicants.has(group.key)
+                        ? `applications-${encodeURIComponent(group.key)}`
+                        : undefined
+                    }
+                    aria-label={`${expandedApplicants.has(group.key) ? "Hide" : "Show"} applications for ${group.name} (${group.applications.length})`}
+                    onClick={() =>
+                      setExpandedApplicants((current) => {
+                        const next = new Set(current);
+                        if (next.has(group.key)) {
+                          next.delete(group.key);
+                        } else {
+                          next.add(group.key);
+                        }
+                        return next;
+                      })
+                    }
+                    className="flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-semibold text-slate-600 transition hover:bg-white hover:text-[#0759AE] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                  >
+                    <span className="rounded-full bg-white px-2 py-0.5 text-[9px] text-slate-500 ring-1 ring-slate-200">
+                      {group.applications.length}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className={`text-sm leading-none transition-transform ${
+                        expandedApplicants.has(group.key) ? "rotate-180" : ""
+                      }`}
+                    >
+                      ▾
+                    </span>
+                  </button>
                 </header>
-                {group.applications.map((application, index) => {
+                {expandedApplicants.has(group.key) && (
+                  <div
+                    id={`applications-${encodeURIComponent(group.key)}`}
+                    className="divide-y divide-slate-100"
+                  >
+                    {group.applications.map((application, index) => {
               const rowId = getRowId(application, index);
               const status = getApplicationStatus(application);
               const statusStyle =
                 STATUSES.find((item) => item.value === status)?.color ||
                 "bg-slate-100 text-slate-600";
               return (
-                <article key={rowId} className="flex flex-col gap-3 border-t border-slate-100 px-3 py-3 pl-5 hover:bg-slate-50 sm:flex-row sm:items-center sm:pl-8 sm:pr-4">
+                <article key={rowId} className="flex flex-col gap-3 px-3 py-3 pl-5 hover:bg-slate-50 sm:flex-row sm:items-center sm:pl-8 sm:pr-4">
                   <div className="flex min-w-0 flex-1 items-start gap-2.5">
                     <div className="min-w-0">
                       <p className="text-[9px] font-bold uppercase tracking-wide text-[#0759AE]">
@@ -627,10 +666,12 @@ export default function ApplicationsModule({
                     <span className="sm:block">Updated: {formatDate(application.updated_at)}</span>
                   </div>
                 </article>
-              );
-                })}
-              </section>
-            ))}
+                        );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                ))}
           </div>
         )}
       </section>

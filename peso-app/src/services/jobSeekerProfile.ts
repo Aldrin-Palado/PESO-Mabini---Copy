@@ -133,12 +133,18 @@ export function getIncompleteJobSeekerProfileSections(
   return incomplete;
 }
 
+export function areJobSeekerProfileSectionsComplete(
+  registrationDetails: unknown,
+): boolean {
+  return getIncompleteJobSeekerProfileSections(registrationDetails).length === 0;
+}
+
 export function isJobSeekerProfileComplete(
   registrationDetails: unknown,
   resumeUrl: string | null | undefined,
 ): boolean {
   return (
-    getIncompleteJobSeekerProfileSections(registrationDetails).length === 0 &&
+    areJobSeekerProfileSectionsComplete(registrationDetails) &&
     Boolean(resumeUrl?.trim())
   );
 }

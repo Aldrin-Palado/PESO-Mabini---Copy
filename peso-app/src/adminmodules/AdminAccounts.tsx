@@ -658,15 +658,6 @@ export default function AdminAccounts() {
 
         <button
           type="button"
-          onClick={() => void loadStaff()}
-          disabled={loading}
-          className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-50"
-        >
-          {loading ? "Refreshing..." : "Refresh"}
-        </button>
-
-        <button
-          type="button"
           onClick={() => {
             if (showCreateModal) {
               closeCreateModal();
@@ -886,22 +877,32 @@ export default function AdminAccounts() {
           >
             Filter by account status
           </label>
-          <select
-            id="staff-status-filter"
-            value={staffStatusFilter}
-            onChange={(event) =>
-              setStaffStatusFilter(event.target.value as StaffStatusFilter)
-            }
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 sm:w-56"
-          >
-            <option value="all">All accounts ({staff.length})</option>
-            <option value="active">
-              Active ({staff.filter((account) => account.is_active).length})
-            </option>
-            <option value="deactivated">
-              Deactivated ({staff.filter((account) => !account.is_active).length})
-            </option>
-          </select>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <select
+              id="staff-status-filter"
+              value={staffStatusFilter}
+              onChange={(event) =>
+                setStaffStatusFilter(event.target.value as StaffStatusFilter)
+              }
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 sm:w-56"
+            >
+              <option value="all">All accounts ({staff.length})</option>
+              <option value="active">
+                Active ({staff.filter((account) => account.is_active).length})
+              </option>
+              <option value="deactivated">
+                Deactivated ({staff.filter((account) => !account.is_active).length})
+              </option>
+            </select>
+            <button
+              type="button"
+              onClick={() => void loadStaff()}
+              disabled={loading}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-50"
+            >
+              {loading ? "Refreshing..." : "Refresh"}
+            </button>
+          </div>
         </div>
 
         {staff.length === 0 ? (
