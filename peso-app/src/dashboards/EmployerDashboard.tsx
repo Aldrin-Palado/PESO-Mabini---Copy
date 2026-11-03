@@ -1,6 +1,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AppIcon from "../components/AppIcon";
 import SidebarToggle from "../components/SidebarToggle";
 import EmployersSidebar, {
   type EmployerMenuName,
@@ -85,6 +86,56 @@ interface CompanyProfileForm {
   company_logo_url?: string | null;
 }
 
+interface EmployerNotification {
+  message_id: string;
+  sender_user_id: string;
+  body: string;
+  created_at: string;
+  sender_label: string;
+}
+
+interface MessageContactSummary {
+  user_id: string;
+  display_name: string;
+  role: string;
+}
+
+async function loadUnreadEmployerMessages(
+  userId: string,
+): Promise<EmployerNotification[]> {
+  const { data: messages, error: messagesError } = await supabase
+    .from("peso_messages")
+    .select("message_id, sender_user_id, body, created_at")
+    .eq("recipient_user_id", userId)
+    .is("read_at", null)
+    .order("created_at", { ascending: false });
+
+  if (messagesError) throw messagesError;
+  if (!messages?.length) return [];
+
+  const { data: contacts, error: contactsError } = await supabase.rpc(
+    "get_peso_message_contacts",
+  );
+  if (contactsError) throw contactsError;
+
+  const contactsByUserId = new Map(
+    ((contacts ?? []) as MessageContactSummary[]).map((contact) => [
+      contact.user_id,
+      contact,
+    ]),
+  );
+
+  return messages.map((message) => {
+    const contact = contactsByUserId.get(message.sender_user_id);
+    return {
+      ...message,
+      sender_label: contact
+        ? `${contact.role} ${contact.display_name} messaged you`
+        : "A PESO user messaged you",
+    };
+  });
+}
+
 /* =========================
    CONSTANTS
 ========================= */
@@ -107,6 +158,11 @@ export default function EmployerDashboard() {
     useState<MenuName>("Dashboard");
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [notifications, setNotifications] = useState<EmployerNotification[]>([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsError, setNotificationsError] = useState("");
+  const [messageContactToOpen, setMessageContactToOpen] = useState<string | undefined>();
 
   const [profile, setProfile] =
     useState<EmployerProfile | null>(null);
@@ -143,6 +199,95 @@ export default function EmployerDashboard() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isSidebarOpen]);
+
+  useEffect(() => {
+    const userId = profile?.user_id;
+    if (!userId) return;
+
+    let active = true;
+    const refreshNotifications = async () => {
+      try {
+        const unreadMessages = await loadUnreadEmployerMessages(userId);
+        if (active) {
+          setNotifications(unreadMessages);
+          setNotificationsError("");
+        }
+      } catch (notificationError) {
+        console.error("Could not load Employer notifications:", notificationError);
+        if (active) {
+          setNotificationsError("Notifications could not be loaded. Please try again.");
+        }
+      }
+    };
+
+    void refreshNotifications();
+
+    const channel = supabase
+      .channel(`employer-notifications-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "peso_messages",
+          filter: `recipient_user_id=eq.${userId}`,
+        },
+        () => void refreshNotifications(),
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      void supabase.removeChannel(channel);
+    };
+  }, [profile?.user_id]);
+
+  useEffect(() => {
+    if (!notificationsOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setNotificationsOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [notificationsOpen]);
+
+  const openNotifications = async () => {
+    if (!profile?.user_id) return;
+    setNotificationsOpen(true);
+    setNotificationsLoading(true);
+    setNotificationsError("");
+    try {
+      setNotifications(await loadUnreadEmployerMessages(profile.user_id));
+    } catch (notificationError) {
+      console.error("Could not load Employer notifications:", notificationError);
+      setNotificationsError("Notifications could not be loaded. Please try again.");
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  const openNotificationConversation = async (
+    notification: EmployerNotification,
+  ) => {
+    const { error: readError } = await supabase
+      .from("peso_messages")
+      .update({ read_at: new Date().toISOString() })
+      .eq("message_id", notification.message_id);
+
+    if (readError) {
+      console.error("Could not mark notification as read:", readError);
+      setNotificationsError("The message could not be marked as read. Please try again.");
+      return;
+    }
+
+    setNotifications((current) =>
+      current.filter((item) => item.message_id !== notification.message_id),
+    );
+    setNotificationsOpen(false);
+    setMessageContactToOpen(notification.sender_user_id);
+    navigate("Messages");
+  };
 
   /* =========================
      LOAD EMPLOYER DATA
@@ -668,7 +813,7 @@ export default function EmployerDashboard() {
         );
 
       case "Messages":
-        return <MessagesModule />;
+        return <MessagesModule initialContactId={messageContactToOpen} />;
 
       case "Company Profile":
         return (
@@ -736,7 +881,22 @@ export default function EmployerDashboard() {
               </h2>
             </div>
 
-            <div className="hidden items-center gap-3 border-l border-slate-200 pl-4 sm:flex">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={() => void openNotifications()}
+                className="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100"
+                aria-label={`Notifications${notifications.length ? `, ${notifications.length} unread` : ""}`}
+                aria-haspopup="dialog"
+                aria-expanded={notificationsOpen}
+              >
+                <AppIcon name="bell" className="h-5 w-5" />
+                {notifications.length > 0 && (
+                  <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
+                )}
+              </button>
+
+              <div className="hidden items-center gap-3 border-l border-slate-200 pl-4 sm:flex">
               <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[#0446A7] text-sm font-bold text-white">
                 {profile.logo_url ? (
                   <img
@@ -758,6 +918,7 @@ export default function EmployerDashboard() {
                   {profile.email || "Employer"}
                 </p>
               </div>
+            </div>
             </div>
           </div>
         </header>
@@ -785,6 +946,101 @@ export default function EmployerDashboard() {
           {renderContent()}
         </section>
       </main>
+
+      {notificationsOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-start justify-center bg-slate-950/40 p-4 pt-[calc(env(safe-area-inset-top)+5rem)] sm:justify-end sm:pr-8"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setNotificationsOpen(false);
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="employer-notifications-title"
+            className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
+          >
+            <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
+              <div>
+                <h2
+                  id="employer-notifications-title"
+                  className="text-lg font-bold text-[#123B70]"
+                >
+                  Notifications
+                </h2>
+                <p className="mt-1 text-xs text-slate-500">
+                  Messages from job seekers and PESO staff.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNotificationsOpen(false)}
+                aria-label="Close notifications"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xl text-slate-500 hover:bg-slate-100"
+              >
+                ×
+              </button>
+            </header>
+
+            {notificationsError && (
+              <p
+                role="alert"
+                className="m-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+              >
+                {notificationsError}
+              </p>
+            )}
+
+            {notificationsLoading ? (
+              <p className="px-5 py-10 text-center text-sm text-slate-500">
+                Loading notifications...
+              </p>
+            ) : notifications.length === 0 ? (
+              <div className="px-5 py-10 text-center">
+                <AppIcon
+                  name="bell"
+                  className="mx-auto h-8 w-8 text-slate-300"
+                />
+                <p className="mt-3 text-sm font-semibold text-slate-700">
+                  You’re all caught up
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  You have no unread notifications.
+                </p>
+              </div>
+            ) : (
+              <ul className="max-h-[min(60vh,32rem)] divide-y divide-slate-100 overflow-y-auto">
+                {notifications.map((notification) => (
+                  <li key={notification.message_id}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void openNotificationConversation(notification)
+                      }
+                      className="flex w-full items-start gap-3 px-5 py-4 text-left transition hover:bg-blue-50"
+                    >
+                      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-600" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold text-slate-800">
+                          {notification.sender_label}
+                        </span>
+                        <span className="mt-1 block whitespace-pre-wrap break-words text-xs text-slate-600">
+                          {notification.body}
+                        </span>
+                        <span className="mt-2 block text-[10px] text-slate-400">
+                          {new Date(notification.created_at).toLocaleString()}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      )}
     </div>
   );
 }

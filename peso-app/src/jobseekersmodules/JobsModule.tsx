@@ -880,6 +880,15 @@ export default function JobsModule({
             aria-labelledby="application-form-title"
             className="my-auto max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl sm:p-8"
           >
+            {!applicationSubmitted && applicationJob.imageUrl && (
+              <div className="mb-5 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                <img
+                  src={applicationJob.imageUrl}
+                  alt={`${applicationJob.title} job poster`}
+                  className="max-h-64 w-full object-contain"
+                />
+              </div>
+            )}
             {applicationSubmitted ? (
               <div className="py-5 text-center">
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-2xl font-bold text-green-700">
