@@ -12,6 +12,7 @@ import DashboardModule from "../adminmodules/DashboardModule";
 import JobPostsModule from "../adminmodules/JobPostsModule";
 import EmployersModule, {
   type EmployerFormValues,
+  type EmployerVerificationStatus,
 } from "../adminmodules/EmployersModule";
 import JobSeekersModule, {
   type JobSeekerFormValues,
@@ -915,7 +916,6 @@ export default function AdminDashboard() {
         contact_person: values.contact_person.trim() || null,
         contact_no: values.contact_no.trim() || null,
         address: values.address.trim() || null,
-        is_verified: values.is_verified,
       })
       .eq("employer_id", employerId)
       .select("*")
@@ -927,6 +927,39 @@ export default function AdminDashboard() {
     }
     if (!data) {
       throw new Error("Employer was not updated because the record no longer exists.");
+    }
+
+    setEmployers((current) =>
+      current.map((employer) =>
+        employer.employer_id === employerId ? data : employer,
+      ),
+    );
+  };
+
+  const updateEmployerStatus = async (
+    employerId: string,
+    status: EmployerVerificationStatus,
+  ) => {
+    const { data, error } = await supabase
+      .from("employer")
+      .update({
+        verification_status: status,
+        is_verified: status === "verified",
+      })
+      .eq("employer_id", employerId)
+      .select("*")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Employer verification status update error:", error);
+      throw new Error(
+        `Employer verification status could not be updated: ${error.message}`,
+      );
+    }
+    if (!data) {
+      throw new Error(
+        "Employer status was not updated because the record no longer exists.",
+      );
     }
 
     setEmployers((current) =>
@@ -1504,6 +1537,7 @@ export default function AdminDashboard() {
             loading={moduleLoading}
             onRefresh={loadEmployers}
             onUpdate={updateEmployer}
+            onUpdateStatus={updateEmployerStatus}
             onDelete={deleteEmployer}
             ModuleHeader={ModuleHeader}
             LoadingMessage={LoadingMessage}

@@ -273,7 +273,7 @@ export default function StaffDashboard() {
           const { data, error } = await supabase
             .from("employer")
             .select(
-              "employer_id, name, contact_person, email, contact_no, address, is_verified, created_at",
+              "employer_id, name, contact_person, email, contact_no, address, is_verified, verification_status, created_at",
             )
             .order("created_at", { ascending: false });
 
@@ -981,7 +981,14 @@ function StaffRecordsModule({
             { label: "Address", value: (record) => textValue(record.address) },
             {
               label: "Verification",
-              value: (record) => record.is_verified === true ? "Verified" : "Pending verification",
+              value: (record) =>
+                record.verification_status === "verified"
+                  ? "Verified"
+                  : record.verification_status === "not_approved"
+                    ? "Not approved"
+                    : record.is_verified === true
+                      ? "Verified"
+                      : "Pending",
             },
             { label: "Registered", value: (record) => dateValue(record.created_at) },
           ]

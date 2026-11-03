@@ -15,10 +15,15 @@ type Employer = {
   address?: string;
   is_active?: boolean;
   is_verified?: boolean;
-  status?: string;
+  verification_status?: EmployerVerificationStatus;
   created_at?: string;
   [key: string]: any;
 };
+
+export type EmployerVerificationStatus =
+  | "pending"
+  | "verified"
+  | "not_approved";
 
 type Props = {
   employers: Employer[];
@@ -31,6 +36,10 @@ type Props = {
   onUpdate: (
     employerId: string,
     values: EmployerFormValues,
+  ) => Promise<void>;
+  onUpdateStatus: (
+    employerId: string,
+    status: EmployerVerificationStatus,
   ) => Promise<void>;
   onDelete: (employerId: string) => Promise<void>;
 
@@ -53,8 +62,22 @@ export type EmployerFormValues = {
   contact_person: string;
   contact_no: string;
   address: string;
-  is_verified: boolean;
 };
+
+function getVerificationStatus(employer: Employer): EmployerVerificationStatus {
+  if (employer.verification_status) return employer.verification_status;
+  return employer.is_verified ? "verified" : "pending";
+}
+
+function isEmployerVerificationStatus(
+  status: string,
+): status is EmployerVerificationStatus {
+  return (
+    status === "pending" ||
+    status === "verified" ||
+    status === "not_approved"
+  );
+}
 
 export default function EmployersModule({
   employers,
@@ -64,6 +87,7 @@ export default function EmployersModule({
   loading,
   onRefresh,
   onUpdate,
+  onUpdateStatus,
   onDelete,
   ModuleHeader,
   LoadingMessage,
@@ -73,18 +97,24 @@ export default function EmployersModule({
   const [formValues, setFormValues] = useState<EmployerFormValues | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [appliedStatusFilter, setAppliedStatusFilter] = useState("all");
 
   const visibleEmployers = employers.filter((employer) => {
     if (appliedStatusFilter === "all") return true;
-    return appliedStatusFilter === "verified"
-      ? employer.is_verified === true
-      : employer.is_verified !== true;
+    return getVerificationStatus(employer) === appliedStatusFilter;
   });
-  const verifiedCount = employers.filter((employer) => employer.is_verified).length;
-  const pendingCount = employers.length - verifiedCount;
+  const verifiedCount = employers.filter(
+    (employer) => getVerificationStatus(employer) === "verified",
+  ).length;
+  const pendingCount = employers.filter(
+    (employer) => getVerificationStatus(employer) === "pending",
+  ).length;
+  const notApprovedCount = employers.filter(
+    (employer) => getVerificationStatus(employer) === "not_approved",
+  ).length;
 
   const startEditing = (employer: Employer) => {
     setActionError("");
@@ -95,10 +125,28 @@ export default function EmployersModule({
       contact_person: employer.contact_person || "",
       contact_no: employer.contact_no || employer.phone || "",
       address: employer.address || "",
-      is_verified: Boolean(employer.is_verified),
     });
   };
 
+  const updateVerificationStatus = async (
+    employer: Employer,
+    status: EmployerVerificationStatus,
+  ) => {
+    if (!employer.employer_id) return;
+    setUpdatingStatusId(employer.employer_id);
+    setActionError("");
+    try {
+      await onUpdateStatus(employer.employer_id, status);
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "Unable to update employer verification status.",
+      );
+    } finally {
+      setUpdatingStatusId(null);
+    }
+  };
   const saveEmployer = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const employerId = editingEmployer?.employer_id;
@@ -189,7 +237,7 @@ export default function EmployersModule({
         </p>
       )}
 
-      <section aria-label="Employer statistics" className="grid gap-3 sm:grid-cols-3">
+      <section aria-label="Employer statistics" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
           {
             label: "Total employers",
@@ -204,10 +252,16 @@ export default function EmployersModule({
             color: "bg-emerald-50 text-emerald-700",
           },
           {
-            label: "Pending verification",
+            label: "Pending",
             value: pendingCount,
             icon: "clock" as const,
             color: "bg-amber-50 text-amber-700",
+          },
+          {
+            label: "Not approved",
+            value: notApprovedCount,
+            icon: "x" as const,
+            color: "bg-red-50 text-red-700",
           },
         ].map((stat) => (
           <div
@@ -231,7 +285,7 @@ export default function EmployersModule({
         <div className="mb-4">
           <h2 className="text-sm font-bold text-slate-900">Find employers</h2>
           <p className="mt-1 text-xs text-slate-500">
-            Search company and contact details, or filter by verification.
+            Search company and contact details, or filter by verification status.
           </p>
         </div>
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto] lg:items-end">
@@ -248,7 +302,7 @@ export default function EmployersModule({
           </span>
         </label>
         <label className="block text-xs font-semibold text-slate-600">
-          Verification status
+          Account status
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
@@ -256,7 +310,8 @@ export default function EmployersModule({
           >
             <option value="all">All</option>
             <option value="verified">Verified</option>
-            <option value="pending">Pending verification</option>
+            <option value="pending">Pending</option>
+            <option value="not_approved">Not approved</option>
           </select>
         </label>
         <div className="flex flex-wrap justify-end gap-2">
@@ -319,9 +374,7 @@ export default function EmployersModule({
                   employer.business_name ||
                   employer.full_name ||
                   "Unnamed Employer";
-                const status =
-                  employer.status ||
-                  (employer.is_verified ? "Verified" : "Pending verification");
+                const status = getVerificationStatus(employer);
 
                 return (
                   <article
@@ -337,14 +390,31 @@ export default function EmployersModule({
                           <h3 className="truncate text-sm font-bold text-slate-900">
                             {name}
                           </h3>
-                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                            employer.is_verified
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-amber-50 text-amber-800"
-                          }`}>
-                            <AppIcon name={employer.is_verified ? "check" : "clock"} className="h-3.5 w-3.5" />
-                            {status}
-                          </span>
+                          <select
+                            aria-label={`Verification status for ${name}`}
+                            value={status}
+                            onChange={(event) => {
+                              const nextStatus = event.target.value;
+                              if (isEmployerVerificationStatus(nextStatus)) {
+                                void updateVerificationStatus(employer, nextStatus);
+                              }
+                            }}
+                            disabled={
+                              !employer.employer_id ||
+                              updatingStatusId === employer.employer_id
+                            }
+                            className={`max-w-full rounded-full border-0 px-2.5 py-1.5 text-[11px] font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 ${
+                              status === "verified"
+                                ? "bg-emerald-50 text-emerald-700"
+                                : status === "not_approved"
+                                  ? "bg-red-50 text-red-700"
+                                  : "bg-amber-50 text-amber-800"
+                            }`}
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="verified">Verified</option>
+                            <option value="not_approved">Not approved</option>
+                          </select>
                         </div>
                         <div className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
                           <p className="flex min-w-0 items-center gap-2">
@@ -403,9 +473,7 @@ export default function EmployersModule({
                       employer.full_name ||
                       "Unnamed Employer";
 
-                    const status =
-                      employer.status ||
-                      (employer.is_verified ? "Verified" : "Pending verification");
+                    const status = getVerificationStatus(employer);
 
                     return (
                       <tr
@@ -444,14 +512,31 @@ export default function EmployersModule({
                           </span>
                         </td>
                         <td className="px-2 py-2">
-                          <span title={status} className={`inline-flex max-w-full items-center gap-1.5 truncate rounded-full px-2.5 py-1.5 text-[11px] font-semibold ${
-                            employer.is_verified
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-amber-100 text-amber-800"
-                          }`}>
-                            <AppIcon name={employer.is_verified ? "check" : "clock"} className="h-3.5 w-3.5 shrink-0" />
-                            {status}
-                          </span>
+                          <select
+                            aria-label={`Verification status for ${name}`}
+                            value={status}
+                            onChange={(event) => {
+                              const nextStatus = event.target.value;
+                              if (isEmployerVerificationStatus(nextStatus)) {
+                                void updateVerificationStatus(employer, nextStatus);
+                              }
+                            }}
+                            disabled={
+                              !employer.employer_id ||
+                              updatingStatusId === employer.employer_id
+                            }
+                            className={`max-w-full rounded-full border-0 px-2.5 py-1.5 text-[11px] font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 ${
+                              status === "verified"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : status === "not_approved"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-amber-100 text-amber-800"
+                            }`}
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="verified">Verified</option>
+                            <option value="not_approved">Not approved</option>
+                          </select>
                         </td>
                         <td className="px-3 py-3">
                           {renderActions(employer)}
@@ -531,16 +616,6 @@ export default function EmployersModule({
                 onChange={(event) => setFormValues({ ...formValues, address: event.target.value })}
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
               />
-            </label>
-
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-              <input
-                type="checkbox"
-                checked={formValues.is_verified}
-                onChange={(event) => setFormValues({ ...formValues, is_verified: event.target.checked })}
-                className="h-4 w-4 rounded border-slate-300"
-              />
-              Verified employer
             </label>
 
             <div className="flex justify-end gap-3 pt-2">
