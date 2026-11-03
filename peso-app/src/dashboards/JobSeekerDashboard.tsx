@@ -202,6 +202,12 @@ export default function JobSeekerDashboard() {
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  useEffect(() => {
+    if (new URLSearchParams(location.search).has("job")) {
+      setActivePage("Jobs");
+    }
+  }, [location.search]);
+
   const [seeker, setSeeker] = useState<Seeker | null>(null);
   const [hasProfilePhoto, setHasProfilePhoto] = useState<boolean | null>(null);
 

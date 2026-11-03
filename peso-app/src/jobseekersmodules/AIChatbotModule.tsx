@@ -1,9 +1,21 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { invokePesoAI } from "../services/pesoAi";
+import { supabase } from "../services/supabase";
+
+type ChatJob = {
+  id: string;
+  title: string;
+  employer: string;
+  location: string;
+  type: string;
+  salary: string;
+};
 
 type ChatMessage = {
   role: "user" | "model";
   content: string;
+  jobs?: ChatJob[];
 };
 
 type AIChatbotModuleProps = {
@@ -13,6 +25,7 @@ type AIChatbotModuleProps = {
 export default function AIChatbotModule({
   floating = false,
 }: AIChatbotModuleProps) {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,12 +52,12 @@ export default function AIChatbotModule({
     setLoading(true);
 
     try {
-      const result = await invokePesoAI<{ reply: string }>("chat", {
+      const result = await invokePesoAI<{ reply: string; jobs?: ChatJob[] }>("chat", {
         messages: nextMessages.slice(-6),
       });
       setMessages((current) => [
         ...current,
-        { role: "model", content: result.reply },
+        { role: "model", content: result.reply, jobs: result.jobs },
       ]);
     } catch (requestError) {
       setError(
@@ -54,6 +67,26 @@ export default function AIChatbotModule({
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openJob = async (jobId: string) => {
+    try {
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+
+      const returnTo = `/jobseeker?job=${encodeURIComponent(jobId)}`;
+      if (session) {
+        navigate(returnTo);
+      } else {
+        navigate("/login", { state: { returnTo } });
+      }
+    } catch (requestError) {
+      console.error("Could not verify sign-in before opening job:", requestError);
+      setError("Could not verify your sign-in. Please try again.");
     }
   };
 
@@ -129,15 +162,40 @@ export default function AIChatbotModule({
             key={`${message.role}-${index}`}
             className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
           >
-            <p
-              className={`max-w-[88%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-6 ${
-                message.role === "user"
-                  ? "bg-[#0759AE] text-white"
-                  : "border border-slate-200 bg-white text-slate-700 shadow-sm"
-              }`}
-            >
-              {message.content}
-            </p>
+            <div className="max-w-[92%] space-y-3">
+              <p
+                className={`whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-6 ${
+                  message.role === "user"
+                    ? "bg-[#0759AE] text-white"
+                    : "border border-slate-200 bg-white text-slate-700 shadow-sm"
+                }`}
+              >
+                {message.content}
+              </p>
+              {message.role === "model" && message.jobs?.length ? (
+                <div className="space-y-3">
+                  {message.jobs.map((job) => (
+                    <article
+                      key={job.id}
+                      className="rounded-xl border border-blue-100 bg-white p-4 shadow-sm"
+                    >
+                      <h3 className="font-bold text-[#123B70]">{job.title}</h3>
+                      <p className="mt-1 text-sm text-slate-600">{job.employer}</p>
+                      <p className="mt-2 text-xs text-slate-500">
+                        {job.location} · {job.type} · {job.salary}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => void openJob(job.id)}
+                        className="mt-3 inline-flex items-center rounded-lg bg-[#0759AE] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#064A91]"
+                      >
+                        View / Apply
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
         ))}
 

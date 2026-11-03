@@ -334,6 +334,14 @@ function publicVacancy(vacancy: Vacancy) {
   };
 }
 
+function asksForAvailableJobs(message: string) {
+  const mentionsJobs = /\b(jobs?|vacanc(?:y|ies)|openings?|positions?)\b/i
+    .test(message);
+  const asksAvailability = /\b(available|open|currently|posted|list|show|any|openings?)\b/i
+    .test(message);
+  return mentionsJobs && asksAvailability;
+}
+
 async function handleChat(
   supabase: SupabaseClient,
   body: Record<string, unknown>,
@@ -381,7 +389,13 @@ async function handleChat(
 
   const text = response.text?.trim();
   if (!text) throw new Error("The assistant did not return a response. Please try again.");
-  return { reply: text };
+  const latestUserMessage = [...messages].reverse().find((message) =>
+    message.role === "user"
+  );
+  const jobs = latestUserMessage && asksForAvailableJobs(latestUserMessage.content)
+    ? vacancies.slice(0, 8).map(publicVacancy)
+    : undefined;
+  return { reply: text, ...(jobs ? { jobs } : {}) };
 }
 
 async function handleJobMatches(
