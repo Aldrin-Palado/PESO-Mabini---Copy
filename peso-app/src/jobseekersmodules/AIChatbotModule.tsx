@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { invokePesoAI } from "../services/pesoAi";
 import { supabase } from "../services/supabase";
 
+const maxResumeBytes = 500_000;
+
 type ChatJob = {
   id: string;
   title: string;
@@ -16,6 +18,7 @@ type ChatMessage = {
   role: "user" | "model";
   content: string;
   jobs?: ChatJob[];
+  attachmentName?: string;
 };
 
 type AIChatbotModuleProps = {
@@ -28,10 +31,13 @@ export default function AIChatbotModule({
   const navigate = useNavigate();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeAuthorized, setResumeAuthorized] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isOpen, setIsOpen] = useState(!floating);
   const conversationRef = useRef<HTMLDivElement>(null);
+  const resumeInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     conversationRef.current?.scrollTo({
@@ -42,10 +48,49 @@ export default function AIChatbotModule({
 
   const sendMessage = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const content = input.trim();
-    if (!content || loading) return;
+    const typedContent = input.trim();
+    if ((!typedContent && !resumeFile) || loading) return;
+    if (resumeFile && !resumeAuthorized) {
+      setError("Authorize sending the resume to Gemini before continuing.");
+      return;
+    }
 
-    const nextMessages = [...messages, { role: "user" as const, content }];
+    let resume: { fileName: string; data: string } | undefined;
+    if (resumeFile) {
+      if (resumeFile.size > maxResumeBytes) {
+        setError("Resume files must be 500 KB or smaller.");
+        return;
+      }
+      const extension = resumeFile.name.split(".").pop()?.toLowerCase();
+      if (!["pdf", "doc", "docx"].includes(extension ?? "")) {
+        setError("Choose a PDF, DOC, or DOCX resume.");
+        return;
+      }
+
+      try {
+        const bytes = new Uint8Array(await resumeFile.arrayBuffer());
+        let binary = "";
+        const chunkSize = 0x8000;
+        for (let index = 0; index < bytes.length; index += chunkSize) {
+          binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+        }
+        resume = { fileName: resumeFile.name, data: btoa(binary) };
+      } catch (requestError) {
+        console.error("Could not read the selected resume:", requestError);
+        setError("Could not read the selected resume. Please choose the file again.");
+        return;
+      }
+    }
+
+    const content = typedContent || "Please find open jobs that match my attached resume.";
+    const nextMessages = [
+      ...messages,
+      {
+        role: "user" as const,
+        content,
+        ...(resumeFile ? { attachmentName: resumeFile.name } : {}),
+      },
+    ];
     setMessages(nextMessages);
     setInput("");
     setError("");
@@ -54,11 +99,15 @@ export default function AIChatbotModule({
     try {
       const result = await invokePesoAI<{ reply: string; jobs?: ChatJob[] }>("chat", {
         messages: nextMessages.slice(-6),
+        ...(resume ? { resume } : {}),
       });
       setMessages((current) => [
         ...current,
         { role: "model", content: result.reply, jobs: result.jobs },
       ]);
+      setResumeFile(null);
+      setResumeAuthorized(false);
+      if (resumeInputRef.current) resumeInputRef.current.value = "";
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -172,6 +221,11 @@ export default function AIChatbotModule({
               >
                 {message.content}
               </p>
+              {message.attachmentName && (
+                <p className="px-2 text-xs text-slate-500">
+                  Resume attached: {message.attachmentName}
+                </p>
+              )}
               {message.role === "model" && message.jobs?.length ? (
                 <div className="space-y-3">
                   {message.jobs.map((job) => (
@@ -227,14 +281,72 @@ export default function AIChatbotModule({
           />
           <button
             type="submit"
-            disabled={loading || !input.trim()}
+            disabled={
+              loading ||
+              (!input.trim() && !resumeFile) ||
+              (Boolean(resumeFile) && !resumeAuthorized)
+            }
             className="rounded-xl bg-[#0759AE] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#064A91] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Send
           </button>
         </div>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <input
+            ref={resumeInputRef}
+            id="peso-ai-resume"
+            type="file"
+            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            disabled={loading}
+            onChange={(event) => {
+              const file = event.target.files?.[0] ?? null;
+              setResumeFile(file);
+              setResumeAuthorized(false);
+              setError("");
+            }}
+            className="sr-only"
+          />
+          <button
+            type="button"
+            onClick={() => resumeInputRef.current?.click()}
+            disabled={loading}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            Attach resume
+          </button>
+          {resumeFile && (
+            <button
+              type="button"
+              onClick={() => {
+                setResumeFile(null);
+                setResumeAuthorized(false);
+                if (resumeInputRef.current) resumeInputRef.current.value = "";
+              }}
+              disabled={loading}
+              className="max-w-full truncate text-xs text-slate-600 underline"
+            >
+              {resumeFile.name} — remove
+            </button>
+          )}
+        </div>
+        {resumeFile && (
+          <label className="mt-3 flex items-start gap-2.5 text-xs leading-5 text-slate-600">
+            <input
+              type="checkbox"
+              checked={resumeAuthorized}
+              onChange={(event) => setResumeAuthorized(event.target.checked)}
+              disabled={loading}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[#0759AE]"
+            />
+            <span>
+              I authorize sending this resume to Google Gemini to find matching open jobs.
+              The file is not stored by PESO-Hub.
+            </span>
+          </label>
+        )}
         <p className="mt-2 text-xs text-slate-400">
-          Do not share passwords, codes, or sensitive personal information.
+          Upload PDF, DOC, or DOCX resumes up to 500 KB. Do not share passwords, codes, or
+          sensitive personal information.
         </p>
       </form>
     </div>

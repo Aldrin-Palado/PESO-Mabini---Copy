@@ -55,14 +55,17 @@ not-found or a transient service error, the function switches to the fallback, w
 three Gemini calls per invocation. Each Gemini request has a 20-second timeout. The function
 sends up to six chat messages, uses a short cache for public vacancy data, and limits
 matching input to 12 recent vacancies, 4,000 profile characters, or a 500 KB PDF resume.
+The chatbot also accepts an optional PDF, DOC, or DOCX resume attachment (up to 500 KB)
+and returns matching open jobs. It requires the user’s consent for each selected resume;
+Word documents are text-extracted server-side and attachments are not stored.
 The Supabase and Gemini SDKs are loaded only for requests that need them, allowing CORS
 preflight requests to return without initializing those clients.
 
-Job-seeker messages, profile summaries, and resumes submitted for job matching are sent to
-Google Gemini for processing. Use these features only when authorized and with any required
-consent. AI recommendations may be incomplete or inaccurate. Homepage chat is available to
-visitors without signing in; do not include passwords or sensitive personal information in
-chat messages.
+Job-seeker messages, profile summaries, and resumes submitted for chatbot or job matching
+are sent to Google Gemini for processing. Use these features only when authorized and with
+any required consent. AI recommendations may be incomplete or inaccurate. Homepage chat is
+available to visitors without signing in; do not include passwords or sensitive personal
+information in chat messages.
 
 ## Automatic PESO messaging and Gmail synchronization
 
