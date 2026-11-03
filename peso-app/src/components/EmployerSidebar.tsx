@@ -1,6 +1,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
-import PesoLogo from "./PesoLogo";
+
+const pesoLogo = new URL("../assets/images/Peso-logo.png", import.meta.url).href;
 
 export type EmployerMenuName =
   | "Dashboard"
@@ -61,14 +62,24 @@ function EmployersSidebar({
       >
         {/* Branding */}
         <div className="flex items-center justify-between gap-2 border-b border-white/10 px-5 py-5">
-          <PesoLogo
-            size="sm"
-            showName
-            subtitle="Employer Portal"
-            tone="light"
-            linkTo={null}
-            className="min-w-0"
-          />
+          <div className="flex min-w-0 items-center gap-3">
+            <img
+              src={pesoLogo}
+              alt="PESO MABINI logo"
+              width={546}
+              height={457}
+              className="h-11 w-11 shrink-0 rounded-xl bg-white object-contain shadow-sm"
+            />
+            <div className="min-w-0">
+              <h1 className="text-[1.35rem] font-black leading-tight">
+                <span className="block whitespace-nowrap text-white">PESO</span>
+                <span className="block whitespace-nowrap text-red-500">MABINI</span>
+              </h1>
+              <p className="mt-0.5 truncate text-xs text-white/80">
+                Employer Portal
+              </p>
+            </div>
+          </div>
 
           <button
             type="button"

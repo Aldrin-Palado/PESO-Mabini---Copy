@@ -10,9 +10,10 @@ type ApplicationRow = {
   position_title: string | null;
   status: string;
   date_applied: string;
-  applicant_name?: string;
+  applicant_name?: string | null;
   applicant_email?: string | null;
   contact_number?: string | null;
+  applicant_address?: string | null;
 };
 
 type Props = {
@@ -263,6 +264,16 @@ export default function ApplicationsModule({
                     <p className="mt-1 text-sm text-slate-700">
                       {application.contact_number ||
                         "Not available"}
+                    </p>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <p className="text-xs font-semibold text-slate-400">
+                      Address
+                    </p>
+
+                    <p className="mt-1 text-sm text-slate-700">
+                      {application.applicant_address || "Not available"}
                     </p>
                   </div>
 

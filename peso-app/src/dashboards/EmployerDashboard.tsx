@@ -62,7 +62,10 @@ interface ApplicationRow {
   position_title: string | null;
   status: string;
   date_applied: string;
-  applicant_name?: string;
+  applicant_name?: string | null;
+  applicant_email?: string | null;
+  applicant_contact_no?: string | null;
+  applicant_address?: string | null;
 }
 
 interface CompanyProfileForm {
@@ -218,7 +221,7 @@ export default function EmployerDashboard() {
       await supabase
         .from("application")
         .select(
-          "application_id, employer_id, job_seeker_id, position_title, status, date_applied"
+          "application_id, employer_id, job_seeker_id, position_title, status, date_applied, applicant_name, applicant_email, applicant_contact_no, applicant_address"
         )
         .eq("employer_id", employer.employer_id)
         .order("date_applied", { ascending: false });
@@ -241,13 +244,16 @@ export default function EmployerDashboard() {
       ),
     ];
 
-    let namesById = new Map<string, string>();
+    let seekerDetailsById = new Map<
+      string,
+      { name: string; email: string | null; contactNumber: string | null }
+    >();
 
     if (seekerIds.length > 0) {
       const { data: seekers, error: seekerError } =
         await supabase
           .from("job_seeker")
-          .select("job_seeker_id, full_name")
+          .select("job_seeker_id, full_name, email, contact_no")
           .in("job_seeker_id", seekerIds);
 
       if (seekerError) {
@@ -256,26 +262,39 @@ export default function EmployerDashboard() {
           seekerError
         );
       } else {
-        namesById = new Map(
+        seekerDetailsById = new Map(
           (seekers || []).map(
             (seeker: {
               job_seeker_id: string;
               full_name: string | null;
+              email: string | null;
+              contact_no: string | null;
             }) => [
               seeker.job_seeker_id,
-              seeker.full_name || "Job Seeker",
+              {
+                name: seeker.full_name || "Job Seeker",
+                email: seeker.email,
+                contactNumber: seeker.contact_no,
+              },
             ]
           )
         );
       }
     }
 
-    const enrichedApplications = rows.map((application) => ({
-      ...application,
-      applicant_name:
-        namesById.get(application.job_seeker_id) ||
-        "Job Seeker",
-    }));
+    const enrichedApplications = rows.map((application) => {
+      const seeker = seekerDetailsById.get(application.job_seeker_id);
+      return {
+        ...application,
+        applicant_name:
+          application.applicant_name || seeker?.name || "Job Seeker",
+        applicant_email:
+          application.applicant_email || seeker?.email || null,
+        contact_number:
+          application.applicant_contact_no || seeker?.contactNumber || null,
+        applicant_address: application.applicant_address || null,
+      };
+    });
 
     setApplications(enrichedApplications);
   }, []);

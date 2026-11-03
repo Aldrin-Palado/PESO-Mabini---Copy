@@ -1,5 +1,7 @@
 import React from "react";
 
+const pesoLogo = new URL("../assets/images/Peso-logo.png", import.meta.url).href;
+
 export type JobSeekerPage =
   | "Home"
   | "Jobs"
@@ -90,9 +92,13 @@ export default function JobSeekerSidebar({
         {/* Logo */}
         <div className="flex min-h-20 items-center justify-between gap-3 border-b border-blue-100 px-5 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-700 font-bold text-white shadow-sm">
-              P
-            </div>
+            <img
+              src={pesoLogo}
+              alt="PESO MABINI logo"
+              width={546}
+              height={457}
+              className="h-11 w-11 shrink-0 rounded-xl bg-white object-contain shadow-sm"
+            />
 
             <div>
               <h1 className="text-lg font-bold text-blue-800">

@@ -1127,15 +1127,15 @@ export default function AdminDashboard() {
           return {
             ...application,
             applicant_name:
-              seeker?.full_name ?? null,
+              application.applicant_name ?? seeker?.full_name ?? null,
             applicant_email:
-              seeker?.email ?? null,
+              application.applicant_email ?? seeker?.email ?? null,
             resume_url:
-              seeker?.resume_url ?? null,
+              application.applicant_resume_url ?? seeker?.resume_url ?? null,
             contact_number:
-              seeker?.contact_no ?? null,
+              application.applicant_contact_no ?? seeker?.contact_no ?? null,
             applicant_address:
-              seeker?.address ?? null,
+              application.applicant_address ?? seeker?.address ?? null,
             employer_name:
               employersById.get(application.employer_id) ?? null,
             job_requirements:

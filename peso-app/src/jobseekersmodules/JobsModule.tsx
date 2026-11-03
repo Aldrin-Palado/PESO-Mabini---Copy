@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { supabase } from "../services/supabase";
 import AppIcon from "../components/AppIcon";
 import type { OpenJobVacancyRow } from "../types/JobVacancy";
@@ -7,6 +7,9 @@ type Seeker = {
   job_seeker_id: string;
   full_name?: string | null;
   email?: string | null;
+  contact_no?: string | null;
+  address?: string | null;
+  resume_url?: string | null;
 };
 
 type JobSeekerPage =
@@ -32,6 +35,13 @@ type Job = {
   imageUrl: string | null;
 };
 
+type ApplicationDetails = {
+  fullName: string;
+  email: string;
+  contactNumber: string;
+  address: string;
+};
+
 type Props = {
   seeker: Seeker;
   profileComplete: boolean;
@@ -53,6 +63,16 @@ export default function JobsModule({
   const [type, setType] = useState("All");
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [applicationJob, setApplicationJob] = useState<Job | null>(null);
+  const [applicationDetails, setApplicationDetails] = useState<ApplicationDetails>({
+    fullName: seeker.full_name ?? "",
+    email: seeker.email ?? "",
+    contactNumber: seeker.contact_no ?? "",
+    address: seeker.address ?? "",
+  });
+  const [applicationError, setApplicationError] = useState("");
+  const [applicationSubmitting, setApplicationSubmitting] = useState(false);
+  const [applicationSubmitted, setApplicationSubmitted] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -247,6 +267,102 @@ export default function JobsModule({
     setSavedJobs((current) =>
       current.includes(jobId) ? current : [...current, jobId]
     );
+  };
+
+  const openApplicationForm = (job: Job) => {
+    if (!profileComplete) {
+      onNavigate("Profile");
+      return;
+    }
+
+    setApplicationDetails({
+      fullName: seeker.full_name ?? "",
+      email: seeker.email ?? "",
+      contactNumber: seeker.contact_no ?? "",
+      address: seeker.address ?? "",
+    });
+    setApplicationError("");
+    setApplicationSubmitted(false);
+    setApplicationJob(job);
+  };
+
+  const submitApplication = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+    if (!applicationJob || applicationSubmitting) return;
+
+    if (
+      !applicationDetails.fullName.trim() ||
+      !applicationDetails.email.trim() ||
+      !applicationDetails.contactNumber.trim() ||
+      !applicationDetails.address.trim()
+    ) {
+      setApplicationError("Please complete all contact details before submitting.");
+      return;
+    }
+
+    setApplicationSubmitting(true);
+    setApplicationError("");
+
+    try {
+      const { data: jobRow, error: jobError } = await supabase
+        .from("job_vacancy")
+        .select("employer_id, position_title, status")
+        .eq("job_vacancy_id", applicationJob.id)
+        .maybeSingle();
+
+      if (jobError) {
+        throw new Error(`Unable to verify this job: ${jobError.message}`);
+      }
+      if (!jobRow || jobRow.status !== "open") {
+        throw new Error("This job is no longer accepting applications.");
+      }
+
+      const { data: existingApplication, error: existingError } = await supabase
+        .from("application")
+        .select("application_id")
+        .eq("employer_id", jobRow.employer_id)
+        .eq("job_seeker_id", seeker.job_seeker_id)
+        .eq("position_title", jobRow.position_title)
+        .maybeSingle();
+
+      if (existingError) {
+        throw new Error(`Unable to check prior applications: ${existingError.message}`);
+      }
+      if (existingApplication) {
+        throw new Error("You have already applied for this position.");
+      }
+
+      const { error: insertError } = await supabase.from("application").insert({
+        employer_id: jobRow.employer_id,
+        job_seeker_id: seeker.job_seeker_id,
+        position_title: jobRow.position_title,
+        applicant_name: applicationDetails.fullName.trim(),
+        applicant_email: applicationDetails.email.trim(),
+        applicant_contact_no: applicationDetails.contactNumber.trim(),
+        applicant_address: applicationDetails.address.trim(),
+        applicant_resume_url: seeker.resume_url || null,
+      });
+
+      if (insertError) {
+        if (insertError.code === "23505") {
+          throw new Error("You have already applied for this position.");
+        }
+        throw new Error(`Unable to submit your application: ${insertError.message}`);
+      }
+
+      setApplicationSubmitted(true);
+    } catch (error) {
+      console.error("Error submitting job application:", error);
+      setApplicationError(
+        error instanceof Error
+          ? error.message
+          : "Unable to submit your application. Please try again.",
+      );
+    } finally {
+      setApplicationSubmitting(false);
+    }
   };
 
   return (
@@ -454,16 +570,10 @@ export default function JobsModule({
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (!profileComplete) {
-                          onNavigate("Profile");
-                          return;
-                        }
-                        setSelectedJob(job);
-                      }}
+                      onClick={() => openApplicationForm(job)}
                       className="inline-flex items-center justify-center gap-2 rounded-full bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#064A91]"
                     >
-                      View / Apply
+                      Apply
                       <AppIcon name="arrowRight" className="h-4 w-4" />
                     </button>
                     <button
@@ -671,16 +781,207 @@ export default function JobsModule({
                   <p className="text-xs text-slate-500">
                     Online application via portal.
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedJob(null)}
-                    className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    Close details
-                  </button>
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedJob(null)}
+                      className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      Close details
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const job = selectedJob;
+                        setSelectedJob(null);
+                        openApplicationForm(job);
+                      }}
+                      className="rounded-xl bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#064A91] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      Apply
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
+          </section>
+        </div>
+      )}
+
+      {applicationJob && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4"
+          onMouseDown={(event) => {
+            if (
+              event.target === event.currentTarget &&
+              !applicationSubmitting
+            ) {
+              setApplicationJob(null);
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="application-form-title"
+            className="my-auto max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl sm:p-8"
+          >
+            {applicationSubmitted ? (
+              <div className="py-5 text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-2xl font-bold text-green-700">
+                  ✓
+                </div>
+                <h2
+                  id="application-form-title"
+                  className="mt-4 text-xl font-black text-slate-900"
+                >
+                  Application submitted
+                </h2>
+                <p className="mt-2 text-sm text-slate-600">
+                  Your application for {applicationJob.title} was sent to{" "}
+                  {applicationJob.company}.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setApplicationJob(null);
+                    onNavigate("Applications");
+                  }}
+                  className="mt-6 rounded-xl bg-[#0759AE] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#064A91]"
+                >
+                  View My Applications
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="mb-6 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-bold text-blue-700">
+                      {applicationJob.company}
+                    </p>
+                    <h2
+                      id="application-form-title"
+                      className="mt-1 text-xl font-black text-slate-900"
+                    >
+                      Apply for {applicationJob.title}
+                    </h2>
+                    <p className="mt-2 text-sm text-slate-500">
+                      Confirm your contact details before submitting.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setApplicationJob(null)}
+                    disabled={applicationSubmitting}
+                    aria-label="Close application form"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 disabled:opacity-50"
+                  >
+                    <AppIcon name="x" className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={submitApplication} className="space-y-4">
+                  <label className="block">
+                    <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+                      Full name
+                    </span>
+                    <input
+                      required
+                      autoComplete="name"
+                      value={applicationDetails.fullName}
+                      onChange={(event) =>
+                        setApplicationDetails((current) => ({
+                          ...current,
+                          fullName: event.target.value,
+                        }))
+                      }
+                      className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+                      Email
+                    </span>
+                    <input
+                      required
+                      type="email"
+                      autoComplete="email"
+                      value={applicationDetails.email}
+                      onChange={(event) =>
+                        setApplicationDetails((current) => ({
+                          ...current,
+                          email: event.target.value,
+                        }))
+                      }
+                      className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+                      Contact number
+                    </span>
+                    <input
+                      required
+                      type="tel"
+                      autoComplete="tel"
+                      value={applicationDetails.contactNumber}
+                      onChange={(event) =>
+                        setApplicationDetails((current) => ({
+                          ...current,
+                          contactNumber: event.target.value,
+                        }))
+                      }
+                      className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+                      Address
+                    </span>
+                    <textarea
+                      required
+                      autoComplete="street-address"
+                      rows={3}
+                      value={applicationDetails.address}
+                      onChange={(event) =>
+                        setApplicationDetails((current) => ({
+                          ...current,
+                          address: event.target.value,
+                        }))
+                      }
+                      className="w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </label>
+
+                  {applicationError && (
+                    <p
+                      role="alert"
+                      className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                    >
+                      {applicationError}
+                    </p>
+                  )}
+
+                  <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setApplicationJob(null)}
+                      disabled={applicationSubmitting}
+                      className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={applicationSubmitting}
+                      className="rounded-xl bg-[#0759AE] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#064A91] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {applicationSubmitting ? "Submitting..." : "Submit Application"}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
           </section>
         </div>
       )}
