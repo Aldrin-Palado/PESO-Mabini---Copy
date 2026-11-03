@@ -56,6 +56,7 @@ type AuditLog = {
   admin_id?: string | null;
   peso_staff_id?: string | null;
   actor_name?: string;
+  actor_role?: string;
   action: string;
   details: any;
   created_at: string;
@@ -1268,8 +1269,16 @@ export default function AdminDashboard() {
             (log.peso_staff_id
               ? staffNames.get(log.peso_staff_id)
               : undefined) ||
+            (typeof log.details?.actor_name === "string"
+              ? log.details.actor_name
+              : undefined) ||
             (log.admin_id ? adminNames.get(log.admin_id) : undefined) ||
             "Admin",
+          actor_role:
+            (typeof log.details?.actor_role === "string"
+              ? log.details.actor_role
+              : undefined) ||
+            (log.peso_staff_id ? "Staff" : "Admin"),
         })),
       );
       if (adminsResult.error || staffResult.error) {
@@ -1734,6 +1743,62 @@ function AuditLogs({
     return details as Record<string, unknown>;
   };
 
+  const formatDetailValue = (value: unknown, field: string) => {
+    if (value === null || value === undefined) return "—";
+    if (field === "is_active" && typeof value === "boolean") {
+      return value ? "Active" : "Deactivated";
+    }
+    if (typeof value === "boolean") return value ? "Yes" : "No";
+    if (typeof value === "string" || typeof value === "number") {
+      return String(value);
+    }
+    return JSON.stringify(value);
+  };
+
+  const renderLogDetails = (log: AuditLog) => {
+    const details = getDetails(log.details);
+    const summary =
+      typeof details.summary === "string" ? details.summary : "";
+    const changes =
+      details.changes &&
+      typeof details.changes === "object" &&
+      !Array.isArray(details.changes)
+        ? (details.changes as Record<string, unknown>)
+        : {};
+    const changeEntries = Object.entries(changes);
+
+    if (!summary) {
+      return log.details
+        ? typeof log.details === "string"
+          ? log.details
+          : JSON.stringify(log.details)
+        : "-";
+    }
+
+    return (
+      <div className="space-y-1">
+        <p className="font-medium text-slate-700">{summary}</p>
+        {changeEntries.length > 0 && (
+          <ul className="list-inside list-disc text-slate-500">
+            {changeEntries.map(([field, value]) => {
+              const change =
+                value && typeof value === "object" && !Array.isArray(value)
+                  ? (value as Record<string, unknown>)
+                  : {};
+              return (
+                <li key={field}>
+                  {field.replace(/_/g, " ")}: {formatDetailValue(change.from, field)}
+                  {" → "}
+                  {formatDetailValue(change.to, field)}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    );
+  };
+
   const getArea = (log: AuditLog) => {
     const details = getDetails(log.details);
     const recordedArea =
@@ -1826,7 +1891,7 @@ function AuditLogs({
         <div>
           <h1 className="text-xl font-black text-[#123B70]">Admin Audit Logs</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Audit trail for admin activities (who did what, where, and when).
+            Audit trail for admin and staff activities (who did what, where, and when).
           </p>
           <p className="mt-0.5 text-xs text-slate-400">
             Showing all available logs by default. Use the date range to narrow results.
@@ -1954,7 +2019,7 @@ function AuditLogs({
               <tr>
                 {[
                   ["Date / Time", "w-[14%]"],
-                  ["Admin", "w-[14%]"],
+                  ["Actor", "w-[14%]"],
                   ["Area", "w-[13%]"],
                   ["Action", "w-[14%]"],
                   ["Details", "w-[25%]"],
@@ -1986,6 +2051,7 @@ function AuditLogs({
                     </td>
                     <td className="px-3 py-2.5 text-[10px] font-medium text-slate-700">
                       {log.actor_name || "Admin"}
+                      {log.actor_role ? ` (${log.actor_role})` : ""}
                     </td>
                     <td className="px-3 py-2.5 text-[10px] text-slate-600">
                       {getArea(log)}
@@ -1994,11 +2060,7 @@ function AuditLogs({
                       {log.action}
                     </td>
                     <td className="break-words px-3 py-2.5 text-[10px] leading-4 text-slate-600">
-                      {log.details
-                        ? typeof log.details === "string"
-                          ? log.details
-                          : JSON.stringify(log.details)
-                        : "-"}
+                      {renderLogDetails(log)}
                     </td>
                     <td className="break-words px-3 py-2.5 text-[10px] leading-4 text-slate-500">
                       {getIpDevice(log)}

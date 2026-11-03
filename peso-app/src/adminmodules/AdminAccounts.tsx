@@ -18,6 +18,8 @@ type StaffFormValues = {
   contact_no: string;
 };
 
+type StaffStatusFilter = "all" | "active" | "deactivated";
+
 type Permissions = {
   peso_staff_id: string;
   dashboard_overview: boolean;
@@ -112,6 +114,7 @@ async function logStaffAccountCreation(
     action: "Created staff account",
     details: {
       area: "Admin Accounts",
+      summary: `Created staff account: "${staffAccount.full_name}"`,
       staff: {
         peso_staff_id: staffAccount.peso_staff_id,
         full_name: staffAccount.full_name,
@@ -164,6 +167,14 @@ export default function AdminAccounts() {
   const [savingStaff, setSavingStaff] = useState(false);
   const [updatingStaffStatusId, setUpdatingStaffStatusId] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
+  const [staffStatusFilter, setStaffStatusFilter] =
+    useState<StaffStatusFilter>("all");
+
+  const filteredStaff = staff.filter((account) => {
+    if (staffStatusFilter === "active") return account.is_active;
+    if (staffStatusFilter === "deactivated") return !account.is_active;
+    return true;
+  });
 
   /* =====================================================
      LOAD STAFF
@@ -811,6 +822,30 @@ export default function AdminAccounts() {
       ================================================= */}
 
       <div className="space-y-4">
+        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <label
+            htmlFor="staff-status-filter"
+            className="text-sm font-bold text-slate-700"
+          >
+            Filter by account status
+          </label>
+          <select
+            id="staff-status-filter"
+            value={staffStatusFilter}
+            onChange={(event) =>
+              setStaffStatusFilter(event.target.value as StaffStatusFilter)
+            }
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 sm:w-56"
+          >
+            <option value="all">All accounts ({staff.length})</option>
+            <option value="active">
+              Active ({staff.filter((account) => account.is_active).length})
+            </option>
+            <option value="deactivated">
+              Deactivated ({staff.filter((account) => !account.is_active).length})
+            </option>
+          </select>
+        </div>
 
         {staff.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center sm:p-10">
@@ -828,8 +863,17 @@ export default function AdminAccounts() {
             </p>
 
           </div>
+        ) : filteredStaff.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center sm:p-10">
+            <p className="font-bold text-slate-600">
+              No {staffStatusFilter} staff accounts found.
+            </p>
+            <p className="mt-1 text-sm text-slate-400">
+              Choose another status filter to see other accounts.
+            </p>
+          </div>
         ) : (
-          staff.map((account) => (
+          filteredStaff.map((account) => (
             <div
               key={account.peso_staff_id}
               className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
@@ -880,7 +924,7 @@ export default function AdminAccounts() {
                     >
                       {account.is_active
                         ? "Active"
-                        : "Inactive"}
+                        : "Deactivated"}
                     </span>
 
                   </div>

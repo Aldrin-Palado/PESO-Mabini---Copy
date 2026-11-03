@@ -5,6 +5,7 @@ import { supabase } from "../services/supabase";
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const STORAGE_KEY_PREFIX = "peso:last-activity:";
 const STORAGE_WRITE_INTERVAL_MS = 15 * 1000;
+const STAFF_STATUS_CHECK_INTERVAL_MS = 15 * 1000;
 
 function SessionTimeout() {
   const navigate = useNavigate();
@@ -18,6 +19,9 @@ function SessionTimeout() {
     let disposed = false;
     let skippedUserId: string | null = null;
     let sessionCheckVersion = 0;
+    let monitoredStaffUserId: string | null = null;
+    let staffStatusCheckTimer: number | undefined;
+    let checkingStaffStatus = false;
 
     const getStorageKey = (id: string) => `${STORAGE_KEY_PREFIX}${id}`;
 
@@ -26,6 +30,68 @@ function SessionTimeout() {
         window.clearTimeout(expirationTimer);
         expirationTimer = undefined;
       }
+    };
+
+    const stopStaffStatusMonitoring = () => {
+      monitoredStaffUserId = null;
+      if (staffStatusCheckTimer !== undefined) {
+        window.clearInterval(staffStatusCheckTimer);
+        staffStatusCheckTimer = undefined;
+      }
+    };
+
+    const checkStaffStatus = async (id: string) => {
+      if (
+        disposed ||
+        checkingStaffStatus ||
+        monitoredStaffUserId !== id
+      ) {
+        return;
+      }
+
+      checkingStaffStatus = true;
+      try {
+        const { data: staff, error } = await supabase
+          .from("peso_staff")
+          .select("is_active")
+          .eq("user_id", id)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Could not verify Staff account status:", error);
+          return;
+        }
+
+        if (
+          monitoredStaffUserId !== id ||
+          (staff && staff.is_active)
+        ) {
+          return;
+        }
+
+        stopStaffStatusMonitoring();
+        const { error: signOutError } = await supabase.auth.signOut();
+        if (signOutError) {
+          console.error("Could not sign out inactive Staff account:", signOutError);
+        }
+
+        if (!disposed) {
+          alert("This Staff account is inactive. Please contact the Admin.");
+          navigate("/login", { replace: true });
+        }
+      } finally {
+        checkingStaffStatus = false;
+      }
+    };
+
+    const startStaffStatusMonitoring = (id: string) => {
+      stopStaffStatusMonitoring();
+      monitoredStaffUserId = id;
+      staffStatusCheckTimer = window.setInterval(() => {
+        if (document.visibilityState === "visible") {
+          void checkStaffStatus(id);
+        }
+      }, STAFF_STATUS_CHECK_INTERVAL_MS);
     };
 
     const expireSession = async () => {
@@ -91,6 +157,10 @@ function SessionTimeout() {
       id: string,
       resetActivity: boolean,
     ) => {
+      if (monitoredStaffUserId && monitoredStaffUserId !== id) {
+        stopStaffStatusMonitoring();
+      }
+
       if (
         !resetActivity &&
         (userId === id || skippedUserId === id)
@@ -117,6 +187,7 @@ function SessionTimeout() {
 
       if (admin) {
         if (checkVersion === sessionCheckVersion) {
+          stopStaffStatusMonitoring();
           skippedUserId = id;
           clearSession();
         }
@@ -125,7 +196,7 @@ function SessionTimeout() {
 
       const { data: staff, error: staffError } = await supabase
         .from("peso_staff")
-        .select("peso_staff_id")
+        .select("peso_staff_id, is_active")
         .eq("user_id", id)
         .maybeSingle();
 
@@ -135,12 +206,29 @@ function SessionTimeout() {
       }
 
       if (staff) {
+        if (!staff.is_active) {
+          if (checkVersion === sessionCheckVersion) {
+            skippedUserId = id;
+            const { error: signOutError } = await supabase.auth.signOut();
+            if (signOutError) {
+              console.error("Could not sign out inactive Staff account:", signOutError);
+            }
+            if (!disposed) {
+              alert("This Staff account is inactive. Please contact the Admin.");
+              navigate("/login", { replace: true });
+            }
+          }
+          return;
+        }
+
         if (checkVersion === sessionCheckVersion) {
           skippedUserId = id;
           clearSession();
+          startStaffStatusMonitoring(id);
         }
         return;
       }
+      stopStaffStatusMonitoring();
 
       const { data: jobSeeker, error: jobSeekerError } = await supabase
         .from("job_seeker")
@@ -251,6 +339,9 @@ function SessionTimeout() {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         scheduleExpiration();
+        if (monitoredStaffUserId) {
+          void checkStaffStatus(monitoredStaffUserId);
+        }
       }
     };
 
@@ -264,6 +355,7 @@ function SessionTimeout() {
       (event, session) => {
         if (event === "SIGNED_OUT") {
           skippedUserId = null;
+          stopStaffStatusMonitoring();
           clearSession();
         } else if (session?.user) {
           void activateSession(session.user.id, event === "SIGNED_IN");
@@ -294,6 +386,7 @@ function SessionTimeout() {
     return () => {
       disposed = true;
       clearTimer();
+      stopStaffStatusMonitoring();
       authListener.subscription.unsubscribe();
       document.removeEventListener("pointerdown", recordActivity);
       document.removeEventListener("pointermove", recordActivity);
