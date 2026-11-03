@@ -61,6 +61,35 @@ type AuditLog = {
   created_at: string;
 };
 
+function getAuditLogErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object") {
+    const databaseError = error as {
+      message?: unknown;
+      code?: unknown;
+      details?: unknown;
+      hint?: unknown;
+    };
+    const message =
+      typeof databaseError.message === "string"
+        ? databaseError.message
+        : "An unknown error occurred.";
+    const code =
+      typeof databaseError.code === "string" ? ` (${databaseError.code})` : "";
+    const details =
+      typeof databaseError.details === "string" && databaseError.details
+        ? ` ${databaseError.details}`
+        : "";
+    const hint =
+      typeof databaseError.hint === "string" && databaseError.hint
+        ? ` ${databaseError.hint}`
+        : "";
+    return `${message}${code}${details}${hint}`;
+  }
+  return "An unknown error occurred.";
+}
+
 /*
  * These interfaces intentionally use common fields.
  * The Supabase queries below use select("*") so the
@@ -1232,7 +1261,14 @@ export default function AdminDashboard() {
         .order("created_at", { ascending: false })
         .limit(500);
 
-      if (logsResult.error) throw logsResult.error;
+      if (logsResult.error) {
+        console.error("Audit log query error:", logsResult.error);
+        setAuditLogs([]);
+        setAuditLogError(
+          `Audit logs could not be loaded: ${getAuditLogErrorMessage(logsResult.error)}`,
+        );
+        return;
+      }
 
       const [adminsResult, staffResult] = await Promise.all([
         supabase.from("peso_admin").select("admin_id, full_name"),
@@ -1287,9 +1323,7 @@ export default function AdminDashboard() {
       console.error("Audit log loading error:", error);
       setAuditLogs([]);
       setAuditLogError(
-        `Audit logs could not be loaded: ${
-            error instanceof Error ? error.message : "Unexpected error."
-        }`,
+        `Audit logs could not be loaded: ${getAuditLogErrorMessage(error)}`,
       );
     }
   };

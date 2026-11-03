@@ -78,6 +78,17 @@ function getRowId(application: Application, index: number): string {
   return String(application.application_id || application.id || index);
 }
 
+function getApplicantKey(application: Application): string {
+  if (application.job_seeker_id) return `account:${application.job_seeker_id}`;
+  if (application.applicant_email) {
+    return `email:${application.applicant_email.trim().toLowerCase()}`;
+  }
+  if (application.applicant_name) {
+    return `name:${application.applicant_name.trim().toLowerCase()}`;
+  }
+  return `application:${application.application_id || application.id || "unknown"}`;
+}
+
 export default function ApplicationsModule({
   applications,
   loadError,
@@ -184,6 +195,39 @@ export default function ApplicationsModule({
     statusFilter,
   ]);
 
+  const applicationGroups = useMemo(() => {
+    const groups = new Map<string, Application[]>();
+    for (const application of visibleApplications) {
+      const key = getApplicantKey(application);
+      const group = groups.get(key);
+      if (group) {
+        group.push(application);
+      } else {
+        groups.set(key, [application]);
+      }
+    }
+
+    return [...groups.entries()]
+      .map(([key, groupApplications]) => ({
+        key,
+        name: groupApplications[0].applicant_name || "Applicant",
+        email:
+          groupApplications[0].applicant_email ||
+          groupApplications[0].job_seeker_id ||
+          "Email unavailable",
+        applications: [...groupApplications].sort((first, second) => {
+          const firstDate = new Date(
+            first.date_applied || first.created_at || 0,
+          ).getTime();
+          const secondDate = new Date(
+            second.date_applied || second.created_at || 0,
+          ).getTime();
+          return firstDate - secondDate;
+        }),
+      }))
+      .sort((first, second) => first.name.localeCompare(second.name));
+  }, [visibleApplications]);
+
   const applyFilters = () => {
     setAppliedEmployerFilter(employerFilter);
     setAppliedJobFilter(jobFilter);
@@ -206,18 +250,14 @@ export default function ApplicationsModule({
 
   const handleProgressUpdate = async (
     applicationId: string,
-    status: "pending" | "under_review",
+    status: "pending" | "under_review" | "shortlisted" | "interview",
   ) => {
     setUpdatingId(applicationId);
     setActionError("");
     setDecisionNotice("");
     try {
       await onUpdateStatus(applicationId, status);
-      setDecisionNotice(
-        status === "pending"
-          ? "Application status set to Pending."
-          : "Application status set to Under Review.",
-      );
+      setDecisionNotice(`Application status set to ${getStatusLabel(status)}.`);
     } catch (error) {
       setActionError(
         error instanceof Error ? error.message : "Unable to update application status.",
@@ -465,26 +505,38 @@ export default function ApplicationsModule({
           </p>
         ) : (
           <div className="divide-y divide-slate-100">
-            {visibleApplications.map((application, index) => {
+            {applicationGroups.map((group) => (
+              <section key={group.key} aria-label={`Applications for ${group.name}`}>
+                <header className="flex items-center justify-between gap-3 bg-slate-50 px-3 py-2.5 sm:px-4">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0759AE] text-[10px] font-bold text-white">
+                      {group.name.trim().charAt(0).toUpperCase()}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-[11px] font-bold text-slate-800">
+                        {group.name}
+                      </p>
+                      <p className="truncate text-[9px] text-slate-400">{group.email}</p>
+                    </div>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[9px] font-semibold text-slate-500 ring-1 ring-slate-200">
+                    {group.applications.length} application{group.applications.length === 1 ? "" : "s"}
+                  </span>
+                </header>
+                {group.applications.map((application, index) => {
               const rowId = getRowId(application, index);
               const status = getApplicationStatus(application);
               const statusStyle =
                 STATUSES.find((item) => item.value === status)?.color ||
                 "bg-slate-100 text-slate-600";
               return (
-                <article key={rowId} className="flex flex-col gap-3 px-3 py-3 hover:bg-slate-50 sm:flex-row sm:items-center sm:px-4">
+                <article key={rowId} className="flex flex-col gap-3 border-t border-slate-100 px-3 py-3 pl-5 hover:bg-slate-50 sm:flex-row sm:items-center sm:pl-8 sm:pr-4">
                   <div className="flex min-w-0 flex-1 items-start gap-2.5">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0759AE] text-[10px] font-bold text-white">
-                      {(application.applicant_name || "A").trim().charAt(0).toUpperCase()}
-                    </span>
                     <div className="min-w-0">
-                      <p className="truncate text-[11px] font-bold text-slate-800">
-                        {application.applicant_name || "Applicant"}
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-[#0759AE]">
+                        Application no. {index + 1}
                       </p>
-                      <p className="truncate text-[9px] text-slate-400">
-                        {application.applicant_email || application.job_seeker_id || "Email unavailable"}
-                      </p>
-                      <p className="mt-1 truncate text-[10px] font-semibold text-slate-700">
+                      <p className="mt-1 truncate text-[10px] font-semibold text-slate-800">
                         {application.position_title || "Position not specified"}
                       </p>
                       <p className="truncate text-[9px] text-slate-500">
@@ -495,64 +547,54 @@ export default function ApplicationsModule({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
-                    <span className={`rounded-full px-2 py-1 text-[9px] font-bold ${statusStyle}`}>
-                      {getStatusLabel(status)}
-                    </span>
                     {!["hired", "rejected", "withdrawn"].includes(status) &&
-                      application.application_id && (
-                        <>
-                          <button
-                            type="button"
-                            disabled={updatingId === rowId || status === "pending"}
-                            onClick={() =>
-                              void handleProgressUpdate(
-                                application.application_id!,
-                                "pending",
-                              )
-                            }
-                            className="rounded-md border border-slate-300 px-2 py-1 text-[9px] font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
-                          >
-                            Pending
-                          </button>
-                          <button
-                            type="button"
-                            disabled={updatingId === rowId || status === "under_review"}
-                            onClick={() =>
-                              void handleProgressUpdate(
-                                application.application_id!,
-                                "under_review",
-                              )
-                            }
-                            className="rounded-md border border-blue-200 px-2 py-1 text-[9px] font-bold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
-                          >
-                            Under Review
-                          </button>
-                          {canDecideApplications && (
-                            <>
-                              <button
-                                type="button"
-                                disabled={updatingId === rowId}
-                                onClick={() =>
-                                  void handleDecision(application, rowId, true)
-                                }
-                                className="rounded-md bg-emerald-600 px-2 py-1 text-[9px] font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
-                              >
-                                {updatingId === rowId ? "Saving..." : "Approved"}
-                              </button>
-                              <button
-                                type="button"
-                                disabled={updatingId === rowId}
-                                onClick={() =>
-                                  void handleDecision(application, rowId, false)
-                                }
-                                className="rounded-md border border-red-200 px-2 py-1 text-[9px] font-bold text-red-700 hover:bg-red-50 disabled:opacity-50"
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )}
-                        </>
-                      )}
+                    application.application_id ? (
+                      <label className="sr-only" htmlFor={`application-status-${rowId}`}>
+                        Update application status
+                      </label>
+                    ) : null}
+                    {!["hired", "rejected", "withdrawn"].includes(status) &&
+                    application.application_id ? (
+                      <select
+                        id={`application-status-${rowId}`}
+                        value={status}
+                        disabled={updatingId === rowId}
+                        onChange={(event) => {
+                          const nextStatus = event.target.value;
+                          if (
+                            nextStatus === "pending" ||
+                            nextStatus === "under_review" ||
+                            nextStatus === "shortlisted" ||
+                            nextStatus === "interview"
+                          ) {
+                            void handleProgressUpdate(
+                              application.application_id!,
+                              nextStatus,
+                            );
+                          } else if (nextStatus === "approved") {
+                            void handleDecision(application, rowId, true);
+                          } else if (nextStatus === "rejected") {
+                            void handleDecision(application, rowId, false);
+                          }
+                        }}
+                        className={`max-w-full rounded-lg border px-3 py-2 text-[10px] font-bold outline-none transition focus:ring-2 focus:ring-blue-200 disabled:cursor-wait disabled:opacity-60 ${statusStyle}`}
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="under_review">Under Review</option>
+                        <option value="shortlisted">Shortlisted</option>
+                        <option value="interview">Interview</option>
+                        {canDecideApplications && (
+                          <>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Reject</option>
+                          </>
+                        )}
+                      </select>
+                    ) : (
+                      <span className={`rounded-full px-2.5 py-1.5 text-[9px] font-bold ${statusStyle}`}>
+                        {getStatusLabel(status)}
+                      </span>
+                    )}
                     <button
                       type="button"
                       onClick={() => setSelectedApplication(application)}
@@ -586,7 +628,9 @@ export default function ApplicationsModule({
                   </div>
                 </article>
               );
-            })}
+                })}
+              </section>
+            ))}
           </div>
         )}
       </section>

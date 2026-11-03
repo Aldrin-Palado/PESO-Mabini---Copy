@@ -137,6 +137,7 @@ async function logStaffAccountCreation(
 export default function AdminAccounts() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   const [selectedStaff, setSelectedStaff] =
     useState<Staff | null>(null);
@@ -182,27 +183,36 @@ export default function AdminAccounts() {
 
   const loadStaff = async () => {
     setLoading(true);
+    setLoadError("");
 
-    const { data, error } = await supabase
-      .from("peso_staff")
-      .select("*")
-      .order("created_at", {
-        ascending: false,
-      });
+    try {
+      const { data, error } = await supabase
+        .from("peso_staff")
+        .select(
+          "peso_staff_id, user_id, admin_id, full_name, email, contact_no, is_active",
+        )
+        .order("created_at", {
+          ascending: false,
+        });
 
-    if (error) {
-      console.error(error);
+      if (error) throw error;
 
-      alert(
-        `Failed to load staff accounts: ${error.message}`
+      setStaff(data ?? []);
+    } catch (error) {
+      console.error("Staff accounts loading error:", error);
+      setStaff([]);
+      setLoadError(
+        `Staff accounts could not be loaded: ${
+          error instanceof Error
+            ? error.message
+            : error && typeof error === "object" && "message" in error
+              ? String(error.message)
+              : "An unknown error occurred."
+        }`,
       );
-
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setStaff(data || []);
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -637,6 +647,15 @@ export default function AdminAccounts() {
 
         <button
           type="button"
+          onClick={() => void loadStaff()}
+          disabled={loading}
+          className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-50"
+        >
+          {loading ? "Refreshing..." : "Refresh"}
+        </button>
+
+        <button
+          type="button"
           onClick={() => {
             if (showCreateModal) {
               closeCreateModal();
@@ -651,6 +670,23 @@ export default function AdminAccounts() {
         </button>
 
       </div>
+
+      {loadError && (
+        <div
+          role="alert"
+          className="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p>{loadError}</p>
+          <button
+            type="button"
+            onClick={() => void loadStaff()}
+            disabled={loading}
+            className="shrink-0 rounded-lg border border-red-300 bg-white px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 disabled:opacity-50"
+          >
+            Try again
+          </button>
+        </div>
+      )}
 
       {showCreateModal && (
         <form
