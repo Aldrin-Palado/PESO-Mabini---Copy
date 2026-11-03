@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { openStoredResume } from "../services/resumes";
+import type { ApplicationDecisionResult } from "../services/applicationDecisions";
 
 type Application = {
   id?: string;
@@ -32,8 +33,13 @@ type Props = {
   statusFilter: string;
   setStatusFilter: (value: string) => void;
   loading: boolean;
+  canDecideApplications: boolean;
   onRefresh: () => void;
   onUpdateStatus: (applicationId: string, status: string) => Promise<void>;
+  onDecideApplication: (
+    applicationId: string,
+    approved: boolean,
+  ) => Promise<ApplicationDecisionResult>;
   onDelete: (applicationId: string) => Promise<void>;
   ModuleHeader: React.ComponentType<{
     title: string;
@@ -46,11 +52,11 @@ type Props = {
 };
 
 const STATUSES = [
-  { value: "pending", label: "Submitted", color: "bg-slate-100 text-slate-600" },
+  { value: "pending", label: "Pending", color: "bg-slate-100 text-slate-600" },
   { value: "under_review", label: "Under Review", color: "bg-blue-100 text-blue-700" },
   { value: "shortlisted", label: "Shortlisted", color: "bg-indigo-100 text-indigo-700" },
   { value: "interview", label: "Interview", color: "bg-amber-100 text-amber-700" },
-  { value: "hired", label: "Hired", color: "bg-emerald-100 text-emerald-700" },
+  { value: "hired", label: "You're Hired", color: "bg-emerald-100 text-emerald-700" },
   { value: "rejected", label: "Rejected", color: "bg-red-100 text-red-700" },
   { value: "withdrawn", label: "Withdrawn", color: "bg-gray-100 text-gray-600" },
 ];
@@ -80,8 +86,10 @@ export default function ApplicationsModule({
   statusFilter,
   setStatusFilter,
   loading,
+  canDecideApplications,
   onRefresh,
   onUpdateStatus,
+  onDecideApplication,
   onDelete,
   ModuleHeader,
   LoadingMessage,
@@ -96,8 +104,8 @@ export default function ApplicationsModule({
   const [appliedJobFilter, setAppliedJobFilter] = useState("all");
   const [appliedDateFrom, setAppliedDateFrom] = useState("");
   const [appliedDateTo, setAppliedDateTo] = useState("");
-  const [pendingStatuses, setPendingStatuses] = useState<Record<string, string>>({});
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [decisionNotice, setDecisionNotice] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [actionError, setActionError] = useState("");
@@ -196,21 +204,61 @@ export default function ApplicationsModule({
     setAppliedDateTo("");
   };
 
-  const handleStatusUpdate = async (applicationId: string) => {
-    const status = pendingStatuses[applicationId];
-    if (!status) return;
+  const handleProgressUpdate = async (
+    applicationId: string,
+    status: "pending" | "under_review",
+  ) => {
     setUpdatingId(applicationId);
     setActionError("");
+    setDecisionNotice("");
     try {
       await onUpdateStatus(applicationId, status);
-      setPendingStatuses((current) => {
-        const next = { ...current };
-        delete next[applicationId];
-        return next;
-      });
+      setDecisionNotice(
+        status === "pending"
+          ? "Application status set to Pending."
+          : "Application status set to Under Review.",
+      );
     } catch (error) {
       setActionError(
         error instanceof Error ? error.message : "Unable to update application status.",
+      );
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleDecision = async (
+    application: Application,
+    rowId: string,
+    approved: boolean,
+  ) => {
+    if (!application.application_id) return;
+    const applicant = application.applicant_name || "this applicant";
+    const position = application.position_title || "this position";
+    const confirmed = window.confirm(
+      approved
+        ? `Approve ${applicant} for ${position} and send the hiring message?`
+        : `Reject ${applicant}'s application for ${position} and send the rejection message?`,
+    );
+    if (!confirmed) return;
+
+    setUpdatingId(rowId);
+    setActionError("");
+    setDecisionNotice("");
+    try {
+      const result = await onDecideApplication(application.application_id, approved);
+      setDecisionNotice(
+        result.message_sent
+          ? approved
+            ? "Application approved. The hiring message was sent in PESO-Hub and queued for email delivery."
+            : "Application rejected. The rejection message was sent in PESO-Hub and queued for email delivery."
+          : approved
+          ? "This application is already approved. No duplicate message was sent."
+          : "This application is already rejected. No duplicate message was sent.",
+      );
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "Unable to decide this application.",
       );
     } finally {
       setUpdatingId(null);
@@ -287,6 +335,11 @@ export default function ApplicationsModule({
       {actionError && (
         <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800">
           {actionError}
+        </p>
+      )}
+      {decisionNotice && (
+        <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+          {decisionNotice}
         </p>
       )}
       {resumeError && (
@@ -401,7 +454,6 @@ export default function ApplicationsModule({
             {visibleApplications.map((application, index) => {
               const rowId = getRowId(application, index);
               const status = getApplicationStatus(application);
-              const selectedStatus = pendingStatuses[rowId] || status;
               const statusStyle =
                 STATUSES.find((item) => item.value === status)?.color ||
                 "bg-slate-100 text-slate-600";
@@ -432,6 +484,61 @@ export default function ApplicationsModule({
                     <span className={`rounded-full px-2 py-1 text-[9px] font-bold ${statusStyle}`}>
                       {getStatusLabel(status)}
                     </span>
+                    {!["hired", "rejected", "withdrawn"].includes(status) &&
+                      application.application_id && (
+                        <>
+                          <button
+                            type="button"
+                            disabled={updatingId === rowId || status === "pending"}
+                            onClick={() =>
+                              void handleProgressUpdate(
+                                application.application_id!,
+                                "pending",
+                              )
+                            }
+                            className="rounded-md border border-slate-300 px-2 py-1 text-[9px] font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                          >
+                            Pending
+                          </button>
+                          <button
+                            type="button"
+                            disabled={updatingId === rowId || status === "under_review"}
+                            onClick={() =>
+                              void handleProgressUpdate(
+                                application.application_id!,
+                                "under_review",
+                              )
+                            }
+                            className="rounded-md border border-blue-200 px-2 py-1 text-[9px] font-bold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                          >
+                            Under Review
+                          </button>
+                          {canDecideApplications && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={updatingId === rowId}
+                                onClick={() =>
+                                  void handleDecision(application, rowId, true)
+                                }
+                                className="rounded-md bg-emerald-600 px-2 py-1 text-[9px] font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
+                              >
+                                {updatingId === rowId ? "Saving..." : "Approved"}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={updatingId === rowId}
+                                onClick={() =>
+                                  void handleDecision(application, rowId, false)
+                                }
+                                className="rounded-md border border-red-200 px-2 py-1 text-[9px] font-bold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
+                        </>
+                      )}
                     <button
                       type="button"
                       onClick={() => setSelectedApplication(application)}
@@ -449,33 +556,6 @@ export default function ApplicationsModule({
                         {openingResumeId === rowId ? "Opening..." : "Resume"}
                       </button>
                     )}
-                    <select
-                      aria-label={`Set status for ${application.applicant_name || "application"}`}
-                      value={selectedStatus}
-                      disabled={updatingId === rowId}
-                      onChange={(event) =>
-                        setPendingStatuses((current) => ({
-                          ...current,
-                          [rowId]: event.target.value,
-                        }))
-                      }
-                      className="max-w-[118px] rounded-md border border-slate-300 px-2 py-1 text-[9px]"
-                    >
-                      {STATUSES.map((item) => (
-                        <option key={item.value} value={item.value}>{item.label}</option>
-                      ))}
-                      {!STATUSES.some((item) => item.value === status) && (
-                        <option value={status}>{getStatusLabel(status)}</option>
-                      )}
-                    </select>
-                    <button
-                      type="button"
-                      disabled={!pendingStatuses[rowId] || updatingId === rowId}
-                      onClick={() => void handleStatusUpdate(rowId)}
-                      className="rounded-md bg-[#0759AE] px-2 py-1 text-[9px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      {updatingId === rowId ? "Saving..." : "Update"}
-                    </button>
                     <button
                       type="button"
                       disabled={!application.application_id || deletingId === rowId}

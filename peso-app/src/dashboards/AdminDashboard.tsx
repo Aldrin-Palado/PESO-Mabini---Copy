@@ -22,6 +22,10 @@ import PESOPosts from "../adminmodules/PESOPosts";
 import AnalyticsModule from "../adminmodules/AnalyticsModule";
 import MessagesModule from "../adminmodules/MessagesModule";
 import GmailSetupModule from "../adminmodules/GmailSetupModule";
+import {
+  decideApplication as submitApplicationDecision,
+  type ApplicationDecisionResult,
+} from "../services/applicationDecisions";
 
 /* ============================================================
    TYPES
@@ -1177,6 +1181,25 @@ export default function AdminDashboard() {
     );
   };
 
+  const decideApplication = async (
+    applicationId: string,
+    approved: boolean,
+  ): Promise<ApplicationDecisionResult> => {
+    const result = await submitApplicationDecision(applicationId, approved);
+    setApplications((current) =>
+      current.map((application) =>
+        application.application_id === applicationId
+          ? {
+              ...application,
+              status: result.status,
+              application_status: result.status,
+            }
+          : application,
+      ),
+    );
+    return result;
+  };
+
   const deleteApplication = async (applicationId: string) => {
     const { data, error } = await supabase
       .from("application")
@@ -1471,8 +1494,10 @@ export default function AdminDashboard() {
             statusFilter={applicationStatusFilter}
             setStatusFilter={setApplicationStatusFilter}
             loading={moduleLoading}
+            canDecideApplications={isSuperadmin}
             onRefresh={loadApplications}
             onUpdateStatus={updateApplicationStatus}
+            onDecideApplication={decideApplication}
             onDelete={deleteApplication}
             ModuleHeader={ModuleHeader}
             LoadingMessage={LoadingMessage}
@@ -1482,7 +1507,7 @@ export default function AdminDashboard() {
         );
 
       case "Messages":
-        return <MessagesModule />;
+        return <MessagesModule canDecideApplications={isSuperadmin} />;
 
       case "Announcement":
         return (

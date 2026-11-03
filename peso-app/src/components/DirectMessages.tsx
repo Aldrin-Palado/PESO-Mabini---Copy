@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { supabase } from "../services/supabase";
+import { decideApplication } from "../services/applicationDecisions";
 
 export type MessageMode = "admin" | "staff" | "employer" | "job_seeker";
 
@@ -19,8 +20,16 @@ type PesoMessage = {
   read_at: string | null;
 };
 
+type ApplicantApplication = {
+  application_id: string;
+  position_title: string | null;
+  status: string;
+  date_applied: string;
+};
+
 type Props = {
   mode: MessageMode;
+  canDecideApplications?: boolean;
 };
 
 const roleLabels: Record<MessageMode, string> = {
@@ -30,11 +39,27 @@ const roleLabels: Record<MessageMode, string> = {
   job_seeker: "Job Seeker",
 };
 
-export default function DirectMessages({ mode }: Props) {
+const hiringMessage =
+  "Congratulations! You Are Hired! 🎉\n\nDear Applicant,\n\nWe are pleased to inform you that you have been successfully hired for the position you applied for!\n\nAfter reviewing your application and qualifications, the company has decided to welcome you to the team.\n\nCongratulations on your new journey! We look forward to working with you and wish you success in your new role.\n\nBest regards,\nPESO Recruitment Team";
+
+const rejectionMessage =
+  "Dear Applicant,\n\nThank you for your interest in our company. We regret to inform you that your application was not selected. We appreciate your time and effort and wish you success in your future opportunities.\n\nBest regards,\nPESO Recruitment Team";
+
+export default function DirectMessages({
+  mode,
+  canDecideApplications = mode === "admin",
+}: Props) {
   const [userId, setUserId] = useState("");
   const [contacts, setContacts] = useState<MessageContact[]>([]);
   const [selectedUserId, setSelectedUserId] = useState("");
   const [messages, setMessages] = useState<PesoMessage[]>([]);
+  const [applicantApplications, setApplicantApplications] = useState<
+    ApplicantApplication[]
+  >([]);
+  const [decisionLoadingId, setDecisionLoadingId] = useState<string | null>(null);
+  const [decisionNotice, setDecisionNotice] = useState("");
+  const [decisionError, setDecisionError] = useState("");
+  const [applicationsLoading, setApplicationsLoading] = useState(false);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -44,6 +69,60 @@ export default function DirectMessages({ mode }: Props) {
   const selectedContact =
     contacts.find((contact) => contact.user_id === selectedUserId) ?? null;
   const recipientUserId = selectedContact?.user_id;
+
+  useEffect(() => {
+    let cancelled = false;
+    setApplicantApplications([]);
+    setDecisionNotice("");
+    setDecisionError("");
+
+    if (
+      mode !== "admin" ||
+      !canDecideApplications ||
+      selectedContact?.role !== "Job Seeker" ||
+      !selectedUserId
+    ) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setApplicationsLoading(true);
+    const loadApplicantApplications = async () => {
+      const { data: seeker, error: seekerError } = await supabase
+        .from("job_seeker")
+        .select("job_seeker_id")
+        .eq("user_id", selectedUserId)
+        .maybeSingle();
+      if (seekerError) throw seekerError;
+      if (!seeker) return;
+
+      const { data, error: applicationError } = await supabase
+        .from("application")
+        .select("application_id, position_title, status, date_applied")
+        .eq("job_seeker_id", seeker.job_seeker_id)
+        .order("date_applied", { ascending: false });
+      if (applicationError) throw applicationError;
+      if (!cancelled) {
+        setApplicantApplications((data ?? []) as ApplicantApplication[]);
+      }
+    };
+
+    void loadApplicantApplications()
+      .catch((loadError: unknown) => {
+        console.error("Could not load applicant applications in Messages:", loadError);
+        if (!cancelled) {
+          setDecisionError("Could not load applications for this job seeker.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setApplicationsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canDecideApplications, mode, selectedContact?.role, selectedUserId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -216,6 +295,118 @@ export default function DirectMessages({ mode }: Props) {
     setSending(false);
   };
 
+  const handleApplicationDecision = async (
+    application: ApplicantApplication,
+    action: "pending" | "under_review" | "approved" | "rejected",
+  ) => {
+    const finalDecision = action === "approved" || action === "rejected";
+    const approved = action === "approved";
+    if (
+      finalDecision &&
+      !window.confirm(
+        approved
+          ? `Approve ${application.position_title || "this application"} and send the hiring message?`
+          : `Reject ${application.position_title || "this application"} and send the rejection message?`,
+      )
+    ) {
+      return;
+    }
+
+    setDecisionLoadingId(application.application_id);
+    setError("");
+    setDecisionNotice("");
+    try {
+      if (finalDecision) {
+        const result = await decideApplication(application.application_id, approved);
+        setApplicantApplications((current) =>
+          current.map((item) =>
+            item.application_id === application.application_id
+              ? { ...item, status: result.status }
+              : item,
+          ),
+        );
+        setDecisionNotice(
+          result.message_sent
+            ? approved
+              ? "Approved. The hiring message was sent in PESO-Hub and queued for email delivery."
+              : "Rejected. The rejection message was sent in PESO-Hub and queued for email delivery."
+            : approved
+            ? "This application is already approved. No duplicate message was sent."
+            : "This application is already rejected. No duplicate message was sent.",
+        );
+        await loadMessages(false);
+      } else {
+        const { data, error: updateError } = await supabase
+          .from("application")
+          .update({ status: action })
+          .eq("application_id", application.application_id)
+          .select("application_id")
+          .maybeSingle();
+        if (updateError) throw updateError;
+        if (!data) throw new Error("This application no longer exists.");
+        setApplicantApplications((current) =>
+          current.map((item) =>
+            item.application_id === application.application_id
+              ? { ...item, status: action }
+              : item,
+          ),
+        );
+        setDecisionNotice(
+          action === "pending"
+            ? "Application status set to Pending."
+            : "Application status set to Under Review.",
+        );
+      }
+    } catch (decisionError) {
+      console.error("Could not decide applicant application:", decisionError);
+      setError(
+        decisionError instanceof Error
+          ? decisionError.message
+          : "Could not update application decision.",
+      );
+    } finally {
+      setDecisionLoadingId(null);
+    }
+  };
+
+  const sendContactDecisionMessage = async (
+    decision: "hired" | "rejected",
+  ) => {
+    if (mode !== "admin" || !canDecideApplications || !userId || !selectedUserId) {
+      setDecisionError("Only an Admin can send an application decision message.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      decision === "hired"
+        ? "Send the hiring congratulations message to this Job Seeker? This will not change an application status."
+        : "Send the rejection message to this Job Seeker? This will not change an application status.",
+    );
+    if (!confirmed) return;
+
+    setDecisionLoadingId(`contact-${decision}`);
+    setDecisionError("");
+    setDecisionNotice("");
+    const { error: sendError } = await supabase.from("peso_messages").insert({
+      sender_user_id: userId,
+      recipient_user_id: selectedUserId,
+      body: decision === "hired" ? hiringMessage : rejectionMessage,
+    });
+
+    if (sendError) {
+      console.error("Could not send application decision message:", sendError);
+      setDecisionError(`Could not send the message: ${sendError.message}`);
+    } else {
+      setDecisionNotice(
+        decision === "hired"
+          ? "Hiring message sent in PESO-Hub and queued for Gmail. No application status was changed."
+          : "Rejection message sent in PESO-Hub and queued for Gmail. No application status was changed.",
+      );
+      await loadMessages(false);
+    }
+    setDecisionLoadingId(null);
+  };
+
   return (
     <section className="space-y-5">
       <header>
@@ -272,6 +463,133 @@ export default function DirectMessages({ mode }: Props) {
               {selectedContact?.role || roleLabels[mode]}
             </p>
           </header>
+
+          {mode === "admin" &&
+            canDecideApplications &&
+            selectedContact?.role === "Job Seeker" && (
+            <section className="space-y-3 border-b border-slate-100 bg-white px-4 py-4">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">
+                  Applicant decisions
+                </h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  Approved and Reject send the matching decision message in PESO-Hub and queue it for Gmail.
+                </p>
+              </div>
+              {applicationsLoading ? (
+                <p className="text-xs text-slate-500">Loading applications...</p>
+              ) : decisionError ? (
+                <p role="alert" className="text-xs text-red-700">
+                  {decisionError}
+                </p>
+              ) : applicantApplications.length === 0 ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-500">
+                    No application is linked to this Job Seeker. These buttons send a message only; they do not change an application status.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={decisionLoadingId !== null}
+                      onClick={() => void sendContactDecisionMessage("hired")}
+                      className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
+                    >
+                      {decisionLoadingId === "contact-hired" ? "Sending..." : "Hired"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={decisionLoadingId !== null}
+                      onClick={() => void sendContactDecisionMessage("rejected")}
+                      className="rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      {decisionLoadingId === "contact-rejected" ? "Sending..." : "Rejection"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {applicantApplications.map((application) => {
+                    const status = application.status.toLowerCase();
+                    const finalStatus = ["hired", "rejected", "withdrawn"].includes(status);
+                    return (
+                      <article
+                        key={application.application_id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-800">
+                            {application.position_title || "Position not specified"}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Status: {status === "hired" ? "You're Hired" : status.replace(/_/g, " ")}
+                          </p>
+                        </div>
+                        {finalStatus ? (
+                          <span className="text-xs font-semibold text-slate-500">
+                            {status === "hired" ? "You're Hired" : "Decision recorded"}
+                          </span>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              disabled={
+                                decisionLoadingId === application.application_id ||
+                                status === "pending"
+                              }
+                              onClick={() =>
+                                void handleApplicationDecision(application, "pending")
+                              }
+                              className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                            >
+                              Pending
+                            </button>
+                            <button
+                              type="button"
+                              disabled={
+                                decisionLoadingId === application.application_id ||
+                                status === "under_review"
+                              }
+                              onClick={() =>
+                                void handleApplicationDecision(application, "under_review")
+                              }
+                              className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                            >
+                              Under Review
+                            </button>
+                            <button
+                              type="button"
+                              disabled={decisionLoadingId === application.application_id}
+                              onClick={() =>
+                                void handleApplicationDecision(application, "approved")
+                              }
+                              className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
+                            >
+                              Approved
+                            </button>
+                            <button
+                              type="button"
+                              disabled={decisionLoadingId === application.application_id}
+                              onClick={() =>
+                                void handleApplicationDecision(application, "rejected")
+                              }
+                              className="rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+              {decisionNotice && (
+                <p role="status" className="text-xs text-emerald-800">
+                  {decisionNotice}
+                </p>
+              )}
+            </section>
+          )}
 
           <div
             aria-live="polite"

@@ -45,7 +45,10 @@ function StatusBadge({
             ? "bg-red-50 text-red-700"
             : "bg-gray-100 text-gray-700";
 
-  const label = status.replace(/_/g, " ");
+  const label =
+    normalizedStatus === "hired"
+      ? "You're Hired"
+      : status.replace(/_/g, " ");
 
   return (
     <span
