@@ -1674,9 +1674,6 @@ export default function AdminDashboard() {
             </div>
 
             <div className="flex min-w-0 items-center gap-3">
-              <span className="hidden rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-800 sm:inline-flex">
-                {account?.role === "superadmin" ? "PESO Head" : "PESO Staff"}
-              </span>
               {account?.user_id && (
                 <ProfileAvatar
                   key={account.user_id}

@@ -9,9 +9,14 @@ type JobSeekerPage = "Home" | "Jobs" | "Applications" | "Messages" | "Profile";
 type Props = {
   seeker: Seeker;
   onNavigate: (page: JobSeekerPage) => void;
+  initialContactId?: string;
 };
 
-export default function MessagesModule({ seeker, onNavigate }: Props) {
+export default function MessagesModule({
+  seeker,
+  onNavigate,
+  initialContactId,
+}: Props) {
   const firstName =
     seeker.full_name?.trim().split(/\s+/)[0] || "there";
 
@@ -24,7 +29,7 @@ export default function MessagesModule({ seeker, onNavigate }: Props) {
         </p>
       </header>
 
-      <DirectMessages mode="job_seeker" />
+      <DirectMessages mode="job_seeker" initialContactId={initialContactId} />
 
       <section className="rounded-2xl border border-blue-100 bg-blue-50 p-5">
         <div className="flex items-center justify-between gap-4">

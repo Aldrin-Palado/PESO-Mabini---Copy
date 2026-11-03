@@ -30,6 +30,7 @@ type ApplicantApplication = {
 type Props = {
   mode: MessageMode;
   canDecideApplications?: boolean;
+  initialContactId?: string;
 };
 
 const roleLabels: Record<MessageMode, string> = {
@@ -48,6 +49,7 @@ const rejectionMessage =
 export default function DirectMessages({
   mode,
   canDecideApplications = mode === "admin",
+  initialContactId,
 }: Props) {
   const [userId, setUserId] = useState("");
   const [contacts, setContacts] = useState<MessageContact[]>([]);
@@ -157,9 +159,13 @@ export default function DirectMessages({
         const availableContacts = (data ?? []) as MessageContact[];
         setContacts(availableContacts);
         setSelectedUserId((current) =>
-          availableContacts.some((contact) => contact.user_id === current)
-            ? current
-            : availableContacts[0]?.user_id ?? "",
+          availableContacts.some(
+            (contact) => contact.user_id === initialContactId,
+          )
+            ? initialContactId ?? ""
+            : availableContacts.some((contact) => contact.user_id === current)
+              ? current
+              : availableContacts[0]?.user_id ?? "",
         );
       }
 
@@ -171,7 +177,7 @@ export default function DirectMessages({
     return () => {
       cancelled = true;
     };
-  }, [mode]);
+  }, [initialContactId, mode]);
 
   const loadMessages = useCallback(
     async (showLoading: boolean) => {

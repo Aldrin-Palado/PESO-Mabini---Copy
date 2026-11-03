@@ -44,6 +44,63 @@ type Seeker = {
   registration_details: unknown;
 };
 
+type JobSeekerNotification = {
+  message_id: string;
+  sender_user_id: string;
+  body: string;
+  created_at: string;
+  sender_label: string;
+};
+
+type MessageContactSummary = {
+  user_id: string;
+  display_name: string;
+  role: string;
+};
+
+async function loadUnreadJobSeekerMessages(
+  userId: string,
+): Promise<JobSeekerNotification[]> {
+  const { data: messages, error: messagesError } = await supabase
+    .from("peso_messages")
+    .select("message_id, sender_user_id, body, created_at")
+    .eq("recipient_user_id", userId)
+    .is("read_at", null)
+    .order("created_at", { ascending: false });
+
+  if (messagesError) throw messagesError;
+  if (!messages?.length) return [];
+
+  const { data: contacts, error: contactsError } = await supabase.rpc(
+    "get_peso_message_contacts",
+  );
+  if (contactsError) throw contactsError;
+
+  const contactsByUserId = new Map(
+    ((contacts ?? []) as MessageContactSummary[]).map((contact) => [
+      contact.user_id,
+      contact,
+    ]),
+  );
+
+  return messages.map((message) => {
+    const contact = contactsByUserId.get(message.sender_user_id);
+    const roleLabel =
+      contact?.role === "Admin"
+        ? "PESO Admin"
+        : contact?.role === "Staff"
+          ? "PESO Staff"
+          : contact?.role || "PESO";
+
+    return {
+      ...message,
+      sender_label: contact?.display_name
+        ? `${roleLabel} ${contact.display_name} messaged you`
+        : `${roleLabel} messaged you`,
+    };
+  });
+}
+
 type ScreeningValue = string | number | boolean | string[] | null;
 type ScreeningDetails = Record<string, ScreeningValue>;
 
@@ -210,6 +267,11 @@ export default function JobSeekerDashboard() {
 
   const [seeker, setSeeker] = useState<Seeker | null>(null);
   const [hasProfilePhoto, setHasProfilePhoto] = useState<boolean | null>(null);
+  const [notifications, setNotifications] = useState<JobSeekerNotification[]>([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsError, setNotificationsError] = useState("");
+  const [messageContactToOpen, setMessageContactToOpen] = useState<string | undefined>();
 
   const [loading, setLoading] = useState(true);
 
@@ -250,6 +312,94 @@ export default function JobSeekerDashboard() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isSidebarOpen]);
+
+  useEffect(() => {
+    if (!seeker?.user_id) return;
+
+    let active = true;
+    const refreshNotifications = async () => {
+      try {
+        const unreadMessages = await loadUnreadJobSeekerMessages(seeker.user_id);
+        if (active) {
+          setNotifications(unreadMessages);
+          setNotificationsError("");
+        }
+      } catch (notificationError) {
+        console.error("Could not load Job Seeker notifications:", notificationError);
+        if (active) {
+          setNotificationsError("Notifications could not be loaded. Please try again.");
+        }
+      }
+    };
+
+    void refreshNotifications();
+
+    const channel = supabase
+      .channel(`job-seeker-notifications-${seeker.user_id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "peso_messages",
+          filter: `recipient_user_id=eq.${seeker.user_id}`,
+        },
+        () => void refreshNotifications(),
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      void supabase.removeChannel(channel);
+    };
+  }, [seeker?.user_id]);
+
+  useEffect(() => {
+    if (!notificationsOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setNotificationsOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [notificationsOpen]);
+
+  const openNotifications = async () => {
+    if (!seeker?.user_id) return;
+    setNotificationsOpen(true);
+    setNotificationsLoading(true);
+    setNotificationsError("");
+    try {
+      setNotifications(await loadUnreadJobSeekerMessages(seeker.user_id));
+    } catch (notificationError) {
+      console.error("Could not load Job Seeker notifications:", notificationError);
+      setNotificationsError("Notifications could not be loaded. Please try again.");
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  const openNotificationConversation = async (
+    notification: JobSeekerNotification,
+  ) => {
+    const { error: readError } = await supabase
+      .from("peso_messages")
+      .update({ read_at: new Date().toISOString() })
+      .eq("message_id", notification.message_id);
+
+    if (readError) {
+      console.error("Could not mark notification as read:", readError);
+      setNotificationsError("The message could not be marked as read. Please try again.");
+      return;
+    }
+
+    setNotifications((current) =>
+      current.filter((item) => item.message_id !== notification.message_id),
+    );
+    setNotificationsOpen(false);
+    setMessageContactToOpen(notification.sender_user_id);
+    handlePageChange("Messages");
+  };
 
   const loadCurrentSeeker = async () => {
     try {
@@ -1277,6 +1427,7 @@ export default function JobSeekerDashboard() {
         return (
           <MessagesModule
             seeker={seeker}
+            initialContactId={messageContactToOpen}
             onNavigate={(page) =>
               handlePageChange(
                 page === "Applications"
@@ -1490,15 +1641,17 @@ export default function JobSeekerDashboard() {
 
               <button
                 type="button"
-                onClick={() =>
-                  handlePageChange("Messages")
-                }
-                className="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100"
-                aria-label="Message notifications"
+                onClick={() => void openNotifications()}
+                className="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100"
+                aria-label={`Notifications${notifications.length ? `, ${notifications.length} unread` : ""}`}
+                aria-haspopup="dialog"
+                aria-expanded={notificationsOpen}
               >
                 <AppIcon name="bell" className="h-5 w-5" />
 
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
+                {notifications.length > 0 && (
+                  <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
+                )}
               </button>
 
               {/* =================================================
@@ -1589,6 +1742,101 @@ export default function JobSeekerDashboard() {
         </section>
 
       </main>
+
+      {notificationsOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-start justify-center bg-slate-950/40 p-4 pt-[calc(env(safe-area-inset-top)+5rem)] sm:justify-end sm:pr-8"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setNotificationsOpen(false);
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="job-seeker-notifications-title"
+            className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
+          >
+            <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
+              <div>
+                <h2
+                  id="job-seeker-notifications-title"
+                  className="text-lg font-bold text-[#123B70]"
+                >
+                  Notifications
+                </h2>
+                <p className="mt-1 text-xs text-slate-500">
+                  Messages from PESO staff and other contacts.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNotificationsOpen(false)}
+                aria-label="Close notifications"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xl text-slate-500 hover:bg-slate-100"
+              >
+                ×
+              </button>
+            </header>
+
+            {notificationsError && (
+              <p
+                role="alert"
+                className="m-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+              >
+                {notificationsError}
+              </p>
+            )}
+
+            {notificationsLoading ? (
+              <p className="px-5 py-10 text-center text-sm text-slate-500">
+                Loading notifications...
+              </p>
+            ) : notifications.length === 0 ? (
+              <div className="px-5 py-10 text-center">
+                <AppIcon
+                  name="bell"
+                  className="mx-auto h-8 w-8 text-slate-300"
+                />
+                <p className="mt-3 text-sm font-semibold text-slate-700">
+                  You’re all caught up
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  You have no unread notifications.
+                </p>
+              </div>
+            ) : (
+              <ul className="max-h-[min(60vh,32rem)] divide-y divide-slate-100 overflow-y-auto">
+                {notifications.map((notification) => (
+                  <li key={notification.message_id}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void openNotificationConversation(notification)
+                      }
+                      className="flex w-full items-start gap-3 px-5 py-4 text-left transition hover:bg-blue-50"
+                    >
+                      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-600" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold text-slate-800">
+                          {notification.sender_label}
+                        </span>
+                        <span className="mt-1 block whitespace-pre-wrap break-words text-xs text-slate-600">
+                          {notification.body}
+                        </span>
+                        <span className="mt-2 block text-[10px] text-slate-400">
+                          {new Date(notification.created_at).toLocaleString()}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      )}
 
     </div>
   );
