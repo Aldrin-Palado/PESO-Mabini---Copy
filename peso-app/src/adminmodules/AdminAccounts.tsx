@@ -186,6 +186,17 @@ export default function AdminAccounts() {
     setLoadError("");
 
     try {
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) {
+        throw new Error(
+          "Your sign-in session has expired. Sign in again to view staff accounts.",
+        );
+      }
+
       const { data, error } = await supabase
         .from("peso_staff")
         .select(
@@ -677,14 +688,24 @@ export default function AdminAccounts() {
           className="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
         >
           <p>{loadError}</p>
-          <button
-            type="button"
-            onClick={() => void loadStaff()}
-            disabled={loading}
-            className="shrink-0 rounded-lg border border-red-300 bg-white px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 disabled:opacity-50"
-          >
-            Try again
-          </button>
+          <div className="flex shrink-0 gap-2">
+            {loadError.includes("session has expired") && (
+              <a
+                href="/login"
+                className="rounded-lg border border-red-300 bg-white px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100"
+              >
+                Sign in again
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={() => void loadStaff()}
+              disabled={loading}
+              className="rounded-lg border border-red-300 bg-white px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 disabled:opacity-50"
+            >
+              Try again
+            </button>
+          </div>
         </div>
       )}
 

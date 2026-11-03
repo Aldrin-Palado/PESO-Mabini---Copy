@@ -1255,6 +1255,19 @@ export default function AdminDashboard() {
   const loadAuditLogs = async () => {
     setAuditLogError("");
     try {
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) {
+        setAuditLogs([]);
+        setAuditLogError(
+          "Your sign-in session has expired. Sign in again to view audit logs.",
+        );
+        return;
+      }
+
       const logsResult = await supabase
         .from("admin_activity_log")
         .select("*")
@@ -1926,9 +1939,20 @@ function AuditLogs({
       </div>
 
       {loadError && (
-        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {loadError}
-        </p>
+        <div
+          role="alert"
+          className="flex flex-col gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p>{loadError}</p>
+          {loadError.includes("session has expired") && (
+            <a
+              href="/login"
+              className="shrink-0 rounded-lg border border-red-300 bg-white px-3 py-2 text-center text-xs font-bold text-red-700 hover:bg-red-100"
+            >
+              Sign in again
+            </a>
+          )}
+        </div>
       )}
 
       <form
@@ -2060,9 +2084,11 @@ function AuditLogs({
               {filteredLogs.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-500">
-                    {logs.length === 0 && !loadError
-                      ? "No audit logs found."
-                      : "No logs match these filters."}
+                    {loadError
+                      ? "Audit log records are unavailable until the error above is resolved."
+                      : logs.length === 0
+                        ? "No audit logs found."
+                        : "No logs match these filters."}
                   </td>
                 </tr>
               ) : (

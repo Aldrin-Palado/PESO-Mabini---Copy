@@ -66,6 +66,7 @@ export default function DirectMessages({
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [sessionMissing, setSessionMissing] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const selectedContact =
@@ -132,6 +133,7 @@ export default function DirectMessages({
     const initialize = async () => {
       setLoading(true);
       setError("");
+      setSessionMissing(false);
 
       const {
         data: { user },
@@ -140,7 +142,17 @@ export default function DirectMessages({
 
       if (authError || !user) {
         if (!cancelled) {
-          setError(authError?.message || "Please sign in to use messages.");
+          const missingSession = Boolean(
+            !user ||
+            authError?.name === "AuthSessionMissingError" ||
+            authError?.message.toLowerCase().includes("auth session missing"),
+          );
+          setSessionMissing(missingSession);
+          setError(
+            missingSession
+              ? "Your sign-in session has expired. Sign in again to use Messages."
+              : authError?.message || "Please sign in to use messages.",
+          );
           setLoading(false);
         }
         return;
@@ -423,9 +435,20 @@ export default function DirectMessages({
       </header>
 
       {error && (
-        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-          {error}
-        </p>
+        <div
+          role="alert"
+          className="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p>{error}</p>
+          {sessionMissing && (
+            <a
+              href="/login"
+              className="shrink-0 rounded-lg border border-red-300 bg-white px-3 py-2 text-center text-xs font-bold text-red-700 hover:bg-red-100"
+            >
+              Sign in again
+            </a>
+          )}
+        </div>
       )}
 
       <div className="grid min-h-[32rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:grid-cols-[minmax(14rem,0.35fr)_1fr]">
@@ -434,8 +457,10 @@ export default function DirectMessages({
               Contacts
             </h2>
             <div className="max-h-72 overflow-y-auto md:max-h-[32rem]">
-              {contacts.length === 0 && !loading ? (
+              {contacts.length === 0 && !loading && !error ? (
                 <p className="p-4 text-sm text-slate-500">No other PESO users found.</p>
+              ) : contacts.length === 0 && loading ? (
+                <p className="p-4 text-sm text-slate-500">Loading contacts...</p>
               ) : (
                 contacts.map((contact) => (
                   <button
