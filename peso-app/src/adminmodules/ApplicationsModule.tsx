@@ -302,14 +302,14 @@ export default function ApplicationsModule({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3">
-        <div>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="shrink-0">
           <h3 className="text-lg font-bold text-slate-900">Applications</h3>
           <p className="mt-1 text-sm text-slate-500">
             Review job applications and update their progress.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 lg:justify-end">
           {STATUSES.map((status) => (
             <button
               key={status.value}
