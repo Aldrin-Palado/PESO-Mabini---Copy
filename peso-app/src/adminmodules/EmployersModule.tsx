@@ -41,7 +41,7 @@ type Props = {
     employerId: string,
     status: EmployerVerificationStatus,
   ) => Promise<void>;
-  onDelete: (employerId: string) => Promise<void>;
+  onToggleActive: (employerId: string, isActive: boolean) => Promise<void>;
 
   ModuleHeader: React.ComponentType<{
     title: string;
@@ -88,7 +88,7 @@ export default function EmployersModule({
   onRefresh,
   onUpdate,
   onUpdateStatus,
-  onDelete,
+  onToggleActive,
   ModuleHeader,
   LoadingMessage,
   EmptyMessage,
@@ -96,7 +96,7 @@ export default function EmployersModule({
   const [editingEmployer, setEditingEmployer] = useState<Employer | null>(null);
   const [formValues, setFormValues] = useState<EmployerFormValues | null>(null);
   const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [updatingActiveId, setUpdatingActiveId] = useState<string | null>(null);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -167,7 +167,7 @@ export default function EmployersModule({
     }
   };
 
-  const deleteEmployer = async (employer: Employer) => {
+  const toggleEmployerActive = async (employer: Employer) => {
     const employerId = employer.employer_id;
     if (!employerId) return;
     const name =
@@ -175,21 +175,26 @@ export default function EmployersModule({
       employer.company_name ||
       employer.business_name ||
       "this employer";
+    const nextIsActive = employer.is_active === false;
     const confirmed = window.confirm(
-      `Delete ${name}'s profile? This permanently deletes their job posts and applications. Their sign-in account may remain active.`,
+      `${nextIsActive ? "Activate" : "Deactivate"} ${name}'s account? ${
+        nextIsActive
+          ? "They will be able to access their employer account."
+          : "They will no longer be able to access their employer account."
+      }`,
     );
     if (!confirmed) return;
 
-    setDeletingId(employerId);
+    setUpdatingActiveId(employerId);
     setActionError("");
     try {
-      await onDelete(employerId);
+      await onToggleActive(employerId, nextIsActive);
     } catch (error) {
       setActionError(
-        error instanceof Error ? error.message : "Unable to delete employer.",
+        error instanceof Error ? error.message : "Unable to update employer account status.",
       );
     } finally {
-      setDeletingId(null);
+      setUpdatingActiveId(null);
     }
   };
 
@@ -198,7 +203,7 @@ export default function EmployersModule({
       <button
         type="button"
         onClick={() => startEditing(employer)}
-        disabled={!employer.employer_id || deletingId === employer.employer_id}
+        disabled={!employer.employer_id || updatingActiveId === employer.employer_id}
         className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 transition hover:border-blue-300 hover:bg-blue-50 disabled:opacity-50"
       >
         <AppIcon name="wrench" className="h-3.5 w-3.5" />
@@ -206,12 +211,23 @@ export default function EmployersModule({
       </button>
       <button
         type="button"
-        onClick={() => void deleteEmployer(employer)}
-        disabled={!employer.employer_id || deletingId === employer.employer_id}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 disabled:opacity-50"
+        onClick={() => void toggleEmployerActive(employer)}
+        disabled={!employer.employer_id || updatingActiveId === employer.employer_id}
+        className={`inline-flex items-center gap-1.5 rounded-lg border bg-white px-3 py-2 text-xs font-semibold transition disabled:opacity-50 ${
+          employer.is_active === false
+            ? "border-emerald-200 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50"
+            : "border-amber-200 text-amber-700 hover:border-amber-300 hover:bg-amber-50"
+        }`}
       >
-        <AppIcon name="x" className="h-3.5 w-3.5" />
-        {deletingId === employer.employer_id ? "Deleting..." : "Delete"}
+        <AppIcon
+          name={employer.is_active === false ? "check" : "x"}
+          className="h-3.5 w-3.5"
+        />
+        {updatingActiveId === employer.employer_id
+          ? "Updating..."
+          : employer.is_active === false
+            ? "Activate"
+            : "Deactivate"}
       </button>
     </div>
   );

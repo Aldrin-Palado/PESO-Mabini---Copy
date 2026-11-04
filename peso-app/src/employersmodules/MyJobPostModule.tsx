@@ -24,6 +24,7 @@ type Props = {
   jobs: JobPost[];
   employerId: string;
   employerName: string;
+  isVerified: boolean;
   onRefresh: () => Promise<void> | void;
 };
 
@@ -59,6 +60,7 @@ export default function MyJobPostModule({
   jobs,
   employerId,
   employerName,
+  isVerified,
   onRefresh,
 }: Props) {
   const [showForm, setShowForm] = useState(false);
@@ -97,6 +99,11 @@ export default function MyJobPostModule({
   };
 
   const openCreateForm = () => {
+    if (!isVerified) {
+      setMessage("Your employer account must be verified before you can post a job.");
+      return;
+    }
+
     setEditingId(null);
     setForm(emptyForm);
     resetImage();
@@ -261,6 +268,11 @@ export default function MyJobPostModule({
 
     if (!employerId) {
       setMessage("Employer account not found.");
+      return;
+    }
+
+    if (!editingId && !isVerified) {
+      setMessage("Your employer account must be verified before you can post a job.");
       return;
     }
 
@@ -538,13 +550,22 @@ export default function MyJobPostModule({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={openCreateForm}
-          className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white hover:bg-blue-800"
-        >
-          + New Job Post
-        </button>
+        {isVerified ? (
+          <button
+            type="button"
+            onClick={openCreateForm}
+            className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white hover:bg-blue-800"
+          >
+            + New Job Post
+          </button>
+        ) : (
+          <p
+            role="status"
+            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800"
+          >
+            Your account must be verified before you can post a job.
+          </p>
+        )}
       </div>
 
       {/* MESSAGE */}

@@ -800,6 +800,7 @@ export default function EmployerDashboard() {
             jobs={jobs}
             employerId={profile.employer_id}
             employerName={profile.name}
+            isVerified={profile.is_verified}
             onRefresh={handleRefresh}
           />
         );

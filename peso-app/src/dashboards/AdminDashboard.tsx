@@ -969,35 +969,32 @@ export default function AdminDashboard() {
     );
   };
 
-  const deleteEmployer = async (employerId: string) => {
+  const updateEmployerActiveStatus = async (
+    employerId: string,
+    isActive: boolean,
+  ) => {
     const { data, error } = await supabase
       .from("employer")
-      .delete()
+      .update({ is_active: isActive })
       .eq("employer_id", employerId)
-      .select("employer_id")
+      .select("*")
       .maybeSingle();
 
     if (error) {
-      console.error("Employer deletion error:", error);
-      throw new Error(`Employer could not be deleted: ${error.message}`);
+      console.error("Employer account status update error:", error);
+      throw new Error(`Employer account status could not be updated: ${error.message}`);
     }
     if (!data) {
-      throw new Error("Employer was not deleted because the record no longer exists.");
+      throw new Error(
+        "Employer account status was not updated because the record no longer exists.",
+      );
     }
 
     setEmployers((current) =>
-      current.filter((employer) => employer.employer_id !== employerId),
+      current.map((employer) =>
+        employer.employer_id === employerId ? data : employer,
+      ),
     );
-    setJobPosts((current) =>
-      current.filter((job) => job.employer_id !== employerId),
-    );
-    setApplications((current) =>
-      current.filter((application) => application.employer_id !== employerId),
-    );
-    setCounts((current) => ({
-      ...current,
-      employers: Math.max(0, current.employers - 1),
-    }));
   };
 
   const updateJobSeeker = async (
@@ -1538,7 +1535,7 @@ export default function AdminDashboard() {
             onRefresh={loadEmployers}
             onUpdate={updateEmployer}
             onUpdateStatus={updateEmployerStatus}
-            onDelete={deleteEmployer}
+            onToggleActive={updateEmployerActiveStatus}
             ModuleHeader={ModuleHeader}
             LoadingMessage={LoadingMessage}
             EmptyMessage={EmptyMessage}
