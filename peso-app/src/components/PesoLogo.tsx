@@ -96,7 +96,7 @@ export default function PesoLogo({
         <span
           className={`flex min-w-0 items-baseline gap-1 whitespace-nowrap font-black leading-tight ${
             size === "sidebar"
-              ? "text-sm"
+              ? "text-lg"
               : size === "lg" || size === "auth"
                 ? "text-[1.65rem]"
                 : "text-[1.35rem]"

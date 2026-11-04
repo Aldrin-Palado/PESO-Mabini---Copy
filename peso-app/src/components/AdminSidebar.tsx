@@ -162,7 +162,7 @@ export default function AdminSidebar({
                   onClick={() => go(module)}
                   className={`w-full rounded-md px-3 py-2 text-left text-sm font-medium transition ${
                     isActive
-                      ? "bg-[#E3262E] text-white shadow-sm"
+                      ? "bg-yellow-400 text-black shadow-sm"
                       : "text-blue-50/90 hover:bg-white/10 hover:text-white"
                   }`}
                 >
@@ -197,7 +197,7 @@ export default function AdminSidebar({
                     onClick={() => go(module)}
                     className={`w-full rounded-md px-3 py-2 text-left text-sm font-medium transition ${
                       isActive
-                        ? "bg-[#E3262E] text-white shadow-sm"
+                        ? "bg-yellow-400 text-black shadow-sm"
                         : "text-blue-50/90 hover:bg-white/10 hover:text-white"
                     }`}
                   >
@@ -221,7 +221,7 @@ export default function AdminSidebar({
             onClick={() => go("My Profile")}
             className={`mb-1 w-full rounded-md px-3 py-2 text-left text-sm font-medium transition ${
               activePage === "My Profile"
-                ? "bg-[#E3262E] text-white"
+                ? "bg-yellow-400 text-black"
                 : "text-blue-50/90 hover:bg-white/10 hover:text-white"
             }`}
           >
