@@ -114,7 +114,7 @@ export default function AdminSidebar({
         {/* Logo / Title */}
         <div className="flex items-start justify-between gap-2 border-b border-white/10 px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-5 sm:px-6">
           <PesoLogo
-            size="sm"
+            size="sidebar"
             showName
             subtitle={isSuperadmin ? "Super Admin Portal" : "Admin Portal"}
             tone="light"
