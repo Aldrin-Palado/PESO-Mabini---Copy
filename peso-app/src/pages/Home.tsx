@@ -8,7 +8,12 @@ import AIChatbotModule from "../jobseekersmodules/AIChatbotModule";
 import type { PublicJobVacancyPreviewRow } from "../types/JobVacancy";
 import { supabase } from "../services/supabase";
 
-const backgroundImage = new URL(
+const heroImage = new URL(
+  "../assets/images/bg-image.png",
+  import.meta.url,
+).href;
+
+const pageBackground = new URL(
   "../assets/images/bry-bg.png",
   import.meta.url,
 ).href;
@@ -142,7 +147,14 @@ function Home() {
   }, []);
 
   return (
-    <div className="whirl-page-background flex min-h-screen flex-col text-slate-800">
+    <div className="relative isolate flex min-h-screen flex-col text-slate-800">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: `linear-gradient(rgba(248, 250, 252, 0.88), rgba(248, 250, 252, 0.88)), url("${pageBackground}")`,
+        }}
+      />
 
       <Navbar />
 
@@ -161,7 +173,7 @@ function Home() {
             breakpoint so the photo survives tall, narrow phone screens. */}
 
         <HeroBackground
-          src={backgroundImage}
+          src={heroImage}
           priority
           className="home-hero-media"
         />
