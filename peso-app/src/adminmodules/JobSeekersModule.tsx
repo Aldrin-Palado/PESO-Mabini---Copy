@@ -325,10 +325,12 @@ export default function JobSeekersModule({
 
   const renderActions = (jobSeeker: JobSeeker, rowId: string) => (
     <details className="group relative inline-block text-left">
-      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 transition hover:border-blue-300 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-200 [&::-webkit-details-marker]:hidden">
-        Actions
-        <span aria-hidden="true" className="text-[10px] transition group-open:rotate-180">
-          ▼
+      <summary
+        aria-label="Show job seeker actions"
+        className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-lg border border-blue-200 bg-white text-sm font-semibold text-blue-700 transition hover:border-blue-300 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-200 [&::-webkit-details-marker]:hidden"
+      >
+        <span aria-hidden="true" className="transition group-open:rotate-180">
+          v
         </span>
       </summary>
       <div className="absolute right-0 z-30 mt-2 min-w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
