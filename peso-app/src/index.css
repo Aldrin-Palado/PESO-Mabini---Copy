@@ -120,10 +120,10 @@
 
 @layer components {
   .whirl-page-background {
-    background-color: #ffffff;
+    background-color: #f8fafc;
     background-image:
-      linear-gradient(rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.82)),
-      url("./assets/images/Glossy Red, Gold and Blue Ribbons.png");
+      linear-gradient(rgba(248, 250, 252, 0.88), rgba(248, 250, 252, 0.88)),
+      url("./assets/images/bry-bg.png");
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;
