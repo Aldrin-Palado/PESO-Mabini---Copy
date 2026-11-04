@@ -91,7 +91,7 @@ function About() {
         </section>
 
         <section className="grid gap-6 md:grid-cols-2">
-          <article className="rounded-xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
+          <article className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-7 pl-8 shadow-sm before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-gradient-to-b before:from-yellow-400 before:to-red-500 before:content-[''] sm:p-9 sm:pl-10">
             <p className="text-sm font-bold uppercase text-red-600">Our purpose</p>
             <h2 className="mt-3 text-2xl font-black text-slate-900">Our Mission</h2>
             <p className="mt-4 leading-7 text-slate-600">
@@ -100,7 +100,7 @@ function About() {
               local development.
             </p>
           </article>
-          <article className="rounded-xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
+          <article className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-7 pl-8 shadow-sm before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-gradient-to-b before:from-yellow-400 before:to-red-500 before:content-[''] sm:p-9 sm:pl-10">
             <p className="text-sm font-bold uppercase text-sky-700">Our future</p>
             <h2 className="mt-3 text-2xl font-black text-slate-900">Our Vision</h2>
             <p className="mt-4 leading-7 text-slate-600">
@@ -119,7 +119,7 @@ function About() {
             {values.map((value, index) => (
               <article
                 key={value.title}
-                className="rounded-lg border border-slate-200 bg-white p-5"
+                className="relative overflow-hidden rounded-lg border border-slate-200 bg-white p-5 pl-6 before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-gradient-to-b before:from-yellow-400 before:to-red-500 before:content-['']"
               >
                 <span className="text-sm font-black text-sky-700">
                   {String(index + 1).padStart(2, "0")}
@@ -142,7 +142,7 @@ function About() {
             {services.map((service) => (
               <div
                 key={service}
-                className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-5"
+                className="relative flex items-start gap-3 overflow-hidden rounded-lg border border-slate-200 bg-white p-5 pl-6 before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-gradient-to-b before:from-yellow-400 before:to-red-500 before:content-['']"
               >
                 <AppIcon name="check" className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
                 <p className="font-semibold leading-6 text-slate-800">{service}</p>
@@ -151,7 +151,7 @@ function About() {
           </div>
         </section>
 
-        <section className="mt-14 overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <section className="relative mt-14 overflow-hidden rounded-xl border border-slate-200 bg-white before:absolute before:inset-y-0 before:left-0 before:z-10 before:w-1 before:bg-gradient-to-b before:from-yellow-400 before:to-red-500 before:content-['']">
           <div className="h-1 bg-gradient-to-r from-sky-500 via-yellow-400 to-red-500" />
           <div className="grid gap-8 p-6 sm:p-8 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
             <div>

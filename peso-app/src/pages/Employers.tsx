@@ -126,7 +126,7 @@ export default function Employers() {
             {recommendations.map((item) => (
               <article
                 key={item.title}
-                className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-sky-300 hover:shadow-md"
+                className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 pl-7 shadow-sm transition before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-gradient-to-b before:from-yellow-400 before:to-red-500 before:content-[''] hover:-translate-y-1 hover:border-sky-300 hover:shadow-md"
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 text-2xl">
                   <AppIcon name={item.icon} className="h-6 w-6 text-sky-700" />
