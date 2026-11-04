@@ -215,44 +215,67 @@ export default function EmployersModule({
   };
 
   const renderActions = (employer: Employer) => (
-    <div className="flex flex-wrap items-center gap-2">
-      <button
-        type="button"
-        onClick={() => setDetailsEmployer(employer)}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+    <details className="group relative inline-block text-left">
+      <summary
+        aria-label="Show employer actions"
+        className="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200 [&::-webkit-details-marker]:hidden"
       >
-        Details
-      </button>
-      <button
-        type="button"
-        onClick={() => startEditing(employer)}
-        disabled={!employer.employer_id || updatingActiveId === employer.employer_id}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 transition hover:border-blue-300 hover:bg-blue-50 disabled:opacity-50"
-      >
-        <AppIcon name="wrench" className="h-3.5 w-3.5" />
-        Edit
-      </button>
-      <button
-        type="button"
-        onClick={() => void toggleEmployerActive(employer)}
-        disabled={!employer.employer_id || updatingActiveId === employer.employer_id}
-        className={`inline-flex items-center gap-1.5 rounded-lg border bg-white px-3 py-2 text-xs font-semibold transition disabled:opacity-50 ${
-          employer.is_active === false
-            ? "border-emerald-200 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50"
-            : "border-amber-200 text-amber-700 hover:border-amber-300 hover:bg-amber-50"
-        }`}
-      >
-        <AppIcon
-          name={employer.is_active === false ? "check" : "x"}
-          className="h-3.5 w-3.5"
-        />
-        {updatingActiveId === employer.employer_id
-          ? "Updating..."
-          : employer.is_active === false
-            ? "Activate"
-            : "Deactivate"}
-      </button>
-    </div>
+        <span
+          aria-hidden="true"
+          className="transition group-open:rotate-180"
+        >
+          ▾
+        </span>
+      </summary>
+      <div className="absolute right-0 z-30 mt-2 min-w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.currentTarget.closest("details")?.removeAttribute("open");
+            setDetailsEmployer(employer);
+          }}
+          className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          Details
+        </button>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.currentTarget.closest("details")?.removeAttribute("open");
+            startEditing(employer);
+          }}
+          disabled={
+            !employer.employer_id ||
+            updatingActiveId === employer.employer_id
+          }
+          className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-50"
+        >
+          Edit
+        </button>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.currentTarget.closest("details")?.removeAttribute("open");
+            void toggleEmployerActive(employer);
+          }}
+          disabled={
+            !employer.employer_id ||
+            updatingActiveId === employer.employer_id
+          }
+          className={`block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold transition disabled:opacity-50 ${
+            employer.is_active === false
+              ? "text-emerald-700 hover:bg-emerald-50"
+              : "text-amber-700 hover:bg-amber-50"
+          }`}
+        >
+          {updatingActiveId === employer.employer_id
+            ? "Updating..."
+            : employer.is_active === false
+              ? "Activate"
+              : "Deactivate"}
+        </button>
+      </div>
+    </details>
   );
 
   return (
