@@ -79,6 +79,21 @@ function isEmployerVerificationStatus(
   );
 }
 
+function formatDetailLabel(key: string): string {
+  return key
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function formatDetailValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") {
+    return "Not provided";
+  }
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "object") return JSON.stringify(value, null, 2);
+  return String(value);
+}
+
 export default function EmployersModule({
   employers,
   loadError,
@@ -93,6 +108,7 @@ export default function EmployersModule({
   LoadingMessage,
   EmptyMessage,
 }: Props) {
+  const [detailsEmployer, setDetailsEmployer] = useState<Employer | null>(null);
   const [editingEmployer, setEditingEmployer] = useState<Employer | null>(null);
   const [formValues, setFormValues] = useState<EmployerFormValues | null>(null);
   const [saving, setSaving] = useState(false);
@@ -200,6 +216,13 @@ export default function EmployersModule({
 
   const renderActions = (employer: Employer) => (
     <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={() => setDetailsEmployer(employer)}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+      >
+        Details
+      </button>
       <button
         type="button"
         onClick={() => startEditing(employer)}
@@ -567,6 +590,80 @@ export default function EmployersModule({
         )}
 
       </section>
+
+      {detailsEmployer && (
+        <div
+          className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-slate-950/50 p-4 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="employer-details-title"
+          onClick={() => setDetailsEmployer(null)}
+        >
+          <section
+            className="my-4 w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#203F8B]">
+                  Employer Details
+                </p>
+                <h2
+                  id="employer-details-title"
+                  className="mt-1 truncate text-lg font-bold text-slate-900"
+                >
+                  {detailsEmployer.name ||
+                    detailsEmployer.company_name ||
+                    detailsEmployer.business_name ||
+                    detailsEmployer.full_name ||
+                    "Unnamed Employer"}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDetailsEmployer(null)}
+                aria-label="Close employer details"
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Close
+              </button>
+            </header>
+            <dl className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6">
+              {Object.entries(detailsEmployer).map(([key, value]) => {
+                const formattedValue = formatDetailValue(value);
+                const isExternalUrl =
+                  typeof value === "string" &&
+                  /^https?:\/\//i.test(value);
+
+                return (
+                  <div
+                    key={key}
+                    className="min-w-0 rounded-xl border border-slate-200 bg-slate-50/70 p-3"
+                  >
+                    <dt className="text-xs font-semibold text-slate-500">
+                      {formatDetailLabel(key)}
+                    </dt>
+                    <dd className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-800">
+                      {isExternalUrl ? (
+                        <a
+                          href={value}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium text-blue-700 underline"
+                        >
+                          {formattedValue}
+                        </a>
+                      ) : (
+                        formattedValue
+                      )}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
+          </section>
+        </div>
+      )}
 
       {editingEmployer && formValues && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">

@@ -1372,52 +1372,6 @@ export default function AdminDashboard() {
   };
 
   /* ============================================================
-     FILTERED JOB POSTS
-  ============================================================ */
-
-  const filteredJobs = useMemo(() => {
-    return jobPosts.filter((job) => {
-      const title =
-        job.position_title ||
-        job.title ||
-        job.job_title ||
-        job.position ||
-        "";
-
-      const employer =
-        job.name ||
-        job.company_name ||
-        job.employer_name ||
-        job.employer_id ||
-        "";
-
-      const searchMatch =
-        `${title} ${employer} ${job.location || ""}`
-          .toLowerCase()
-          .includes(jobSearch.toLowerCase());
-
-      const rawStatus = (job.status || "Unknown").toLowerCase();
-      const status =
-        rawStatus === "open"
-          ? "active"
-          : rawStatus === "draft"
-            ? "inactive"
-            : rawStatus;
-
-      const statusMatch =
-        jobStatusFilter === "All" ||
-        status.toLowerCase() ===
-          jobStatusFilter.toLowerCase();
-
-      return searchMatch && statusMatch;
-    });
-  }, [
-    jobPosts,
-    jobSearch,
-    jobStatusFilter,
-  ]);
-
-  /* ============================================================
      FILTERED EMPLOYERS
   ============================================================ */
 
@@ -1502,7 +1456,7 @@ export default function AdminDashboard() {
       case "Job Post":
         return (
           <JobPostsModule
-            jobs={filteredJobs}
+            jobs={jobPosts}
             loadError={moduleError}
             search={jobSearch}
             setSearch={setJobSearch}
@@ -1511,8 +1465,6 @@ export default function AdminDashboard() {
             loading={moduleLoading}
             onRefresh={loadJobPosts}
             ModuleHeader={ModuleHeader}
-            TableHeader={TableHeader}
-            TableCell={TableCell}
             StatusBadge={StatusBadge}
             LoadingMessage={LoadingMessage}
             EmptyMessage={EmptyMessage}

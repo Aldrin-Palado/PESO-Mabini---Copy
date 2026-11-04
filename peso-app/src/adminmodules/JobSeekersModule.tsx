@@ -1,4 +1,5 @@
 import React, { useState, type FormEvent } from "react";
+import AppIcon from "../components/AppIcon";
 import { openStoredResume } from "../services/resumes";
 
 type JobSeeker = {
@@ -234,6 +235,15 @@ export default function JobSeekersModule({
       (appliedGenderFilter === "all" || gender === appliedGenderFilter)
     );
   });
+  const activeCount = jobSeekers.filter(
+    (jobSeeker) => jobSeeker.is_active !== false,
+  ).length;
+  const inactiveCount = jobSeekers.length - activeCount;
+  const applicationCount = jobSeekers.reduce(
+    (total, jobSeeker) =>
+      total + (applicationCounts[jobSeeker.job_seeker_id || ""] ?? 0),
+    0,
+  );
 
   const startEditing = (jobSeeker: JobSeeker) => {
     setActionError("");
@@ -313,8 +323,46 @@ export default function JobSeekersModule({
     }
   };
 
+  const renderActions = (jobSeeker: JobSeeker, rowId: string) => (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={() => setScreeningSeeker(jobSeeker)}
+        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+      >
+        Details
+      </button>
+      <button
+        type="button"
+        onClick={() => startEditing(jobSeeker)}
+        disabled={!jobSeeker.job_seeker_id || deletingId === jobSeeker.job_seeker_id}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 transition hover:border-blue-300 hover:bg-blue-50 disabled:opacity-50"
+      >
+        Edit
+      </button>
+      {jobSeeker.resume_url && (
+        <button
+          type="button"
+          onClick={() => void openResume(jobSeeker, rowId)}
+          disabled={openingResumeId === rowId}
+          className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-50"
+        >
+          {openingResumeId === rowId ? "Opening..." : "Resume"}
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={() => void deleteJobSeeker(jobSeeker)}
+        disabled={!jobSeeker.job_seeker_id || deletingId === jobSeeker.job_seeker_id}
+        className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+      >
+        {deletingId === jobSeeker.job_seeker_id ? "Deleting..." : "Delete"}
+      </button>
+    </div>
+  );
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
 
       <ModuleHeader
         title="Job Seekers Management"
@@ -333,74 +381,104 @@ export default function JobSeekersModule({
         </p>
       )}
 
-      <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(140px,0.8fr)_minmax(140px,0.8fr)_auto] lg:items-end">
-        <label className="block text-[11px] font-semibold text-slate-600">
-          Search (Name / Email / Phone)
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="e.g. name, phone, or email"
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-xs font-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          />
-        </label>
-        <label className="block text-[11px] font-semibold text-slate-600">
-          Status
-          <select
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-xs font-normal text-slate-800"
-          >
-            <option value="all">All</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </label>
-        <label className="block text-[11px] font-semibold text-slate-600">
-          Gender
-          <select
-            value={genderFilter}
-            onChange={(event) => setGenderFilter(event.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-xs font-normal text-slate-800"
-          >
-            <option value="all">All</option>
-            <option value="female">Female</option>
-            <option value="male">Male</option>
-            <option value="prefer not to say">Prefer not to say</option>
-          </select>
-        </label>
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setSearch("");
-              setStatusFilter("all");
-              setGenderFilter("all");
-              setAppliedStatusFilter("all");
-              setAppliedGenderFilter("all");
-            }}
-            className="rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-          >
-            Clear
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setAppliedStatusFilter(statusFilter);
-              setAppliedGenderFilter(genderFilter);
-            }}
-            className="rounded-md border border-blue-200 px-3 py-2 text-xs font-semibold text-[#0759AE] hover:bg-blue-50"
-          >
-            Apply Filters
-          </button>
-          <button
-            type="button"
-            onClick={onRefresh}
-            className="rounded-md bg-[#0759AE] px-3 py-2 text-xs font-bold text-white hover:bg-[#064A91]"
-          >
-            Refresh
-          </button>
+      <section aria-label="Job seeker statistics" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          { label: "Registered job seekers", value: jobSeekers.length, icon: "users" as const, color: "bg-blue-50 text-blue-700" },
+          { label: "Active", value: activeCount, icon: "check" as const, color: "bg-emerald-50 text-emerald-700" },
+          { label: "Inactive", value: inactiveCount, icon: "x" as const, color: "bg-red-50 text-red-700" },
+          { label: "Applications submitted", value: applicationCount, icon: "file" as const, color: "bg-amber-50 text-amber-800" },
+        ].map((stat) => (
+          <div key={stat.label} className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+            <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${stat.color}`}>
+              <AppIcon name={stat.icon} className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-xs font-medium text-slate-500">{stat.label}</p>
+              <p className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">{stat.value}</p>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="mb-4">
+          <h2 className="text-sm font-bold text-slate-900">Find job seekers</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Search profiles and filter by account status or gender.
+          </p>
         </div>
-      </div>
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_200px_auto] lg:items-end">
+          <label className="block text-xs font-semibold text-slate-600">
+            Search job seekers
+            <span className="relative mt-1.5 block">
+              <AppIcon name="search" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search name, email, or phone..."
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-sm font-normal text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              />
+            </span>
+          </label>
+          <label className="block text-xs font-semibold text-slate-600">
+            Account status
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+            >
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </label>
+          <label className="block text-xs font-semibold text-slate-600">
+            Gender
+            <select
+              value={genderFilter}
+              onChange={(event) => setGenderFilter(event.target.value)}
+              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+            >
+              <option value="all">All</option>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+              <option value="prefer not to say">Prefer not to say</option>
+            </select>
+          </label>
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setStatusFilter("all");
+                setGenderFilter("all");
+                setAppliedStatusFilter("all");
+                setAppliedGenderFilter("all");
+              }}
+              className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAppliedStatusFilter(statusFilter);
+                setAppliedGenderFilter(genderFilter);
+              }}
+              className="rounded-xl border border-blue-200 bg-blue-50/50 px-4 py-2.5 text-xs font-semibold text-[#0759AE] transition hover:bg-blue-50"
+            >
+              Apply Filters
+            </button>
+            <button
+              type="button"
+              onClick={onRefresh}
+              className="rounded-xl bg-[#0759AE] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#064A91]"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+      </section>
 
       {resumeError && (
         <p
@@ -411,11 +489,14 @@ export default function JobSeekersModule({
         </p>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-          <h2 className="text-sm font-bold text-slate-800">Job Seekers</h2>
-          <span className="text-[11px] text-slate-400">
-            {visibleJobSeekers.length} record{visibleJobSeekers.length === 1 ? "" : "s"}
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-1 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div>
+            <h2 className="text-base font-bold text-slate-900">Registered job seekers</h2>
+            <p className="mt-0.5 text-xs text-slate-500">Profiles, contact information, and account status</p>
+          </div>
+          <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+            Showing {visibleJobSeekers.length} of {jobSeekers.length}
           </span>
         </div>
         {loading ? (
@@ -427,23 +508,78 @@ export default function JobSeekersModule({
             No job seekers match these filters.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] table-fixed md:min-w-0">
-              <thead className="bg-slate-50 text-left">
+          <>
+            <div className="divide-y divide-slate-100 2xl:hidden">
+              {visibleJobSeekers.map((jobSeeker, index) => {
+                const name = getSeekerName(jobSeeker);
+                const registration = getRegistrationDetails(jobSeeker);
+                const gender = registration.sex || jobSeeker.sex || "-";
+                const education = registration.educationLevel || jobSeeker.education_level || "-";
+                const location = registration.presentAddress || jobSeeker.address || "-";
+                const isActive = jobSeeker.is_active !== false;
+                const rowId = String(jobSeeker.id || jobSeeker.job_seeker_id || index);
+
+                return (
+                  <article key={rowId} className="p-4 transition hover:bg-slate-50/80 sm:p-5">
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#1766B4]">
+                        <AppIcon name="user" className="h-5 w-5" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <h3 className="truncate text-sm font-bold text-slate-900">{name}</h3>
+                          <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            isActive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+                          }`}>{isActive ? "Active" : "Inactive"}</span>
+                        </div>
+                        <div className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
+                          <p className="flex min-w-0 items-center gap-2">
+                            <AppIcon name="mail" className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                            <span className="truncate">{jobSeeker.email || "Email not provided"}</span>
+                          </p>
+                          <p className="flex min-w-0 items-center gap-2">
+                            <AppIcon name="phone" className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                            <span className="truncate">{jobSeeker.contact_no || jobSeeker.phone || "Phone not provided"}</span>
+                          </p>
+                          <p className="flex min-w-0 items-center gap-2">
+                            <AppIcon name="graduationCap" className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                            <span className="truncate">{education}</span>
+                          </p>
+                          <p className="flex min-w-0 items-center gap-2">
+                            <AppIcon name="mapPin" className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                            <span className="truncate">{location}</span>
+                          </p>
+                          <p className="text-slate-500 sm:col-span-2">
+                            {gender} · {applicationCounts[jobSeeker.job_seeker_id || ""] ?? 0} applications
+                          </p>
+                        </div>
+                        <div className="mt-4 border-t border-slate-100 pt-3">
+                          {renderActions(jobSeeker, rowId)}
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div className="hidden overflow-x-auto 2xl:block">
+            <table className="w-full min-w-[1100px] table-fixed">
+              <thead className="bg-gradient-to-r from-[#1766B4] to-[#124A91] text-left">
                 <tr>
                   {[
-                    ["Name", "w-[22%] md:w-[18%] xl:w-[16%] 2xl:w-[12%]"],
-                    ["Email", "w-[27%] md:w-[22%] xl:w-[23%] 2xl:w-[16%]"],
-                    ["Phone", "w-[17%] md:w-[15%] xl:w-[15%] 2xl:w-[10%]"],
-                    ["Gender", "hidden w-[8%] 2xl:table-cell"],
-                    ["Education", "hidden w-[10%] 2xl:table-cell"],
-                    ["Location", "hidden w-[16%] md:table-cell md:w-[16%] xl:w-[18%] 2xl:w-[13%]"],
-                    ["Status", "w-[14%] md:w-[12%] xl:w-[11%] 2xl:w-[8%]"],
-                    ["Applications", "hidden w-[6%] 2xl:table-cell"],
-                    ["Created", "hidden w-[8%] 2xl:table-cell"],
-                    ["Actions", "w-[20%] md:w-[17%] xl:w-[17%] 2xl:w-[9%]"],
+                    ["Name", "w-[15%]"],
+                    ["Email", "w-[15%]"],
+                    ["Phone", "w-[11%]"],
+                    ["Gender", "w-[9%]"],
+                    ["Education", "w-[13%]"],
+                    ["Location", "w-[13%]"],
+                    ["Status", "w-[8%]"],
+                    ["Applications", "w-[7%]"],
+                    ["Created", "w-[9%]"],
+                    ["Actions", "w-[20%]"],
                   ].map(([label, width]) => (
-                    <th key={label} className={`${width} whitespace-nowrap px-2 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500`}>
+                    <th key={label} className={`${width} whitespace-nowrap px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white`}>
                       {label}
                     </th>
                   ))}
@@ -476,82 +612,48 @@ export default function JobSeekersModule({
                     return (
                       <tr
                         key={rowId}
-                        className="align-middle hover:bg-slate-50"
+                        className={`align-middle transition-colors hover:bg-blue-50/70 ${
+                          index % 2 === 0 ? "bg-white" : "bg-blue-50/40"
+                        }`}
                       >
-                        <td className="truncate px-2 py-2 text-[11px] font-semibold text-slate-800" title={name}>
-                          <span className="block truncate">{name}</span>
-                        </td>
-                        <td className="truncate px-2 py-2 text-[10px] text-slate-600" title={jobSeeker.email || ""}>
+                          <td className="px-3 py-3">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-[#1766B4]">
+                                <AppIcon name="user" className="h-4 w-4" />
+                              </span>
+                              <span className="truncate text-xs font-bold text-slate-900" title={name}>{name}</span>
+                            </div>
+                          </td>
+                          <td className="truncate px-3 py-3 text-xs text-slate-700" title={jobSeeker.email || ""}>
                           <span className="block truncate">{jobSeeker.email || "-"}</span>
                         </td>
-                        <td className="truncate px-2 py-2 text-[10px] text-slate-600" title={jobSeeker.contact_no || jobSeeker.phone || ""}>
+                        <td className="truncate px-3 py-3 text-xs text-slate-700" title={jobSeeker.contact_no || jobSeeker.phone || ""}>
                           <span className="block truncate">{jobSeeker.contact_no || jobSeeker.phone || "-"}</span>
                         </td>
-                        <td className="hidden truncate px-2 py-2 text-[10px] text-slate-600 2xl:table-cell" title={String(gender)}>
+                        <td className="truncate px-3 py-3 text-xs text-slate-700" title={String(gender)}>
                           <span className="block truncate">{gender}</span>
                         </td>
-                        <td className="hidden truncate px-2 py-2 text-[10px] text-slate-600 2xl:table-cell" title={String(education)}>
+                        <td className="truncate px-3 py-3 text-xs text-slate-700" title={String(education)}>
                           <span className="block truncate">{education}</span>
                         </td>
-                        <td className="hidden truncate px-2 py-2 text-[10px] text-slate-600 md:table-cell" title={String(location)}>
+                        <td className="truncate px-3 py-3 text-xs text-slate-700" title={String(location)}>
                           <span className="block truncate">{location}</span>
                         </td>
-                        <td className="px-2 py-2">
-                          <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-1 text-[10px] font-semibold ${
+                        <td className="px-3 py-3">
+                          <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                             isActive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
                           }`}>{status}</span>
                         </td>
-                        <td className="hidden px-2 py-2 text-center text-[10px] text-slate-600 2xl:table-cell">
+                        <td className="px-3 py-3 text-center text-xs text-slate-700">
                           {applicationCounts[jobSeeker.job_seeker_id || ""] ?? 0}
                         </td>
-                        <td className="hidden whitespace-nowrap px-2 py-2 text-[10px] text-slate-500 2xl:table-cell">
+                        <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
                           {jobSeeker.created_at
                             ? new Date(jobSeeker.created_at).toLocaleDateString()
                             : "-"}
                         </td>
-                        <td className="px-2 py-2">
-                          <div className="flex flex-wrap items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => setScreeningSeeker(jobSeeker)}
-                              title="View screening details"
-                              className="whitespace-nowrap rounded-md border border-slate-200 px-1.5 py-1 text-[9px] font-semibold text-slate-700 hover:bg-slate-50"
-                            >
-                              Details
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                startEditing(jobSeeker);
-                              }}
-                              title="Edit job seeker"
-                              disabled={!jobSeeker.job_seeker_id || deletingId === jobSeeker.job_seeker_id}
-                              className="whitespace-nowrap rounded-md border border-slate-200 px-1.5 py-1 text-[9px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                            >
-                              Edit
-                            </button>
-                          </div>
-                          <div className="mt-1 flex flex-wrap items-center gap-1">
-                            {jobSeeker.resume_url && (
-                              <button
-                                type="button"
-                                onClick={() => void openResume(jobSeeker, rowId)}
-                                disabled={openingResumeId === rowId}
-                                title="View resume"
-                                className="whitespace-nowrap rounded-md border border-blue-200 px-1.5 py-1 text-[9px] font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
-                              >
-                                {openingResumeId === rowId ? "..." : "Resume"}
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => void deleteJobSeeker(jobSeeker)}
-                              disabled={!jobSeeker.job_seeker_id || deletingId === jobSeeker.job_seeker_id}
-                              className="whitespace-nowrap rounded-md border border-red-200 px-1.5 py-1 text-[9px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
-                            >
-                              {deletingId === jobSeeker.job_seeker_id ? "..." : "Delete"}
-                            </button>
-                          </div>
+                        <td className="px-3 py-3">
+                          {renderActions(jobSeeker, rowId)}
                         </td>
                       </tr>
                     );
@@ -559,9 +661,10 @@ export default function JobSeekersModule({
               </tbody>
             </table>
           </div>
+          </>
         )}
 
-      </div>
+      </section>
 
       {screeningSeeker && (
         <ScreeningModal
