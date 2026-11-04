@@ -324,41 +324,61 @@ export default function JobSeekersModule({
   };
 
   const renderActions = (jobSeeker: JobSeeker, rowId: string) => (
-    <div className="flex flex-wrap items-center gap-2">
-      <button
-        type="button"
-        onClick={() => setScreeningSeeker(jobSeeker)}
-        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-      >
-        Details
-      </button>
-      <button
-        type="button"
-        onClick={() => startEditing(jobSeeker)}
-        disabled={!jobSeeker.job_seeker_id || deletingId === jobSeeker.job_seeker_id}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 transition hover:border-blue-300 hover:bg-blue-50 disabled:opacity-50"
-      >
-        Edit
-      </button>
-      {jobSeeker.resume_url && (
+    <details className="group relative inline-block text-left">
+      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 transition hover:border-blue-300 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-200 [&::-webkit-details-marker]:hidden">
+        Actions
+        <span aria-hidden="true" className="text-[10px] transition group-open:rotate-180">
+          ▼
+        </span>
+      </summary>
+      <div className="absolute right-0 z-30 mt-2 min-w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
         <button
           type="button"
-          onClick={() => void openResume(jobSeeker, rowId)}
-          disabled={openingResumeId === rowId}
-          className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-50"
+          onClick={(event) => {
+            event.currentTarget.closest("details")?.removeAttribute("open");
+            setScreeningSeeker(jobSeeker);
+          }}
+          className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
         >
-          {openingResumeId === rowId ? "Opening..." : "Resume"}
+          Details
         </button>
-      )}
-      <button
-        type="button"
-        onClick={() => void deleteJobSeeker(jobSeeker)}
-        disabled={!jobSeeker.job_seeker_id || deletingId === jobSeeker.job_seeker_id}
-        className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
-      >
-        {deletingId === jobSeeker.job_seeker_id ? "Deleting..." : "Delete"}
-      </button>
-    </div>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.currentTarget.closest("details")?.removeAttribute("open");
+            startEditing(jobSeeker);
+          }}
+          disabled={!jobSeeker.job_seeker_id || deletingId === jobSeeker.job_seeker_id}
+          className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-50"
+        >
+          Edit
+        </button>
+        {jobSeeker.resume_url && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.currentTarget.closest("details")?.removeAttribute("open");
+              void openResume(jobSeeker, rowId);
+            }}
+            disabled={openingResumeId === rowId}
+            className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-50"
+          >
+            {openingResumeId === rowId ? "Opening..." : "Resume"}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={(event) => {
+            event.currentTarget.closest("details")?.removeAttribute("open");
+            void deleteJobSeeker(jobSeeker);
+          }}
+          disabled={!jobSeeker.job_seeker_id || deletingId === jobSeeker.job_seeker_id}
+          className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+        >
+          {deletingId === jobSeeker.job_seeker_id ? "Deleting..." : "Delete"}
+        </button>
+      </div>
+    </details>
   );
 
   return (
