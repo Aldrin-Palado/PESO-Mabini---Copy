@@ -93,7 +93,7 @@ export default function PesoLogo({
 
       <span className="min-w-0">
         <span
-          className={`block min-w-0 font-black leading-tight ${
+          className={`flex min-w-0 items-baseline gap-1 whitespace-nowrap font-black leading-tight ${
             size === "lg"
               ? "text-[1.65rem]"
               : size === "auth"
@@ -101,8 +101,8 @@ export default function PesoLogo({
                 : "text-[1.35rem]"
           } ${nameColor}`}
         >
-          <span className="block whitespace-nowrap">PESO</span>
-          <span className="block whitespace-nowrap text-red-600">MABINI</span>
+          <span>PESO</span>
+          <span className="text-red-600">MABINI</span>
         </span>
 
         {subtitle && (

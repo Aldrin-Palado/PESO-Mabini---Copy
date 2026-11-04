@@ -156,7 +156,7 @@ export default function Employers() {
         </section>
 
         {/* Helpful posting tips */}
-        <section className="mt-12 overflow-hidden rounded-2xl bg-slate-950 p-6 text-white sm:mt-16 sm:p-8">
+        <section className="mt-12 overflow-hidden rounded-2xl bg-[#062B4F] p-6 text-white sm:mt-16 sm:p-8">
           <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-center">
             <div>
               <p className="text-sm font-bold uppercase tracking-wider text-yellow-300">

@@ -306,7 +306,7 @@ const Contact: React.FC = () => {
             </div>
 
             {/* Quick Services */}
-            <div className="overflow-hidden rounded-3xl bg-slate-900 text-white shadow-sm">
+            <div className="overflow-hidden rounded-3xl bg-[#062B4F] text-white shadow-sm">
 
               <div className="h-1 bg-sky-600" />
 
