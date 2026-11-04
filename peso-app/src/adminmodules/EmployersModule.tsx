@@ -108,6 +108,7 @@ export default function EmployersModule({
   LoadingMessage,
   EmptyMessage,
 }: Props) {
+  const [openActionsEmployerId, setOpenActionsEmployerId] = useState<string | null>(null);
   const [detailsEmployer, setDetailsEmployer] = useState<Employer | null>(null);
   const [editingEmployer, setEditingEmployer] = useState<Employer | null>(null);
   const [formValues, setFormValues] = useState<EmployerFormValues | null>(null);
@@ -214,69 +215,82 @@ export default function EmployersModule({
     }
   };
 
-  const renderActions = (employer: Employer) => (
-    <details className="group relative inline-block text-left">
-      <summary
-        aria-label="Show employer actions"
-        className="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200 [&::-webkit-details-marker]:hidden"
-      >
-        <span
-          aria-hidden="true"
-          className="transition group-open:rotate-180"
-        >
-          ▾
-        </span>
-      </summary>
-      <div className="absolute right-0 z-30 mt-2 min-w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+  const renderActions = (employer: Employer) => {
+    const actionId = employer.employer_id || employer.id || employer.email || "";
+    const isOpen = openActionsEmployerId === actionId;
+    const closeActions = () => setOpenActionsEmployerId(null);
+
+    return (
+      <div className="relative inline-block text-left">
         <button
           type="button"
-          onClick={(event) => {
-            event.currentTarget.closest("details")?.removeAttribute("open");
-            setDetailsEmployer(employer);
-          }}
-          className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-        >
-          Details
-        </button>
-        <button
-          type="button"
-          onClick={(event) => {
-            event.currentTarget.closest("details")?.removeAttribute("open");
-            startEditing(employer);
-          }}
-          disabled={
-            !employer.employer_id ||
-            updatingActiveId === employer.employer_id
+          aria-label="Show employer actions"
+          aria-expanded={isOpen}
+          onClick={() =>
+            setOpenActionsEmployerId(isOpen ? null : actionId)
           }
-          className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-50"
+          className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
         >
-          Edit
+          <span
+            aria-hidden="true"
+            className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
+          >
+            ▾
+          </span>
         </button>
-        <button
-          type="button"
-          onClick={(event) => {
-            event.currentTarget.closest("details")?.removeAttribute("open");
-            void toggleEmployerActive(employer);
-          }}
-          disabled={
-            !employer.employer_id ||
-            updatingActiveId === employer.employer_id
-          }
-          className={`block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold transition disabled:opacity-50 ${
-            employer.is_active === false
-              ? "text-emerald-700 hover:bg-emerald-50"
-              : "text-amber-700 hover:bg-amber-50"
-          }`}
-        >
-          {updatingActiveId === employer.employer_id
-            ? "Updating..."
-            : employer.is_active === false
-              ? "Activate"
-              : "Deactivate"}
-        </button>
+        {isOpen && (
+          <div className="absolute right-0 z-30 mt-2 min-w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+            <button
+              type="button"
+              onClick={() => {
+                closeActions();
+                setDetailsEmployer(employer);
+              }}
+              className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Details
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                closeActions();
+                startEditing(employer);
+              }}
+              disabled={
+                !employer.employer_id ||
+                updatingActiveId === employer.employer_id
+              }
+              className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-50"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                closeActions();
+                void toggleEmployerActive(employer);
+              }}
+              disabled={
+                !employer.employer_id ||
+                updatingActiveId === employer.employer_id
+              }
+              className={`block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold transition disabled:opacity-50 ${
+                employer.is_active === false
+                  ? "text-emerald-700 hover:bg-emerald-50"
+                  : "text-amber-700 hover:bg-amber-50"
+              }`}
+            >
+              {updatingActiveId === employer.employer_id
+                ? "Updating..."
+                : employer.is_active === false
+                  ? "Activate"
+                  : "Deactivate"}
+            </button>
+          </div>
+        )}
       </div>
-    </details>
-  );
+    );
+  };
 
   return (
     <div className="space-y-5">
