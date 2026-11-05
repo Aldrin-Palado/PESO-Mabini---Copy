@@ -1,6 +1,10 @@
 import React from "react";
 import Footer from "../components/Footer";
-import LocationMap, { MABINI_LOCATION_QUERY } from "../components/LocationMap";
+import LocationMap, {
+  MABINI_MUNICIPAL_HALL,
+  MABINI_LOCATION_COORDS,
+  buildDirectionsUrl,
+} from "../components/LocationMap";
 import Navbar from "../components/Navbar";
 import AppIcon from "../components/AppIcon";
 
@@ -17,11 +21,11 @@ const contactMethods: ContactMethod[] = [
   {
     title: "Office Address",
     detail:
-      "PESO Mabini, Public Employment Service Office\nMabini, Batangas, Philippines",
+      "PESO Mabini, Public Employment Service Office\nMabini Municipal Hall, R. P. Amurao St.\nPoblacion, Mabini, Batangas 4202",
     accent: "bg-sky-50 text-sky-600",
     borderAccent: "bg-sky-600",
-    label: "Visit Us",
-    link: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(MABINI_LOCATION_QUERY)}`,
+    label: "Get Directions",
+    link: buildDirectionsUrl(MABINI_LOCATION_COORDS),
   },
   {
     title: "Email Us",
@@ -379,17 +383,22 @@ const Contact: React.FC = () => {
                   Public Employment Service Office
                 </p>
 
-                <p className="mt-4 flex items-center gap-2 text-sm text-slate-600">
-                  <AppIcon name="mapPin" className="h-4 w-4 text-sky-700" /> Mabini, Batangas, Philippines
+                <p className="mt-4 flex items-start gap-2 text-sm text-slate-600">
+                  <AppIcon name="mapPin" className="mt-0.5 h-4 w-4 shrink-0 text-sky-700" />
+                  <span>
+                    {MABINI_MUNICIPAL_HALL.name}
+                    <br />
+                    {MABINI_MUNICIPAL_HALL.address}
+                  </span>
                 </p>
 
                 <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(MABINI_LOCATION_QUERY)}`}
+                  href={buildDirectionsUrl(MABINI_LOCATION_COORDS)}
                   target="_blank"
                   rel="noreferrer"
                   className="mt-4 inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-sky-700"
                 >
-                  Get Directions
+                  Get Directions to the Municipal Hall
                 </a>
 
               </div>

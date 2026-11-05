@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Footer from "../components/Footer";
+import HeroBackground from "../components/HeroBackground";
 import JobCard from "../components/JobCard";
 import Navbar from "../components/Navbar";
 import AppIcon from "../components/AppIcon";
@@ -10,6 +11,11 @@ import type {
   PublicJobVacancyPreviewRow,
 } from "../types/JobVacancy";
 import { supabase } from "../services/supabase";
+
+const heroImage = new URL(
+  "../assets/images/job-vacancies-background.png",
+  import.meta.url,
+).href;
 
 function JobVacancies() {
   const [searchParams] = useSearchParams();
@@ -127,9 +133,16 @@ function JobVacancies() {
       {/* Hero */}
       <section className="hero-shell-compact relative isolate overflow-hidden bg-slate-950">
 
-        <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-sky-600/20 blur-3xl" />
+        <HeroBackground
+          src={heroImage}
+          priority
+          className="job-vacancies-hero-media"
+        />
 
-        <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-yellow-400/10 blur-3xl" />
+        {/* Overlay: strong enough that the hero copy stays readable. */}
+        <div className="absolute inset-0 bg-slate-950/45 sm:bg-slate-950/55 lg:bg-slate-950/60" />
+
+        <div className="absolute inset-0 bg-gradient-to-r from-sky-950/80 via-sky-950/45 to-transparent" />
 
         <div className="relative z-10 mx-auto flex min-h-[inherit] max-w-7xl flex-col justify-center px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-24">
           <div className="max-w-3xl">
