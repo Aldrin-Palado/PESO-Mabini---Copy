@@ -53,7 +53,7 @@ const Footer: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-10 border-t border-white/20 pt-6 text-xs">
+        <div className="mt-10 border-t border-white/20 pt-6 text-center text-xs">
           © 2026 PESO MABINI. All rights reserved.
         </div>
       </div>

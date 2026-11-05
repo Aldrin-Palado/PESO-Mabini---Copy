@@ -1,4 +1,5 @@
-import React from "react";
+import type { ComponentType } from "react";
+import AppIcon from "../components/AppIcon";
 
 type JobPost = {
   id?: string;
@@ -27,44 +28,51 @@ type Props = {
   loadError?: string;
   search: string;
   setSearch: (value: string) => void;
-
   statusFilter: string;
   setStatusFilter: (value: string) => void;
-
   loading: boolean;
   onRefresh: () => void;
-
-  ModuleHeader: React.ComponentType<{
+  ModuleHeader: ComponentType<{
     title: string;
     description: string;
     onRefresh?: () => void;
   }>;
-
-  TableHeader: React.ComponentType<{
-    children: React.ReactNode;
-    className?: string;
-    compact?: boolean;
-  }>;
-
-  TableCell: React.ComponentType<{
-    children: React.ReactNode;
-    bold?: boolean;
-    className?: string;
-    compact?: boolean;
-  }>;
-
-  StatusBadge: React.ComponentType<{
+  StatusBadge: ComponentType<{
     status: string;
   }>;
-
-  LoadingMessage: React.ComponentType;
-
-  EmptyMessage: React.ComponentType<{
+  LoadingMessage: ComponentType;
+  EmptyMessage: ComponentType<{
     message: string;
   }>;
-
   formatDate: (date?: string) => string;
 };
+
+function getJobTitle(job: JobPost): string {
+  return (
+    job.position_title ||
+    job.title ||
+    job.job_title ||
+    job.position ||
+    "Untitled Job"
+  );
+}
+
+function getEmployerName(job: JobPost): string {
+  return job.company_name || job.employer_name || job.employer_id || "-";
+}
+
+function getDisplayStatus(job: JobPost): string {
+  const rawStatus = (job.status || "Unknown").toLowerCase();
+  if (rawStatus === "open") return "Active";
+  if (rawStatus === "draft") return "Inactive";
+  if (rawStatus === "closed") return "Closed";
+  return job.status || "Unknown";
+}
+
+function getSalaryRange(job: JobPost): string {
+  if (job.salary_min == null && job.salary_max == null) return "Not specified";
+  return `${job.salary_min ?? "-"} – ${job.salary_max ?? "-"}`;
+}
 
 export default function JobPostsModule({
   jobs,
@@ -76,16 +84,32 @@ export default function JobPostsModule({
   loading,
   onRefresh,
   ModuleHeader,
-  TableHeader,
-  TableCell,
   StatusBadge,
   LoadingMessage,
   EmptyMessage,
   formatDate,
 }: Props) {
-  return (
-    <div className="space-y-6">
+  const activeCount = jobs.filter(
+    (job) => getDisplayStatus(job).toLowerCase() === "active",
+  ).length;
+  const inactiveCount = jobs.filter(
+    (job) => getDisplayStatus(job).toLowerCase() === "inactive",
+  ).length;
+  const closedCount = jobs.filter(
+    (job) => getDisplayStatus(job).toLowerCase() === "closed",
+  ).length;
+  const visibleJobs = jobs.filter((job) => {
+    const searchText =
+      `${getJobTitle(job)} ${getEmployerName(job)} ${job.location || ""}`.toLowerCase();
+    const status = getDisplayStatus(job).toLowerCase();
+    return (
+      searchText.includes(search.toLowerCase()) &&
+      (statusFilter === "All" || status === statusFilter.toLowerCase())
+    );
+  });
 
+  return (
+    <div className="space-y-5">
       <ModuleHeader
         title="Job Posts"
         description="View and monitor job vacancies posted by employers."
@@ -93,213 +117,293 @@ export default function JobPostsModule({
       />
 
       {loadError && (
-        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+        <p
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+        >
           {loadError}
         </p>
       )}
 
-      {/* SEARCH AND FILTER */}
-      <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-
-          <div className="relative min-w-0 flex-1 lg:max-w-md">
-            <svg
-              aria-hidden="true"
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <circle cx="11" cy="11" r="7" strokeWidth="2" />
-              <path d="m16 16 4 4" strokeLinecap="round" strokeWidth="2" />
-            </svg>
-            <input
-              value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
-              placeholder="Search job title, employer, or keyword..."
-              aria-label="Search job posts"
-              className="w-full rounded-md border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#203F8B] focus:ring-2 focus:ring-[#203F8B]/10"
-            />
-          </div>
-
-          <select
-            value={statusFilter}
-            onChange={(e) =>
-              setStatusFilter(e.target.value)
-            }
-            aria-label="Filter job posts by status"
-            className="rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-[#203F8B] focus:ring-2 focus:ring-[#203F8B]/10 lg:ml-auto"
+      <section
+        aria-label="Job post statistics"
+        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+      >
+        {[
+          {
+            label: "Job posts",
+            value: jobs.length,
+            icon: "briefcase" as const,
+            color: "bg-blue-50 text-blue-700",
+          },
+          {
+            label: "Active",
+            value: activeCount,
+            icon: "check" as const,
+            color: "bg-emerald-50 text-emerald-700",
+          },
+          {
+            label: "Inactive",
+            value: inactiveCount,
+            icon: "clock" as const,
+            color: "bg-amber-50 text-amber-800",
+          },
+          {
+            label: "Closed",
+            value: closedCount,
+            icon: "x" as const,
+            color: "bg-red-50 text-red-700",
+          },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
           >
-            <option value="All">
-              All Status
-            </option>
+            <span
+              className={`flex h-11 w-11 items-center justify-center rounded-xl ${stat.color}`}
+            >
+              <AppIcon name={stat.icon} className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-xs font-medium text-slate-500">{stat.label}</p>
+              <p className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">
+                {stat.value}
+              </p>
+            </div>
+          </div>
+        ))}
+      </section>
 
-            <option value="Active">
-              Active
-            </option>
-
-            <option value="Inactive">
-              Inactive
-            </option>
-
-            <option value="Closed">
-              Closed
-            </option>
-          </select>
-
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="mb-4">
+          <h2 className="text-sm font-bold text-slate-900">Find job posts</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Search vacancies or filter by posting status.
+          </p>
         </div>
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto] lg:items-end">
+          <label className="block text-xs font-semibold text-slate-600">
+            Search job posts
+            <span className="relative mt-1.5 block">
+              <AppIcon
+                name="search"
+                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search title, employer, or keyword..."
+                aria-label="Search job posts"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-sm font-normal text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              />
+            </span>
+          </label>
+          <label className="block text-xs font-semibold text-slate-600">
+            Posting status
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              aria-label="Filter job posts by status"
+              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+            >
+              <option value="All">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Closed">Closed</option>
+            </select>
+          </label>
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                setStatusFilter("All");
+              }}
+              className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={onRefresh}
+              className="rounded-xl bg-[#0759AE] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#064A91]"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+      </section>
 
-      </div>
-
-      {/* TABLE */}
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-1 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div>
+            <h2 className="text-base font-bold text-slate-900">
+              Registered job posts
+            </h2>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Vacancy details and employer information
+            </p>
+          </div>
+          <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+            Showing {visibleJobs.length} of {jobs.length}
+          </span>
+        </div>
 
         {loading ? (
           <LoadingMessage />
         ) : jobs.length === 0 ? (
           <EmptyMessage message="No job posts found." />
-        ) : (
-          <div className="overflow-x-auto">
-
-            <table className="w-full min-w-[480px] table-fixed sm:min-w-[600px] md:min-w-[700px] lg:min-w-[760px] xl:min-w-0">
-
-              <thead className="bg-[#F7F9FC]">
-
-                <tr>
-
-                  <TableHeader compact className="text-[10px]">
-                    Job Title
-                  </TableHeader>
-
-                  <TableHeader compact className="text-[10px]">
-                    Employer
-                  </TableHeader>
-
-                  <TableHeader compact className="hidden text-[10px] lg:table-cell">
-                    Location
-                  </TableHeader>
-
-                  <TableHeader compact className="hidden text-[10px] xl:table-cell">
-                    Employment Type
-                  </TableHeader>
-
-                  <TableHeader compact className="text-[10px]">
-                    Salary Range
-                  </TableHeader>
-
-                  <TableHeader compact className="hidden text-[10px] md:table-cell">
-                    Openings
-                  </TableHeader>
-
-                  <TableHeader compact className="text-[10px]">
-                    Status
-                  </TableHeader>
-
-                  <TableHeader compact className="hidden text-[10px] sm:table-cell">
-                    Date Posted
-                  </TableHeader>
-
-                </tr>
-
-              </thead>
-
-              <tbody className="divide-y divide-slate-100">
-
-                {jobs.map((job, index) => {
-
-                  const title =
-                    job.position_title ||
-                    job.title ||
-                    job.job_title ||
-                    job.position ||
-                    "Untitled Job";
-
-                  const employer =
-                    job.company_name ||
-                    job.employer_name ||
-                    job.employer_id ||
-                    "-";
-                  const rawStatus = (job.status || "Unknown").toLowerCase();
-                  const displayStatus =
-                    rawStatus === "open"
-                      ? "Active"
-                      : rawStatus === "draft"
-                        ? "Inactive"
-                        : rawStatus === "closed"
-                          ? "Closed"
-                          : job.status || "Unknown";
-
-                  return (
-                    <tr
-                      key={
-                        job.id ||
-                        job.job_vacancy_id ||
-                        index
-                      }
-                      className="transition-colors hover:bg-blue-50/40"
-                    >
-
-                      <TableCell bold compact>
-                        <div className="min-w-0">
-                          <p>{title}</p>
-                          {job.description && (
-                            <p className="mt-0.5 truncate text-[10px] font-normal text-slate-500">
-                              {job.description}
-                            </p>
-                          )}
-                        </div>
-                      </TableCell>
-
-                      <TableCell compact className="truncate">
-                        {employer || job.employer_id || "-"}
-                      </TableCell>
-
-                      <TableCell compact className="hidden truncate lg:table-cell">
-                        {job.location || "-"}
-                      </TableCell>
-
-                      <TableCell compact className="hidden truncate xl:table-cell">
-                        {job.employment_type || "-"}
-                      </TableCell>
-
-                      <TableCell compact className="truncate">
-                        {job.salary_min != null || job.salary_max != null
-                          ? `${job.salary_min ?? "-"} – ${job.salary_max ?? "-"}`
-                          : "-"}
-                      </TableCell>
-
-                      <TableCell compact className="hidden md:table-cell">
-                        {job.vacancies_available ?? "-"}
-                      </TableCell>
-
-                      <TableCell compact>
-                        <StatusBadge
-                          status={displayStatus}
-                        />
-                      </TableCell>
-
-                      <TableCell compact className="hidden whitespace-nowrap sm:table-cell">
-                        {formatDate(
-                          job.date_posted || job.created_at
-                        )}
-                      </TableCell>
-
-                    </tr>
-                  );
-                })}
-
-              </tbody>
-
-            </table>
-
+        ) : visibleJobs.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm text-slate-500">
+            No job posts match these filters.
           </div>
+        ) : (
+          <>
+            <div className="divide-y divide-slate-100 2xl:hidden">
+              {visibleJobs.map((job, index) => {
+                const title = getJobTitle(job);
+                const status = getDisplayStatus(job);
+                const key = job.id || job.job_vacancy_id || index;
+
+                return (
+                  <article
+                    key={key}
+                    className="p-4 transition hover:bg-slate-50/80 sm:p-5"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#1766B4]">
+                        <AppIcon name="briefcase" className="h-5 w-5" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h3 className="truncate text-sm font-bold text-slate-900">
+                              {title}
+                            </h3>
+                            <p className="mt-1 truncate text-xs text-slate-500">
+                              {getEmployerName(job)}
+                            </p>
+                          </div>
+                          <StatusBadge status={status} />
+                        </div>
+                        {job.description && (
+                          <p className="mt-2 line-clamp-2 text-xs text-slate-600">
+                            {job.description}
+                          </p>
+                        )}
+                        <div className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
+                          <p className="flex min-w-0 items-center gap-2">
+                            <AppIcon
+                              name="mapPin"
+                              className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                            />
+                            <span className="truncate">
+                              {job.location || "Location not provided"}
+                            </span>
+                          </p>
+                          <p className="flex min-w-0 items-center gap-2">
+                            <AppIcon
+                              name="clock"
+                              className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                            />
+                            <span className="truncate">
+                              {job.employment_type || "Employment type not provided"}
+                            </span>
+                          </p>
+                          <p>
+                            Salary: {getSalaryRange(job)}
+                          </p>
+                          <p>
+                            Openings: {job.vacancies_available ?? "-"}
+                          </p>
+                          <p className="text-slate-500 sm:col-span-2">
+                            Posted {formatDate(job.date_posted || job.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div className="hidden overflow-x-auto 2xl:block">
+              <table className="w-full min-w-[1100px] table-fixed">
+                <thead className="bg-gradient-to-r from-[#1766B4] to-[#124A91] text-left">
+                  <tr>
+                    {[
+                      ["Job Title", "w-[19%]"],
+                      ["Employer", "w-[16%]"],
+                      ["Location", "w-[14%]"],
+                      ["Employment Type", "w-[13%]"],
+                      ["Salary Range", "w-[12%]"],
+                      ["Openings", "w-[8%]"],
+                      ["Status", "w-[9%]"],
+                      ["Date Posted", "w-[11%]"],
+                    ].map(([label, width]) => (
+                      <th
+                        key={label}
+                        className={`${width} px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white`}
+                      >
+                        {label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {visibleJobs.map((job, index) => (
+                    <tr
+                      key={job.id || job.job_vacancy_id || index}
+                      className={`transition-colors hover:bg-blue-50/70 ${
+                        index % 2 === 0 ? "bg-white" : "bg-blue-50/40"
+                      }`}
+                    >
+                      <td className="px-3 py-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-[#1766B4]">
+                            <AppIcon name="briefcase" className="h-4 w-4" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-bold text-slate-900">
+                              {getJobTitle(job)}
+                            </p>
+                            {job.description && (
+                              <p className="mt-0.5 truncate text-[10px] text-slate-500">
+                                {job.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="truncate px-3 py-3 text-xs text-slate-700">
+                        {getEmployerName(job)}
+                      </td>
+                      <td className="truncate px-3 py-3 text-xs text-slate-700">
+                        {job.location || "-"}
+                      </td>
+                      <td className="truncate px-3 py-3 text-xs text-slate-700">
+                        {job.employment_type || "-"}
+                      </td>
+                      <td className="truncate px-3 py-3 text-xs text-slate-700">
+                        {getSalaryRange(job)}
+                      </td>
+                      <td className="px-3 py-3 text-center text-xs text-slate-700">
+                        {job.vacancies_available ?? "-"}
+                      </td>
+                      <td className="px-3 py-3">
+                        <StatusBadge status={getDisplayStatus(job)} />
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
+                        {formatDate(job.date_posted || job.created_at)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
-
-      </div>
-
+      </section>
     </div>
   );
 }

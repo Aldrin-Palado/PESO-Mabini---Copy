@@ -74,6 +74,7 @@ export default function DirectMessages({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [sessionMissing, setSessionMissing] = useState(false);
+  const [hasScrolledMessages, setHasScrolledMessages] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const selectedContact =
@@ -500,9 +501,6 @@ export default function DirectMessages({
     <section className="space-y-5">
       <header>
         <h1 className="text-2xl font-black text-[#123B70]">Messages</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Contact admins, staff, employers, and job seekers.
-        </p>
       </header>
 
       {error && (
@@ -522,7 +520,7 @@ export default function DirectMessages({
         </div>
       )}
 
-      <div className="grid min-h-[32rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:grid-cols-[minmax(14rem,0.35fr)_1fr]">
+      <div className="grid min-h-[32rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:h-[min(72vh,48rem)] md:grid-cols-[minmax(14rem,0.35fr)_1fr]">
         <aside className="border-b border-slate-200 md:border-b-0 md:border-r">
             <h2 className="border-b border-slate-100 px-4 py-4 font-bold text-slate-800">
               Contacts
@@ -591,7 +589,7 @@ export default function DirectMessages({
             </div>
         </aside>
 
-        <div className="flex min-h-[32rem] min-w-0 flex-col">
+        <div className="flex min-h-[32rem] min-w-0 flex-col md:h-full md:min-h-0">
           <header className="border-b border-slate-100 px-5 py-4">
             <h2 className="font-bold text-slate-900">
               {selectedContact?.display_name || "Select a contact"}
@@ -728,50 +726,61 @@ export default function DirectMessages({
             </section>
           )}
 
-          <div
-            aria-live="polite"
-            className="flex-1 space-y-3 overflow-y-auto bg-slate-50/70 p-4 sm:p-6"
-          >
-            {loading ? (
-              <p className="py-12 text-center text-sm text-slate-500">Loading conversation...</p>
-            ) : !selectedUserId || !recipientUserId ? (
-              <p className="py-12 text-center text-sm text-slate-500">
-                Select a contact to start a conversation.
-              </p>
-            ) : messages.length === 0 ? (
-              <p className="py-12 text-center text-sm text-slate-500">
-                No messages yet. Send a message to start the conversation.
-              </p>
-            ) : (
-              messages.map((message) => {
-                const ownMessage = message.sender_user_id === userId;
-                return (
-                  <div
-                    key={message.message_id}
-                    className={`flex ${ownMessage ? "justify-end" : "justify-start"}`}
-                  >
-                    <article
-                      className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm ${
-                        ownMessage
-                          ? "rounded-br-md bg-[#0446A7] text-white"
-                          : "rounded-bl-md border border-slate-200 bg-white text-slate-800"
-                      }`}
+          <div className="relative flex min-h-0 flex-1">
+            <div
+              aria-live="polite"
+              onScroll={(event) =>
+                setHasScrolledMessages(event.currentTarget.scrollTop > 0)
+              }
+              className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-slate-50/70 p-4 sm:p-6"
+            >
+              {loading ? (
+                <p className="py-12 text-center text-sm text-slate-500">Loading conversation...</p>
+              ) : !selectedUserId || !recipientUserId ? (
+                <p className="py-12 text-center text-sm text-slate-500">
+                  Select a contact to start a conversation.
+                </p>
+              ) : messages.length === 0 ? (
+                <p className="py-12 text-center text-sm text-slate-500">
+                  No messages yet. Send a message to start the conversation.
+                </p>
+              ) : (
+                messages.map((message) => {
+                  const ownMessage = message.sender_user_id === userId;
+                  return (
+                    <div
+                      key={message.message_id}
+                      className={`flex ${ownMessage ? "justify-end" : "justify-start"}`}
                     >
-                      <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p>
-                      <time
-                        className={`mt-2 block text-right text-[0.7rem] ${
-                          ownMessage ? "text-blue-100" : "text-slate-400"
+                      <article
+                        className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm ${
+                          ownMessage
+                            ? "rounded-br-md bg-[#0446A7] text-white"
+                            : "rounded-bl-md border border-slate-200 bg-white text-slate-800"
                         }`}
-                        dateTime={message.created_at}
                       >
-                        {new Date(message.created_at).toLocaleString()}
-                      </time>
-                    </article>
-                  </div>
-                );
-              })
+                        <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p>
+                        <time
+                          className={`mt-2 block text-right text-[0.7rem] ${
+                            ownMessage ? "text-blue-100" : "text-slate-400"
+                          }`}
+                          dateTime={message.created_at}
+                        >
+                          {new Date(message.created_at).toLocaleString()}
+                        </time>
+                      </article>
+                    </div>
+                  );
+                })
+              )}
+              <div ref={bottomRef} />
+            </div>
+            {hasScrolledMessages && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-slate-100 to-transparent"
+              />
             )}
-            <div ref={bottomRef} />
           </div>
 
           <form onSubmit={sendMessage} className="flex gap-3 border-t border-slate-100 p-4">

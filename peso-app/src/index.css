@@ -183,6 +183,12 @@
     }
   }
 
+  /* Fill the Job Vacancies hero while keeping the photo centered. */
+  .hero-media.job-vacancies-hero-media {
+    object-fit: cover;
+    object-position: center;
+  }
+
   /* Tall hero: viewport-relative so it fills the screen, with a floor so it
      never collapses on short landscape phones and a ceiling so it does not
      look absurd on a 27" display. The svh-based clamp is behind @supports so

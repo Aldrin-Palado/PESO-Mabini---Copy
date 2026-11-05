@@ -1435,7 +1435,6 @@ export default function JobSeekerDashboard() {
       case "Messages":
         return (
           <MessagesModule
-            seeker={seeker}
             initialContactId={messageContactToOpen}
             onNavigate={(page) =>
               handlePageChange(

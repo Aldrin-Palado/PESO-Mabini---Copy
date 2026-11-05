@@ -9,7 +9,7 @@ import type { PublicJobVacancyPreviewRow } from "../types/JobVacancy";
 import { supabase } from "../services/supabase";
 
 const heroImage = new URL(
-  "../assets/images/bg-image.png",
+  "../assets/images/image.png",
   import.meta.url,
 ).href;
 
@@ -329,7 +329,7 @@ function Home() {
               {pesoPosts.map((post) => (
                   <article
                     key={post.id}
-                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
+                    className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition before:absolute before:inset-y-0 before:left-0 before:z-10 before:w-1 before:bg-gradient-to-b before:from-yellow-400 before:to-red-500 before:content-[''] hover:shadow-md"
                   >
                     {post.image_url && (
                       <img
@@ -407,7 +407,7 @@ function Home() {
               {announcements.map((announcement) => (
                 <article
                   key={announcement.id}
-                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md"
+                  className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 pl-6 shadow-sm transition before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-gradient-to-b before:from-yellow-400 before:to-red-500 before:content-[''] hover:shadow-md"
                 >
                   <time className="text-xs text-slate-400" dateTime={announcement.created_at}>
                     {new Date(announcement.created_at).toLocaleDateString("en-PH", {

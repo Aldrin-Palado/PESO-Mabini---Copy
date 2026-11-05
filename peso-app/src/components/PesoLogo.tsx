@@ -13,6 +13,7 @@ const pesoLogo = new URL(
 ).href;
 
 const sizes = {
+  sidebar: "h-11 w-11",
   sm: "h-11 w-11",
   md: "h-[3.25rem] w-[3.25rem]",
   auth: "h-[4.5rem] w-[4.5rem]",
@@ -93,16 +94,16 @@ export default function PesoLogo({
 
       <span className="min-w-0">
         <span
-          className={`block min-w-0 font-black leading-tight ${
-            size === "lg"
-              ? "text-[1.65rem]"
-              : size === "auth"
+          className={`flex min-w-0 items-baseline gap-1 whitespace-nowrap font-black leading-tight ${
+            size === "sidebar"
+              ? "text-lg"
+              : size === "lg" || size === "auth"
                 ? "text-[1.65rem]"
                 : "text-[1.35rem]"
           } ${nameColor}`}
         >
-          <span className="block whitespace-nowrap">PESO</span>
-          <span className="block whitespace-nowrap text-red-600">MABINI</span>
+          <span>PESO</span>
+          <span className="text-red-600">MABINI</span>
         </span>
 
         {subtitle && (
