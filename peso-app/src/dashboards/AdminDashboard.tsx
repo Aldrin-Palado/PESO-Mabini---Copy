@@ -258,6 +258,12 @@ export default function AdminDashboard() {
 
   const [moduleError, setModuleError] = useState("");
 
+  const [analyticsLoading, setAnalyticsLoading] =
+  useState(false);
+
+  const [analyticsError, setAnalyticsError] =
+  useState("");
+
   const [applicationsError, setApplicationsError] =
     useState("");
   const [announcementTitle, setAnnouncementTitle] = useState("");
@@ -311,6 +317,10 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!account) return;
+
+    if (activePage === "Analytics & Reports") {
+  loadAnalyticsData();
+}
 
     if (activePage === "Job Post") {
       loadJobPosts();
@@ -768,6 +778,80 @@ export default function AdminDashboard() {
       );
     }
   };
+
+  const loadAnalyticsData = async () => {
+  setAnalyticsLoading(true);
+  setAnalyticsError("");
+
+  try {
+    const [
+      applicationsResult,
+      jobsResult,
+      employersResult,
+      seekersResult,
+    ] = await Promise.all([
+      supabase
+        .from("application")
+        .select(
+          "application_id, employer_id, job_seeker_id, position_title, status, date_applied"
+        ),
+
+      supabase
+        .from("job_vacancy")
+        .select(
+          "job_vacancy_id, employer_id, position_title, status, date_posted, created_at"
+        ),
+
+      supabase
+        .from("employer")
+        .select("employer_id, name, created_at"),
+
+      supabase
+        .from("job_seeker")
+        .select("job_seeker_id, full_name, created_at"),
+    ]);
+
+    const errors = [
+      applicationsResult.error?.message,
+      jobsResult.error?.message,
+      employersResult.error?.message,
+      seekersResult.error?.message,
+    ].filter(Boolean);
+
+    if (errors.length > 0) {
+      throw new Error(errors.join(" | "));
+    }
+
+    const applicationData = applicationsResult.data ?? [];
+    const jobData = jobsResult.data ?? [];
+    const employerData = employersResult.data ?? [];
+    const seekerData = seekersResult.data ?? [];
+
+    setApplications(applicationData as Application[]);
+    setJobPosts(jobData as JobPost[]);
+    setEmployers(employerData as Employer[]);
+    setJobSeekers(seekerData as JobSeeker[]);
+
+    setCounts({
+      jobs: jobData.length,
+      applications: applicationData.length,
+      employers: employerData.length,
+      jobSeekers: seekerData.length,
+    });
+
+  } catch (error) {
+    console.error("Analytics loading error:", error);
+
+    setAnalyticsError(
+      error instanceof Error
+        ? error.message
+        : "Unable to load analytics data."
+    );
+
+  } finally {
+    setAnalyticsLoading(false);
+  }
+};
 
   /* ============================================================
      JOB POSTS
@@ -1580,6 +1664,9 @@ export default function AdminDashboard() {
             jobPosts={jobPosts}
             employers={employers}
             jobSeekers={jobSeekers}
+            loading={analyticsLoading}
+            loadError={analyticsError}
+            onRefresh={loadAnalyticsData}
             ModuleHeader={ModuleHeader}
             StatCard={StatCard}
             AnalyticsCard={AnalyticsCard}

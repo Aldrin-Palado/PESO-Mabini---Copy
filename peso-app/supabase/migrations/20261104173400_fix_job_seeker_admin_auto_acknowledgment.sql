@@ -70,7 +70,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 WITH latest_replies AS (
   SELECT DISTINCT ON (
     message.sender_user_id,
