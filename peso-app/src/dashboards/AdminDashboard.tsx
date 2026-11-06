@@ -1767,42 +1767,53 @@ export default function AdminDashboard() {
         {/* HEADER */}
         <header className="sticky top-0 z-30 border-b border-slate-200 bg-white px-4 pl-20 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3 sm:px-6 sm:pl-20 sm:pt-[calc(env(safe-area-inset-top)+1rem)] sm:pb-4 lg:px-8">
 
-          <div className="flex items-center justify-between gap-3">
 
-            <div className="min-w-0">
+<div className="flex items-center justify-between gap-2">
 
-              <h2 className="truncate text-lg font-bold text-slate-900 sm:text-xl">
-                {activePage}
-              </h2>
+  {/* PAGE TITLE */}
+  <div className="min-w-0 flex-1">
 
-              <p className="mt-0.5 text-xs text-slate-500">
-                Admin <span className="px-1 text-slate-300">/</span> {activePage}
-              </p>
+    <h2 className="break-words text-base font-bold leading-tight text-slate-900 sm:truncate sm:text-xl">
+      {activePage}
+    </h2>
 
-            </div>
+    <p className="mt-0.5 hidden text-xs text-slate-500 sm:block">
+      Admin <span className="px-1 text-slate-300">/</span> {activePage}
+    </p>
 
-            <div className="flex min-w-0 items-center gap-3">
-              {account?.user_id && (
-                <ProfileAvatar
-                  key={account.user_id}
-                  userId={account.user_id}
-                  fullName={account.full_name}
-                  size="small"
-                  showControls={false}
-                />
-              )}
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-800">
-                  {account?.full_name}
-                </p>
-                <p className="hidden truncate text-xs text-slate-500 sm:block">
-                  {account?.role === "superadmin" ? "Super Administrator" : "PESO Staff"}
-                </p>
-              </div>
+  </div>
 
-            </div>
+  {/* ADMIN PROFILE */}
+  <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
 
-          </div>
+    {account?.user_id && (
+      <ProfileAvatar
+        key={account.user_id}
+        userId={account.user_id}
+        fullName={account.full_name}
+        size="small"
+        showControls={false}
+      />
+    )}
+
+    <div className="min-w-0 max-w-[92px] text-right sm:max-w-none sm:text-left">
+
+      <p className="break-words text-sm font-semibold text-slate-800 sm:truncate">
+        {account?.full_name}
+      </p>
+
+      <p className="text-[10px] leading-tight text-slate-500 sm:text-xs">
+        {account?.role === "superadmin"
+          ? "Super Administrator"
+          : "PESO Staff"}
+      </p>
+
+    </div>
+
+  </div>
+
+</div>
+
 
         </header>
 
