@@ -23,25 +23,6 @@ const services = [
   "Job referral services",
 ];
 
-const values = [
-  {
-    title: "Integrity",
-    description: "We provide responsible, transparent, and ethical service.",
-  },
-  {
-    title: "Accessibility",
-    description: "We work to make employment support easier to reach.",
-  },
-  {
-    title: "Collaboration",
-    description: "We build partnerships with employers and our community.",
-  },
-  {
-    title: "Excellence",
-    description: "We deliver thoughtful, client-centered assistance.",
-  },
-];
-
 function About() {
   return (
     <div className="whirl-page-background flex min-h-screen flex-col text-slate-800">
@@ -95,42 +76,26 @@ function About() {
             <p className="text-sm font-bold uppercase text-red-600">Our purpose</p>
             <h2 className="mt-3 text-2xl font-black text-slate-900">Our Mission</h2>
             <p className="mt-4 leading-7 text-slate-600">
-              To provide quality employment services and livelihood assistance
-              to jobseekers and employers, promoting productive employment and
-              local development.
+              To elevate the quality of life of Mabini&apos;s citizenry through
+              inclusive employment generation, dynamic labor market
+              facilitation, and responsive workforce development, while actively
+              supporting sustained agro-industrial growth, a business-friendly
+              environment, and accessible social services to build a robust,
+              liveable, and economically resilient community, with PESO Mabini
+              leading the delivery of employment and human resource services.
             </p>
           </article>
           <article className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-7 pl-8 shadow-sm before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-gradient-to-b before:from-yellow-400 before:to-red-500 before:content-[''] sm:p-9 sm:pl-10">
             <p className="text-sm font-bold uppercase text-sky-700">Our future</p>
             <h2 className="mt-3 text-2xl font-black text-slate-900">Our Vision</h2>
             <p className="mt-4 leading-7 text-slate-600">
-              A community where people can access meaningful work and employers
-              can connect with the talent they need to grow.
+              A premier agro-industrial and tourism hub in Batangas, powered by
+              globally competitive, empowered, and gainfully employed citizens
+              through inclusive employment facilitation, skills development, and
+              responsive labor services driven by transparent, firm, and fair
+              leadership, with PESO Mabini leading the way.
             </p>
           </article>
-        </section>
-
-        <section className="mt-14" aria-labelledby="values-heading">
-          <p className="text-sm font-bold uppercase text-red-600">What guides us</p>
-          <h2 id="values-heading" className="mt-2 text-3xl font-black text-slate-900">
-            Our Core Values
-          </h2>
-          <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {values.map((value, index) => (
-              <article
-                key={value.title}
-                className="relative overflow-hidden rounded-lg border border-slate-200 bg-white p-5 pl-6 before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-gradient-to-b before:from-yellow-400 before:to-red-500 before:content-['']"
-              >
-                <span className="text-sm font-black text-sky-700">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <h3 className="mt-3 font-bold text-slate-900">{value.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {value.description}
-                </p>
-              </article>
-            ))}
-          </div>
         </section>
 
         <section className="mt-14" aria-labelledby="services-heading">
