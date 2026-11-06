@@ -7,7 +7,7 @@ type Props = ComponentProps<typeof JobPostsModule>;
 type JobPostView = "peso" | "all";
 
 export default function AdminJobPostsModule(props: Props) {
-  const [activeView, setActiveView] = useState<JobPostView>("all");
+  const [activeView, setActiveView] = useState<JobPostView>("peso");
 
   return (
     <div className="space-y-5">

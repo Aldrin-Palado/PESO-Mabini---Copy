@@ -167,6 +167,7 @@ export default function AdminAccounts() {
   const [editForm, setEditForm] = useState<StaffFormValues | null>(null);
   const [savingStaff, setSavingStaff] = useState(false);
   const [updatingStaffStatusId, setUpdatingStaffStatusId] = useState<string | null>(null);
+  const [openActionsStaffId, setOpenActionsStaffId] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
   const [staffStatusFilter, setStaffStatusFilter] =
     useState<StaffStatusFilter>("all");
@@ -619,6 +620,78 @@ export default function AdminAccounts() {
     setUpdatingStaffStatusId(null);
   };
 
+  const renderStaffActions = (account: Staff) => {
+    const isOpen = openActionsStaffId === account.peso_staff_id;
+    const isUpdating = updatingStaffStatusId === account.peso_staff_id;
+    const closeActions = () => setOpenActionsStaffId(null);
+
+    return (
+      <div className="relative inline-block text-left">
+        <button
+          type="button"
+          aria-label={`Show actions for ${account.full_name}`}
+          aria-expanded={isOpen}
+          onClick={() =>
+            setOpenActionsStaffId(isOpen ? null : account.peso_staff_id)
+          }
+          className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
+        >
+          <span
+            aria-hidden="true"
+            className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
+          >
+            ▾
+          </span>
+        </button>
+        {isOpen && (
+          <div className="absolute right-0 z-30 mt-2 min-w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+            <button
+              type="button"
+              onClick={() => {
+                closeActions();
+                void openPermissions(account);
+              }}
+              disabled={isUpdating}
+              className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+            >
+              Access
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                closeActions();
+                openEditStaff(account);
+              }}
+              disabled={isUpdating}
+              className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-50"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                closeActions();
+                void toggleStaffStatus(account);
+              }}
+              disabled={isUpdating}
+              className={`block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold transition disabled:opacity-50 ${
+                account.is_active
+                  ? "text-amber-700 hover:bg-amber-50"
+                  : "text-emerald-700 hover:bg-emerald-50"
+              }`}
+            >
+              {isUpdating
+                ? "Updating..."
+                : account.is_active
+                  ? "Deactivate"
+                  : "Activate"}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   /* =====================================================
      LOADING
   ===================================================== */
@@ -1002,40 +1075,7 @@ export default function AdminAccounts() {
                       </span>
                     </td>
                     <td className="px-2 py-2">
-                      <div className="flex flex-wrap items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => openEditStaff(account)}
-                          disabled={updatingStaffStatusId !== null}
-                          className="whitespace-nowrap rounded-md border border-slate-200 px-1.5 py-1 text-[9px] font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openPermissions(account)}
-                          disabled={updatingStaffStatusId !== null}
-                          className="whitespace-nowrap rounded-md border border-yellow-200 bg-yellow-50 px-1.5 py-1 text-[9px] font-semibold text-[#123B70] transition hover:bg-yellow-100 disabled:opacity-50"
-                        >
-                          Access
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void toggleStaffStatus(account)}
-                          disabled={updatingStaffStatusId !== null}
-                          className={`whitespace-nowrap rounded-md border px-1.5 py-1 text-[9px] font-semibold transition disabled:opacity-50 ${
-                            account.is_active
-                              ? "border-red-200 text-red-700 hover:bg-red-50"
-                              : "border-green-200 text-green-700 hover:bg-green-50"
-                          }`}
-                        >
-                          {updatingStaffStatusId === account.peso_staff_id
-                            ? "Updating..."
-                            : account.is_active
-                              ? "Deactivate"
-                              : "Activate"}
-                        </button>
-                      </div>
+                      {renderStaffActions(account)}
                     </td>
                   </tr>
                 ))}
