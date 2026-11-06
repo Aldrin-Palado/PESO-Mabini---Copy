@@ -620,7 +620,7 @@ export default function AdminAccounts() {
     setUpdatingStaffStatusId(null);
   };
 
-  const renderStaffActions = (account: Staff) => {
+  const renderStaffActions = (account: Staff, openUpward: boolean) => {
     const isOpen = openActionsStaffId === account.peso_staff_id;
     const isUpdating = updatingStaffStatusId === account.peso_staff_id;
     const closeActions = () => setOpenActionsStaffId(null);
@@ -644,7 +644,11 @@ export default function AdminAccounts() {
           </span>
         </button>
         {isOpen && (
-          <div className="absolute right-0 z-30 mt-2 min-w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+          <div
+            className={`absolute right-0 z-30 min-w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg ${
+              openUpward ? "bottom-full mb-2" : "top-full mt-2"
+            }`}
+          >
             <button
               type="button"
               onClick={() => {
@@ -1004,9 +1008,9 @@ export default function AdminAccounts() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="max-h-[70vh] overflow-auto rounded-xl border border-slate-200 bg-white shadow-sm">
             <table className="w-full min-w-[420px] table-fixed md:min-w-0">
-              <thead className="bg-slate-50 text-left">
+              <thead className="sticky top-0 z-10 bg-slate-50 text-left">
                 <tr>
                   <th className="w-[32%] px-2 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500 sm:w-[30%]">
                     Staff Member
@@ -1026,7 +1030,7 @@ export default function AdminAccounts() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredStaff.map((account) => (
+                {filteredStaff.map((account, index) => (
                   <tr
                     key={account.peso_staff_id}
                     className="align-middle hover:bg-slate-50"
@@ -1075,7 +1079,10 @@ export default function AdminAccounts() {
                       </span>
                     </td>
                     <td className="px-2 py-2">
-                      {renderStaffActions(account)}
+                      {renderStaffActions(
+                        account,
+                        index >= filteredStaff.length - 2,
+                      )}
                     </td>
                   </tr>
                 ))}
