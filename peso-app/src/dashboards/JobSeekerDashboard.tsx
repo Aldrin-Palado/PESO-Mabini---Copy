@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type PointerEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AppIcon from "../components/AppIcon";
 import ProfileAvatar from "../components/ProfileAvatar";
@@ -217,7 +217,7 @@ const screeningSections: {
   {
     title: "Certification / Authorization",
     fields: [
-      { key: "signature", label: "Typed Signature", required: true },
+      { key: "signature", label: "E-Signature", required: true },
       { key: "signatureDate", label: "Date Signed", type: "date", required: true },
     ],
   },
@@ -243,6 +243,125 @@ function parseScreeningDetails(value: unknown): ScreeningDetails {
       (Array.isArray(fieldValue) && fieldValue.every((item) => typeof item === "string")),
     ),
   ) as ScreeningDetails;
+}
+
+function SignaturePad({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: string;
+  disabled: boolean;
+  onChange: (signature: string) => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const drawingRef = useRef(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const draw = () => {
+      const bounds = canvas.getBoundingClientRect();
+      const pixelRatio = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, Math.round(bounds.width * pixelRatio));
+      canvas.height = Math.max(1, Math.round(bounds.height * pixelRatio));
+
+      const context = canvas.getContext("2d");
+      if (!context) return;
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      context.clearRect(0, 0, bounds.width, bounds.height);
+
+      if (value.startsWith("data:image/")) {
+        const image = new Image();
+        image.onload = () => {
+          context.drawImage(image, 0, 0, bounds.width, bounds.height);
+        };
+        image.src = value;
+      }
+    };
+
+    draw();
+    const observer = new ResizeObserver(draw);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, [value]);
+
+  const getPoint = (event: PointerEvent<HTMLCanvasElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    return { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+  };
+
+  const startDrawing = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (disabled) return;
+    const canvas = event.currentTarget;
+    const context = canvas.getContext("2d");
+    if (!context) return;
+
+    const point = getPoint(event);
+    drawingRef.current = true;
+    canvas.setPointerCapture(event.pointerId);
+    context.beginPath();
+    context.moveTo(point.x, point.y);
+    context.lineTo(point.x + 0.1, point.y + 0.1);
+    context.strokeStyle = "#123B70";
+    context.lineWidth = 2.5;
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.stroke();
+  };
+
+  const continueDrawing = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (!drawingRef.current) return;
+    const context = event.currentTarget.getContext("2d");
+    if (!context) return;
+
+    const point = getPoint(event);
+    context.lineTo(point.x, point.y);
+    context.stroke();
+  };
+
+  const finishDrawing = (event: PointerEvent<HTMLCanvasElement>) => {
+    if (!drawingRef.current) return;
+    drawingRef.current = false;
+    onChange(event.currentTarget.toDataURL("image/png"));
+  };
+
+  const clearSignature = () => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (canvas && context) {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    onChange("");
+  };
+
+  return (
+    <div>
+      <canvas
+        ref={canvasRef}
+        aria-label="Draw your signature"
+        className={`mt-2 h-40 w-full rounded-lg border border-slate-300 bg-white touch-none ${disabled ? "cursor-not-allowed opacity-70" : "cursor-crosshair"}`}
+        onPointerDown={startDrawing}
+        onPointerMove={continueDrawing}
+        onPointerUp={finishDrawing}
+        onPointerCancel={finishDrawing}
+      />
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-normal normal-case tracking-normal text-slate-500">
+          Sign in the box using your mouse, finger, or stylus.
+        </p>
+        <button
+          type="button"
+          onClick={clearSignature}
+          disabled={disabled || !value}
+          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold normal-case tracking-normal text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Clear
+        </button>
+      </div>
+    </div>
+  );
 }
 
 // =====================================================
@@ -1066,10 +1185,32 @@ export default function JobSeekerDashboard() {
                     return (
                       <div
                         key={field.key}
-                        className={`rounded-xl bg-slate-50 p-4 ${field.type === "checkboxes" || field.type === "checkbox" ? "sm:col-span-2" : ""}`}
+                        className={`rounded-xl bg-slate-50 p-4 ${field.type === "checkboxes" || field.type === "checkbox" || field.key === "signature" ? "sm:col-span-2" : ""}`}
                       >
                         {editingScreening ? (
-                          field.type === "checkbox" ? (
+                          field.key === "signature" ? (
+                            <div className="block text-xs font-bold uppercase tracking-wide text-slate-500">
+                              {field.label}
+                              {field.required && <span className="text-red-600"> *</span>}
+                              {typeof rawValue === "string" &&
+                                rawValue.length > 0 &&
+                                !rawValue.startsWith("data:image/") && (
+                                  <span className="mt-2 block rounded-lg bg-white p-3 text-sm font-normal normal-case tracking-normal text-slate-600">
+                                    Previously saved typed signature: {rawValue}. Draw below to replace it.
+                                  </span>
+                                )}
+                              <SignaturePad
+                                value={String(rawValue ?? "")}
+                                disabled={savingScreening}
+                                onChange={(signature) =>
+                                  setScreeningForm({
+                                    ...screeningForm,
+                                    [field.key]: signature,
+                                  })
+                                }
+                              />
+                            </div>
+                          ) : field.type === "checkbox" ? (
                             <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
                               <input
                                 type="checkbox"
@@ -1173,9 +1314,19 @@ export default function JobSeekerDashboard() {
                             <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
                               {field.label}
                             </p>
-                            <p className="mt-2 break-words text-sm font-semibold text-slate-800">
-                              {displayValue}
-                            </p>
+                            {field.key === "signature" &&
+                            typeof rawValue === "string" &&
+                            rawValue.startsWith("data:image/") ? (
+                              <img
+                                src={rawValue}
+                                alt="Saved e-signature"
+                                className="mt-2 max-h-32 max-w-full rounded-lg border border-slate-200 bg-white object-contain p-2"
+                              />
+                            ) : (
+                              <p className="mt-2 break-words text-sm font-semibold text-slate-800">
+                                {displayValue}
+                              </p>
+                            )}
                           </>
                         )}
                       </div>

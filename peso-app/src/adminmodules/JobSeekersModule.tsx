@@ -935,6 +935,7 @@ function ScreeningModal({
                       key={field.key}
                       label={field.label}
                       value={details[field.key]}
+                      image={field.key === "signature"}
                     />
                   ))}
                 </div>
@@ -980,7 +981,12 @@ function ScreeningModal({
                     ...detailFields.flatMap((group) =>
                       group.fields.map((field) => ({
                         label: `${group.section} - ${field.label}`,
-                        value: details[field.key],
+                        value:
+                          field.key === "signature" &&
+                          typeof details[field.key] === "string" &&
+                          details[field.key].startsWith("data:image/")
+                            ? "E-signature captured"
+                            : details[field.key],
                       })),
                     ),
                   ],
@@ -1000,10 +1006,31 @@ function ScreeningModal({
 function ScreeningField({
   label,
   value,
+  image = false,
 }: {
   label: string;
   value: unknown;
+  image?: boolean;
 }) {
+  if (
+    image &&
+    typeof value === "string" &&
+    value.startsWith("data:image/")
+  ) {
+    return (
+      <div className="min-w-0">
+        <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-slate-400">
+          {label}
+        </p>
+        <img
+          src={value}
+          alt="Job seeker e-signature"
+          className="mt-1 max-h-24 max-w-full rounded border border-slate-200 bg-white object-contain p-1"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-w-0">
       <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-slate-400">
