@@ -1,6 +1,7 @@
 import React, { useEffect, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import AppIcon from "../components/AppIcon";
+import { downloadCsv } from "../services/csvExport";
 import { openStoredResume } from "../services/resumes";
 
 type JobSeeker = {
@@ -901,27 +902,66 @@ function ScreeningModal({
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close screening details"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-100"
-          >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                downloadCsv("job-seeker-details.csv", [
+                  { label: "Full Name", value: getSeekerName(jobSeeker) },
+                  { label: "Email", value: jobSeeker.email },
+                  {
+                    label: "Contact Number",
+                    value: jobSeeker.contact_no || jobSeeker.phone,
+                  },
+                  {
+                    label: "Present Address",
+                    value: jobSeeker.address || details.presentAddress,
+                  },
+                  { label: "Status", value: status },
+                  {
+                    label: "Registered On",
+                    value: jobSeeker.created_at
+                      ? new Date(jobSeeker.created_at).toLocaleString()
+                      : "-",
+                  },
+                  {
+                    label: "Resume",
+                    value: jobSeeker.resume_url ? "Uploaded" : "Not uploaded",
+                  },
+                  ...detailFields.flatMap((group) =>
+                    group.fields.map((field) => ({
+                      label: `${group.section} - ${field.label}`,
+                      value: details[field.key],
+                    })),
+                  ),
+                ])
+              }
+              className="rounded-lg bg-[#0759AE] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#064A91]"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+              Export CSV
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close screening details"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-100"
+            >
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div className="space-y-6 px-5 py-5 sm:px-6">

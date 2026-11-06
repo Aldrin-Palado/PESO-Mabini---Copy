@@ -1,6 +1,7 @@
 import React, { useEffect, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import AppIcon from "../components/AppIcon";
+import { downloadCsv } from "../services/csvExport";
 
 type Employer = {
   id?: string;
@@ -705,14 +706,31 @@ export default function EmployersModule({
                     "Unnamed Employer"}
                 </h2>
               </div>
-              <button
-                type="button"
-                onClick={() => setDetailsEmployer(null)}
-                aria-label="Close employer details"
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
-              >
-                Close
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                    type="button"
+                    onClick={() =>
+                      downloadCsv(
+                        "employer-details.csv",
+                        Object.entries(detailsEmployer).map(([key, value]) => ({
+                          label: formatDetailLabel(key),
+                          value: formatDetailValue(value),
+                        })),
+                      )
+                    }
+                    className="rounded-lg bg-[#0759AE] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#064A91]"
+                >
+                    Export CSV
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setDetailsEmployer(null)}
+                    aria-label="Close employer details"
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                >
+                    Close
+                </button>
+              </div>
             </header>
             <dl className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6">
               {Object.entries(detailsEmployer).map(([key, value]) => {
