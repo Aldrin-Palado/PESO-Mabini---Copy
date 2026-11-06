@@ -33,8 +33,7 @@ type ModuleName =
   | "Employers"
   | "Job Seekers"
   | "Messages"
-  | "PESO Posts"
-  | "Notifications";
+  | "PESO Posts";
 
 type StaffRecordPage = "Job Posts" | "Employers" | "Job Seekers";
 type StaffRecord = Record<string, unknown>;
@@ -349,9 +348,6 @@ export default function StaffDashboard() {
       case "Job Seekers":
         return permissions.job_seekers;
 
-      case "Notifications":
-        return permissions.notifications;
-
       case "PESO Posts":
         return permissions.notifications;
 
@@ -399,10 +395,6 @@ export default function StaffDashboard() {
     {
       name: "PESO Posts",
       icon: "▣",
-    },
-    {
-      name: "Notifications",
-      icon: "●",
     },
   ];
 
@@ -521,9 +513,6 @@ export default function StaffDashboard() {
 
       case "PESO Posts":
         return <PESOPosts />;
-
-      case "Notifications":
-        return <Notifications />;
 
       case "My Profile":
         return (
@@ -1187,94 +1176,6 @@ function JobApplications() {
         </p>
 
       </div>
-
-    </div>
-  );
-}
-
-
-/* =========================================================
-   NOTIFICATIONS
-========================================================= */
-
-function Notifications() {
-
-  const [logs, setLogs] =
-    useState<any[]>([]);
-
-  useEffect(() => {
-    loadLogs();
-  }, []);
-
-  const loadLogs = async () => {
-
-    const { data, error } =
-      await supabase
-        .from("admin_activity_log")
-        .select("*")
-        .order("created_at", {
-          ascending: false,
-        })
-        .limit(20);
-
-    if (!error) {
-      setLogs(data || []);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-
-      <div>
-
-        <h2 className="text-2xl font-black text-[#123B70]">
-          Notifications
-        </h2>
-
-        <p className="mt-1 text-slate-500">
-          Recent administrative activity.
-        </p>
-
-      </div>
-
-      {logs.length === 0 ? (
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-
-          <p className="font-semibold text-slate-500">
-            No recent activity.
-          </p>
-
-        </div>
-
-      ) : (
-
-        <div className="space-y-3">
-
-          {logs.map((log) => (
-
-            <div
-              key={log.log_id}
-              className="rounded-2xl border border-slate-200 bg-white p-5"
-            >
-
-              <p className="font-bold text-slate-800">
-                {log.action}
-              </p>
-
-              <p className="mt-1 text-xs text-slate-400">
-                {new Date(
-                  log.created_at
-                ).toLocaleString()}
-              </p>
-
-            </div>
-
-          ))}
-
-        </div>
-
-      )}
 
     </div>
   );
