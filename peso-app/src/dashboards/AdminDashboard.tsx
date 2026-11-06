@@ -9,7 +9,7 @@ import ProfileAvatar from "../components/ProfileAvatar";
 import AdminAccounts from "../adminmodules/AdminAccounts";
 
 import DashboardModule from "../adminmodules/DashboardModule";
-import JobPostsModule from "../adminmodules/JobPostsModule";
+import AdminJobPostsModule from "../adminmodules/AdminJobPostsModule";
 import EmployersModule, {
   type EmployerFormValues,
   type EmployerVerificationStatus,
@@ -1539,7 +1539,7 @@ export default function AdminDashboard() {
 
       case "Job Post":
         return (
-          <JobPostsModule
+          <AdminJobPostsModule
             jobs={jobPosts}
             loadError={moduleError}
             search={jobSearch}

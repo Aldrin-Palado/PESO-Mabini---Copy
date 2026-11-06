@@ -26,6 +26,8 @@ type Props = {
   employerName: string;
   isVerified: boolean;
   onRefresh: () => Promise<void> | void;
+  publisherTitle?: string;
+  publisherDescription?: string;
 };
 
 type JobForm = {
@@ -62,6 +64,8 @@ export default function MyJobPostModule({
   employerName,
   isVerified,
   onRefresh,
+  publisherTitle = "My Job Posts",
+  publisherDescription = "Add, update, or close your job vacancies from here.",
 }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -541,13 +545,9 @@ export default function MyJobPostModule({
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-black text-[#123B70]">
-            My Job Posts
-          </h1>
+          <h1 className="text-3xl font-black text-[#123B70]">{publisherTitle}</h1>
 
-          <p className="mt-1 text-sm text-slate-500">
-            Add, update, or close your job vacancies from here.
-          </p>
+          <p className="mt-1 text-sm text-slate-500">{publisherDescription}</p>
         </div>
 
         {isVerified ? (
