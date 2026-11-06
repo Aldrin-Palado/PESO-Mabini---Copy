@@ -28,7 +28,6 @@ type Props = {
   setSearch: (value: string) => void;
 
   loading: boolean;
-  onRefresh: () => void;
   onUpdate: (
     jobSeekerId: string,
     values: JobSeekerFormValues,
@@ -210,7 +209,6 @@ export default function JobSeekersModule({
   search,
   setSearch,
   loading,
-  onRefresh,
   onUpdate,
   onDelete,
   ModuleHeader,
@@ -229,8 +227,6 @@ export default function JobSeekersModule({
   const [actionError, setActionError] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [genderFilter, setGenderFilter] = useState("all");
-  const [appliedStatusFilter, setAppliedStatusFilter] = useState("all");
-  const [appliedGenderFilter, setAppliedGenderFilter] = useState("all");
 
   useEffect(() => {
     if (!openActionsSeekerId) return;
@@ -256,8 +252,8 @@ export default function JobSeekersModule({
         ? "active"
         : "inactive";
     return (
-      (appliedStatusFilter === "all" || activeStatus === appliedStatusFilter) &&
-      (appliedGenderFilter === "all" || gender === appliedGenderFilter)
+      (statusFilter === "all" || activeStatus === statusFilter) &&
+      (genderFilter === "all" || gender === genderFilter)
     );
   });
   const startEditing = (jobSeeker: JobSeeker) => {
@@ -504,38 +500,6 @@ export default function JobSeekersModule({
               <option value="prefer not to say">Prefer not to say</option>
             </select>
           </label>
-          <div className="flex flex-wrap justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setSearch("");
-                setStatusFilter("all");
-                setGenderFilter("all");
-                setAppliedStatusFilter("all");
-                setAppliedGenderFilter("all");
-              }}
-              className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-            >
-              Clear
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setAppliedStatusFilter(statusFilter);
-                setAppliedGenderFilter(genderFilter);
-              }}
-              className="rounded-xl border border-blue-200 bg-blue-50/50 px-4 py-2.5 text-xs font-semibold text-[#0759AE] transition hover:bg-blue-50"
-            >
-              Apply Filters
-            </button>
-            <button
-              type="button"
-              onClick={onRefresh}
-              className="rounded-xl bg-[#0759AE] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#064A91]"
-            >
-              Refresh
-            </button>
-          </div>
         </div>
       </section>
 

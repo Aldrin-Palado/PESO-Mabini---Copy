@@ -537,18 +537,6 @@ export default function JobsModule({
               Try changing your search or filters.
             </p>
 
-            <button
-              type="button"
-              onClick={() => {
-                setSearch("");
-                setLocation("All");
-                setType("All");
-              }}
-              className="mt-4 rounded-lg bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-800"
-            >
-              Clear Filters
-            </button>
-
           </div>
 
         ) : (

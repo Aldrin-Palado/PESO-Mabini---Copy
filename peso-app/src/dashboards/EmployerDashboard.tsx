@@ -136,6 +136,65 @@ async function loadUnreadEmployerMessages(
   });
 }
 
+async function loadEmployerApplications(
+  employerId: string,
+): Promise<ApplicationRow[]> {
+  const { data: applicationRows, error: applicationError } = await supabase
+    .from("application")
+    .select(
+      "application_id, employer_id, job_seeker_id, position_title, status, date_applied, applicant_name, applicant_email, applicant_contact_no, applicant_address",
+    )
+    .eq("employer_id", employerId)
+    .order("date_applied", { ascending: false });
+
+  if (applicationError) {
+    throw new Error(`Applications could not be loaded: ${applicationError.message}`);
+  }
+
+  const rows = (applicationRows || []) as ApplicationRow[];
+  const seekerIds = [
+    ...new Set(rows.map((application) => application.job_seeker_id).filter(Boolean)),
+  ];
+  let seekerDetailsById = new Map<
+    string,
+    { name: string; email: string | null; contactNumber: string | null }
+  >();
+
+  if (seekerIds.length > 0) {
+    const { data: seekers, error: seekerError } = await supabase
+      .from("job_seeker")
+      .select("job_seeker_id, full_name, email, contact_no")
+      .in("job_seeker_id", seekerIds);
+
+    if (seekerError) {
+      console.error("Applicant names could not be loaded:", seekerError);
+    } else {
+      seekerDetailsById = new Map(
+        (seekers || []).map((seeker) => [
+          seeker.job_seeker_id,
+          {
+            name: seeker.full_name || "Job Seeker",
+            email: seeker.email,
+            contactNumber: seeker.contact_no,
+          },
+        ]),
+      );
+    }
+  }
+
+  return rows.map((application) => {
+    const seeker = seekerDetailsById.get(application.job_seeker_id);
+    return {
+      ...application,
+      applicant_name: application.applicant_name || seeker?.name || "Job Seeker",
+      applicant_email: application.applicant_email || seeker?.email || null,
+      contact_number:
+        application.applicant_contact_no || seeker?.contactNumber || null,
+      applicant_address: application.applicant_address || null,
+    };
+  });
+}
+
 /* =========================
    CONSTANTS
 ========================= */
@@ -365,89 +424,68 @@ export default function EmployerDashboard() {
 
     setJobs(employerJobs);
 
-    /* Load employer applications */
-
-    const { data: applicationRows, error: applicationError } =
-      await supabase
-        .from("application")
-        .select(
-          "application_id, employer_id, job_seeker_id, position_title, status, date_applied, applicant_name, applicant_email, applicant_contact_no, applicant_address"
-        )
-        .eq("employer_id", employer.employer_id)
-        .order("date_applied", { ascending: false });
-
-    if (applicationError) {
-      throw new Error(
-        `Job posts loaded, but applications could not be loaded: ${applicationError.message}`
-      );
-    }
-
-    const rows = (applicationRows || []) as ApplicationRow[];
-
-    /* Load applicant names */
-
-    const seekerIds = [
-      ...new Set(
-        rows
-          .map((application) => application.job_seeker_id)
-          .filter(Boolean)
-      ),
-    ];
-
-    let seekerDetailsById = new Map<
-      string,
-      { name: string; email: string | null; contactNumber: string | null }
-    >();
-
-    if (seekerIds.length > 0) {
-      const { data: seekers, error: seekerError } =
-        await supabase
-          .from("job_seeker")
-          .select("job_seeker_id, full_name, email, contact_no")
-          .in("job_seeker_id", seekerIds);
-
-      if (seekerError) {
-        console.error(
-          "Applicant names could not be loaded:",
-          seekerError
-        );
-      } else {
-        seekerDetailsById = new Map(
-          (seekers || []).map(
-            (seeker: {
-              job_seeker_id: string;
-              full_name: string | null;
-              email: string | null;
-              contact_no: string | null;
-            }) => [
-              seeker.job_seeker_id,
-              {
-                name: seeker.full_name || "Job Seeker",
-                email: seeker.email,
-                contactNumber: seeker.contact_no,
-              },
-            ]
-          )
-        );
-      }
-    }
-
-    const enrichedApplications = rows.map((application) => {
-      const seeker = seekerDetailsById.get(application.job_seeker_id);
-      return {
-        ...application,
-        applicant_name:
-          application.applicant_name || seeker?.name || "Job Seeker",
-        applicant_email:
-          application.applicant_email || seeker?.email || null,
-        contact_number:
-          application.applicant_contact_no || seeker?.contactNumber || null,
-        applicant_address: application.applicant_address || null,
-      };
-    });
-
-    setApplications(enrichedApplications);
+    setApplications(await loadEmployerApplications(employer.employer_id));
   }, []);
+
+  useEffect(() => {
+    const employerId = profile?.employer_id;
+    if (!employerId) return;
+
+    let active = true;
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const channel = supabase
+      .channel(`employer-applications-${employerId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "application",
+          filter: `employer_id=eq.${employerId}`,
+        },
+        () => {
+          if (refreshTimer) clearTimeout(refreshTimer);
+          refreshTimer = setTimeout(() => {
+            void loadEmployerApplications(employerId)
+              .then((updatedApplications) => {
+                if (active) {
+                  setApplications(updatedApplications);
+                  setError("");
+                }
+              })
+              .catch((applicationError: unknown) => {
+                console.error("Could not refresh employer applications:", applicationError);
+                if (active) {
+                  setError(
+                    applicationError instanceof Error
+                      ? applicationError.message
+                      : "Applications could not be updated in real time.",
+                  );
+                }
+              });
+          }, 150);
+        },
+      )
+      .subscribe((status, subscriptionError) => {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          console.error(
+            "Employer application realtime subscription failed:",
+            subscriptionError,
+          );
+          if (active) {
+            setError(
+              "Live application updates are temporarily unavailable. Refresh the page to reconnect.",
+            );
+          }
+        }
+      });
+
+    return () => {
+      active = false;
+      if (refreshTimer) clearTimeout(refreshTimer);
+      void supabase.removeChannel(channel);
+    };
+  }, [profile?.employer_id]);
 
   /* =========================
      INITIAL DATA LOAD

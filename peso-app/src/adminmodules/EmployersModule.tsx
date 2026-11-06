@@ -126,7 +126,6 @@ export default function EmployersModule({
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [appliedStatusFilter, setAppliedStatusFilter] = useState("all");
 
   useEffect(() => {
     if (!openActionsEmployerId) return;
@@ -145,8 +144,8 @@ export default function EmployersModule({
   }, [openActionsEmployerId]);
 
   const visibleEmployers = employers.filter((employer) => {
-    if (appliedStatusFilter === "all") return true;
-    return getVerificationStatus(employer) === appliedStatusFilter;
+    if (statusFilter === "all") return true;
+    return getVerificationStatus(employer) === statusFilter;
   });
   const startEditing = (employer: Employer) => {
     setActionError("");
@@ -361,7 +360,7 @@ export default function EmployersModule({
             Search company and contact details, or filter by verification status.
           </p>
         </div>
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto] lg:items-end">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-end">
         <label className="block text-xs font-semibold text-slate-600">
           Search employers
           <span className="relative mt-1.5 block">
@@ -387,33 +386,6 @@ export default function EmployersModule({
             <option value="not_approved">Not approved</option>
           </select>
         </label>
-        <div className="flex flex-wrap justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setSearch("");
-              setStatusFilter("all");
-              setAppliedStatusFilter("all");
-            }}
-            className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-          >
-            Clear
-          </button>
-          <button
-            type="button"
-            onClick={() => setAppliedStatusFilter(statusFilter)}
-            className="rounded-xl border border-blue-200 bg-blue-50/50 px-4 py-2.5 text-xs font-semibold text-[#0759AE] transition hover:bg-blue-50"
-          >
-            Apply Filters
-          </button>
-          <button
-            type="button"
-            onClick={onRefresh}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#0759AE] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#064A91]"
-          >
-            Refresh
-          </button>
-        </div>
         </div>
       </section>
 

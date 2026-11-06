@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { supabase } from "../services/supabase";
 
 import AdminSidebar, {
@@ -1343,8 +1343,8 @@ export default function AdminDashboard() {
      APPLICATIONS
   ============================================================ */
 
-  const loadApplications = async () => {
-    setModuleLoading(true);
+  const loadApplications = useCallback(async (showLoading = true) => {
+    if (showLoading) setModuleLoading(true);
     setApplicationsError("");
 
     try {
@@ -1483,9 +1483,51 @@ export default function AdminDashboard() {
       );
       setApplicationsError(supportingErrors.join(" "));
     } finally {
-      setModuleLoading(false);
+      if (showLoading) setModuleLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!account || activePage !== "Applications") return;
+
+    let active = true;
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const channel = supabase
+      .channel(`admin-applications-${account.user_id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "application",
+        },
+        () => {
+          if (refreshTimer) clearTimeout(refreshTimer);
+          refreshTimer = setTimeout(() => {
+            void loadApplications(false);
+          }, 150);
+        },
+      )
+      .subscribe((status, subscriptionError) => {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          console.error(
+            "Admin application realtime subscription failed:",
+            subscriptionError,
+          );
+          if (active) {
+            setApplicationsError(
+              "Live application updates are temporarily unavailable. Refresh the page to reconnect.",
+            );
+          }
+        }
+      });
+
+    return () => {
+      active = false;
+      if (refreshTimer) clearTimeout(refreshTimer);
+      void supabase.removeChannel(channel);
+    };
+  }, [account, activePage, loadApplications]);
 
   const updateApplicationStatus = async (
     applicationId: string,
@@ -1786,7 +1828,6 @@ export default function AdminDashboard() {
             search={jobSeekerSearch}
             setSearch={setJobSeekerSearch}
             loading={moduleLoading}
-            onRefresh={loadJobSeekers}
             onUpdate={updateJobSeeker}
             onDelete={deleteJobSeeker}
             ModuleHeader={ModuleHeader}
@@ -1810,7 +1851,6 @@ export default function AdminDashboard() {
             setStatusFilter={setApplicationStatusFilter}
             loading={moduleLoading}
             canDecideApplications={isSuperadmin}
-            onRefresh={loadApplications}
             onUpdateStatus={updateApplicationStatus}
             onDecideApplication={decideApplication}
             onDelete={deleteApplication}
@@ -1899,7 +1939,6 @@ export default function AdminDashboard() {
           <AuditLogs
             logs={auditLogs}
             loadError={auditLogError}
-            onRefresh={loadAuditLogs}
           />
         );
 
@@ -2030,11 +2069,9 @@ export default function AdminDashboard() {
 function AuditLogs({
   logs,
   loadError,
-  onRefresh,
 }: {
   logs: AuditLog[];
   loadError: string;
-  onRefresh: () => void;
 }) {
   const defaultFilters = {
     dateFrom: "",
@@ -2045,7 +2082,6 @@ function AuditLogs({
     action: "all",
   };
   const [filters, setFilters] = useState(defaultFilters);
-  const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
 
   const getDetails = (details: unknown): Record<string, unknown> => {
     if (!details || typeof details !== "object" || Array.isArray(details)) {
@@ -2159,7 +2195,7 @@ function AuditLogs({
   const admins = [...new Set(logs.map((log) => log.actor_name || "Admin"))].sort();
   const filteredLogs = logs.filter((log) => {
     const date = log.created_at.slice(0, 10);
-    const keyword = appliedFilters.keyword.trim().toLowerCase();
+    const keyword = filters.keyword.trim().toLowerCase();
     const detailsText =
       typeof log.details === "string"
         ? log.details
@@ -2171,30 +2207,17 @@ function AuditLogs({
         .includes(keyword);
 
     return (
-      (!appliedFilters.dateFrom || date >= appliedFilters.dateFrom) &&
-      (!appliedFilters.dateTo || date <= appliedFilters.dateTo) &&
-      (appliedFilters.admin === "all" ||
-        (log.actor_name || "Admin") === appliedFilters.admin) &&
-      (appliedFilters.area === "all" ||
-        getArea(log) === appliedFilters.area) &&
-      (appliedFilters.action === "all" ||
-        log.action === appliedFilters.action) &&
+      (!filters.dateFrom || date >= filters.dateFrom) &&
+      (!filters.dateTo || date <= filters.dateTo) &&
+      (filters.admin === "all" ||
+        (log.actor_name || "Admin") === filters.admin) &&
+      (filters.area === "all" ||
+        getArea(log) === filters.area) &&
+      (filters.action === "all" ||
+        log.action === filters.action) &&
       matchesKeyword
     );
   });
-
-  const clearFilters = () => {
-    const clearedFilters = {
-      dateFrom: "",
-      dateTo: "",
-      admin: "all",
-      keyword: "",
-      area: "all",
-      action: "all",
-    };
-    setFilters(clearedFilters);
-    setAppliedFilters(clearedFilters);
-  };
 
   return (
     <div className="space-y-4">
@@ -2231,13 +2254,7 @@ function AuditLogs({
         </div>
       )}
 
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          setAppliedFilters({ ...filters });
-        }}
-        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
-      >
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="block text-[11px] font-semibold text-slate-600">
             Date From
@@ -2303,30 +2320,11 @@ function AuditLogs({
               {actions.map((action) => <option key={action} value={action}>{action}</option>)}
             </select>
           </label>
-          <div className="flex justify-end gap-2 sm:ml-auto">
-            <button
-              type="submit"
-              className="rounded-md bg-[#0759AE] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#064A91]"
-            >
-              Apply Filters
-            </button>
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="rounded-md border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-            >
-              Clear
-            </button>
-            <button
-              type="button"
-              onClick={onRefresh}
-              className="rounded-md border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-            >
-              Refresh
-            </button>
-          </div>
         </div>
-      </form>
+        <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-400">
+          Results update automatically as you change the filters.
+        </p>
+      </section>
 
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">

@@ -34,7 +34,6 @@ type Props = {
   setStatusFilter: (value: string) => void;
   loading: boolean;
   canDecideApplications: boolean;
-  onRefresh: () => void;
   onUpdateStatus: (applicationId: string, status: string) => Promise<void>;
   onDecideApplication: (
     applicationId: string,
@@ -98,7 +97,6 @@ export default function ApplicationsModule({
   setStatusFilter,
   loading,
   canDecideApplications,
-  onRefresh,
   onUpdateStatus,
   onDecideApplication,
   onDelete,
@@ -111,10 +109,6 @@ export default function ApplicationsModule({
   const [jobFilter, setJobFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [appliedEmployerFilter, setAppliedEmployerFilter] = useState("all");
-  const [appliedJobFilter, setAppliedJobFilter] = useState("all");
-  const [appliedDateFrom, setAppliedDateFrom] = useState("");
-  const [appliedDateTo, setAppliedDateTo] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [decisionNotice, setDecisionNotice] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -171,20 +165,20 @@ export default function ApplicationsModule({
             application.employer_id,
           ]
             .some((value) => String(value || "").toLowerCase().includes(normalizedSearch))) &&
-        (appliedEmployerFilter === "all" ||
-          application.employer_id === appliedEmployerFilter) &&
-        (appliedJobFilter === "all" ||
-          application.position_title === appliedJobFilter) &&
-        (!appliedDateFrom || (appliedDay && appliedDay >= appliedDateFrom)) &&
-        (!appliedDateTo || (appliedDay && appliedDay <= appliedDateTo))
+        (employerFilter === "all" ||
+          application.employer_id === employerFilter) &&
+        (jobFilter === "all" ||
+          application.position_title === jobFilter) &&
+        (!dateFrom || (appliedDay && appliedDay >= dateFrom)) &&
+        (!dateTo || (appliedDay && appliedDay <= dateTo))
       );
     });
   }, [
     applications,
-    appliedDateFrom,
-    appliedDateTo,
-    appliedEmployerFilter,
-    appliedJobFilter,
+    dateFrom,
+    dateTo,
+    employerFilter,
+    jobFilter,
     search,
     statusFilter,
   ]);
@@ -221,26 +215,6 @@ export default function ApplicationsModule({
       }))
       .sort((first, second) => first.name.localeCompare(second.name));
   }, [visibleApplications]);
-
-  const applyFilters = () => {
-    setAppliedEmployerFilter(employerFilter);
-    setAppliedJobFilter(jobFilter);
-    setAppliedDateFrom(dateFrom);
-    setAppliedDateTo(dateTo);
-  };
-
-  const clearFilters = () => {
-    setSearch("");
-    setStatusFilter("All");
-    setEmployerFilter("all");
-    setJobFilter("all");
-    setDateFrom("");
-    setDateTo("");
-    setAppliedEmployerFilter("all");
-    setAppliedJobFilter("all");
-    setAppliedDateFrom("");
-    setAppliedDateTo("");
-  };
 
   const handleProgressUpdate = async (
     applicationId: string,
@@ -451,34 +425,10 @@ export default function ApplicationsModule({
             </label>
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+        <div className="mt-4 border-t border-slate-100 pt-4">
           <p className="text-xs text-slate-400">
-            Refine the list by applicant, status, employer, job, or date.
+            Results update automatically as you change the filters.
           </p>
-          <div className="flex flex-wrap justify-end gap-2">
-            <button
-              type="button"
-              onClick={applyFilters}
-              className="rounded-lg bg-[#0759AE] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#064A91]"
-            >
-              Apply
-            </button>
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-            >
-              Clear
-            </button>
-            <button
-              type="button"
-              onClick={onRefresh}
-              disabled={loading}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-50"
-            >
-              {loading ? "Refreshing..." : "Refresh"}
-            </button>
-          </div>
         </div>
       </section>
 

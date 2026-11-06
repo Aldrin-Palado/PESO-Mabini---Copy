@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "../services/supabase";
 
 type ApplicationRow = {
@@ -21,316 +20,365 @@ type Props = {
   onRefresh: () => Promise<void> | void;
 };
 
+const STATUSES = [
+  { value: "pending", label: "Pending", color: "bg-slate-100 text-slate-600" },
+  { value: "under_review", label: "Under Review", color: "bg-blue-100 text-blue-700" },
+  { value: "shortlisted", label: "Shortlisted", color: "bg-indigo-100 text-indigo-700" },
+  { value: "interview", label: "Interview", color: "bg-amber-100 text-amber-700" },
+  { value: "hired", label: "You're Hired", color: "bg-emerald-100 text-emerald-700" },
+  { value: "rejected", label: "Rejected", color: "bg-red-100 text-red-700" },
+  { value: "withdrawn", label: "Withdrawn", color: "bg-gray-100 text-gray-600" },
+];
+
+function getApplicationStatus(application: ApplicationRow): string {
+  return String(application.status || "pending")
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+}
+
+function getStatusLabel(value: string): string {
+  return (
+    STATUSES.find((status) => status.value === value)?.label ||
+    value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
+  );
+}
+
+function getApplicantKey(application: ApplicationRow): string {
+  if (application.job_seeker_id) return `account:${application.job_seeker_id}`;
+  if (application.applicant_email) {
+    return `email:${application.applicant_email.trim().toLowerCase()}`;
+  }
+  return `name:${(application.applicant_name || "Job Seeker").trim().toLowerCase()}`;
+}
+
+function formatDate(date?: string) {
+  if (!date) return "Not specified";
+  const parsedDate = new Date(date);
+  if (Number.isNaN(parsedDate.getTime())) return "Not specified";
+  return parsedDate.toLocaleDateString("en-PH", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 export default function ApplicationsModule({
   applications,
   onRefresh,
 }: Props) {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All Status");
-  const [message, setMessage] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [expandedApplicants, setExpandedApplicants] = useState<Set<string>>(
+    () => new Set(),
+  );
 
-  const filteredApplications = applications.filter((application) => {
-    const searchValue = search.toLowerCase();
-
-    const matchesSearch =
-      (application.applicant_name || "")
-        .toLowerCase()
-        .includes(searchValue) ||
-      (application.position_title || "")
-        .toLowerCase()
-        .includes(searchValue);
-
-    const matchesStatus =
-      statusFilter === "All Status" ||
-      application.status.toLowerCase() ===
-        statusFilter.toLowerCase();
-
-    return matchesSearch && matchesStatus;
-  });
-
-  const formatDate = (date: string) => {
-    if (!date) return "Not specified";
-
-    return new Date(date).toLocaleDateString("en-PH", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
+  const visibleApplications = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    return applications.filter((application) => {
+      const appliedDay = application.date_applied?.slice(0, 10) || "";
+      return (
+        (statusFilter === "All" ||
+          getApplicationStatus(application) === statusFilter) &&
+        (!normalizedSearch ||
+          [
+            application.applicant_name,
+            application.applicant_email,
+            application.contact_number,
+            application.applicant_address,
+            application.position_title,
+          ].some((value) =>
+            String(value || "").toLowerCase().includes(normalizedSearch),
+          )) &&
+        (!dateFrom || (appliedDay && appliedDay >= dateFrom)) &&
+        (!dateTo || (appliedDay && appliedDay <= dateTo))
+      );
     });
-  };
+  }, [applications, dateFrom, dateTo, search, statusFilter]);
+
+  const applicationGroups = useMemo(() => {
+    const groups = new Map<string, ApplicationRow[]>();
+    for (const application of visibleApplications) {
+      const key = getApplicantKey(application);
+      const group = groups.get(key);
+      if (group) group.push(application);
+      else groups.set(key, [application]);
+    }
+
+    return [...groups.entries()]
+      .map(([key, groupApplications]) => ({
+        key,
+        name: groupApplications[0].applicant_name || "Job Seeker",
+        email: groupApplications[0].applicant_email || "Email unavailable",
+        applications: [...groupApplications].sort(
+          (first, second) =>
+            new Date(first.date_applied || 0).getTime() -
+            new Date(second.date_applied || 0).getTime(),
+        ),
+      }))
+      .sort((first, second) => first.name.localeCompare(second.name));
+  }, [visibleApplications]);
 
   const handleStatusChange = async (
     application: ApplicationRow,
-    newStatus: string
+    newStatus: string,
   ) => {
     setUpdatingId(application.application_id);
-    setMessage("");
+    setActionError("");
+    setNotice("");
 
-    const { error } = await supabase
-      .from("application")
-      .update({
-        status: newStatus,
-      })
-      .eq("application_id", application.application_id)
-      .eq("employer_id", application.employer_id);
+    try {
+      const { error } = await supabase
+        .from("application")
+        .update({ status: newStatus })
+        .eq("application_id", application.application_id)
+        .eq("employer_id", application.employer_id);
 
-    setUpdatingId(null);
+      if (error) throw error;
 
-    if (error) {
-      setMessage(
-        `Failed to update application status: ${error.message}`
+      await onRefresh();
+      setNotice(`Application status set to ${getStatusLabel(newStatus)}.`);
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "Unable to update the application status. Please try again.",
       );
-      return;
-    }
-
-    setMessage("Application status updated successfully.");
-
-    await onRefresh();
-  };
-
-  const statusClass = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "shortlisted":
-        return "bg-blue-100 text-blue-700";
-
-      case "hired":
-      case "accepted":
-        return "bg-green-100 text-green-700";
-
-      case "rejected":
-        return "bg-red-100 text-red-700";
-
-      case "for review":
-      case "under_review":
-        return "bg-yellow-100 text-yellow-700";
-
-      default:
-        return "bg-slate-100 text-slate-700";
+    } finally {
+      setUpdatingId(null);
     }
   };
 
   return (
-    <div className="space-y-6">
-
-      {/* HEADER */}
-
-      <div>
-        <h1 className="text-3xl font-black text-[#123B70]">
-          Applications
-        </h1>
-
-        <p className="mt-1 text-sm text-slate-500">
-          View and manage job seekers who applied to your job postings.
-        </p>
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="shrink-0">
+          <h3 className="text-lg font-bold text-slate-900">Applications</h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Review applicants and update their progress for your job postings.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 lg:justify-end">
+          {STATUSES.map((status) => (
+            <button
+              key={status.value}
+              type="button"
+              onClick={() =>
+                setStatusFilter(statusFilter === status.value ? "All" : status.value)
+              }
+              aria-pressed={statusFilter === status.value}
+              className={`rounded-full px-2.5 py-1.5 text-[10px] font-semibold transition ${status.color} ${
+                statusFilter === status.value ? "ring-2 ring-blue-500 ring-offset-1" : ""
+              }`}
+            >
+              {status.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* MESSAGE */}
-
-      {message && (
-        <div
-          role="status"
-          className="rounded-xl bg-blue-50 p-4 text-sm text-blue-800"
-        >
-          {message}
-        </div>
+      {actionError && (
+        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+          {actionError}
+        </p>
+      )}
+      {notice && (
+        <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+          {notice}
+        </p>
       )}
 
-      {/* APPLICATIONS CONTAINER */}
-
-      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-
-        {/* SEARCH AND FILTER */}
-
-        <div className="border-b border-slate-100 p-5">
-
-          <div className="flex flex-col gap-3 md:flex-row">
-
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-12">
+          <label className="text-[11px] font-semibold text-slate-600 sm:col-span-2 xl:col-span-6">
+            Search (Applicant / Job)
             <input
               type="search"
               value={search}
-              onChange={(event) =>
-                setSearch(event.target.value)
-              }
-              placeholder="Search job seeker or job position..."
-              className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#0446A7]"
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Name, email, or job..."
+              className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
-
+          </label>
+          <label className="text-[11px] font-semibold text-slate-600 xl:col-span-2">
+            Status
             <select
               value={statusFilter}
-              onChange={(event) =>
-                setStatusFilter(event.target.value)
-              }
-              className="rounded-xl border border-slate-200 px-4 py-3 text-sm"
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal"
             >
-              <option value="All Status">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="under_review">Under Review</option>
-              <option value="shortlisted">Shortlisted</option>
-              <option value="interview">Interview</option>
-              <option value="rejected">Rejected</option>
-              <option value="hired">Hired</option>
-              <option value="withdrawn">Withdrawn</option>
+              <option value="All">All</option>
+              {STATUSES.map((status) => (
+                <option key={status.value} value={status.value}>
+                  {status.label}
+                </option>
+              ))}
             </select>
-
+          </label>
+          <div className="grid grid-cols-2 gap-2 xl:col-span-4">
+            <label className="text-[11px] font-semibold text-slate-600">
+              Date from
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(event) => setDateFrom(event.target.value)}
+                className="mt-1.5 w-full min-w-0 rounded-lg border border-slate-300 px-2.5 py-2.5 text-sm"
+              />
+            </label>
+            <label className="text-[11px] font-semibold text-slate-600">
+              Date to
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(event) => setDateTo(event.target.value)}
+                className="mt-1.5 w-full min-w-0 rounded-lg border border-slate-300 px-2.5 py-2.5 text-sm"
+              />
+            </label>
           </div>
-
-          <p className="mt-3 text-xs text-slate-500">
-            Showing {filteredApplications.length} application(s)
-          </p>
-
         </div>
+        <div className="mt-4 border-t border-slate-100 pt-4">
+          <p className="text-xs text-slate-400">
+            Results update automatically as you change the filters.
+          </p>
+        </div>
+      </section>
 
-        {/* APPLICATION LIST */}
-
-        {filteredApplications.length === 0 ? (
-
-          <div className="p-10 text-center">
-
-            <h2 className="text-lg font-bold text-[#123B70]">
-              No Applications Found
-            </h2>
-
-            <p className="mt-2 text-sm text-slate-500">
-              There are no applications matching your search.
-            </p>
-
-          </div>
-
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <header className="flex items-center justify-between border-b border-slate-100 px-3 py-2.5">
+          <h2 className="text-xs font-bold text-slate-700">Applications</h2>
+          <span className="text-[10px] text-slate-400">
+            {visibleApplications.length} record{visibleApplications.length === 1 ? "" : "s"}
+          </span>
+        </header>
+        {applications.length === 0 ? (
+          <p className="px-4 py-8 text-center text-xs text-slate-500">
+            No applications found. Applications will appear here after job seekers apply to your jobs.
+          </p>
+        ) : visibleApplications.length === 0 ? (
+          <p className="px-4 py-8 text-center text-xs text-slate-500">
+            No applications match these filters.
+          </p>
         ) : (
-
           <div className="divide-y divide-slate-100">
-
-            {filteredApplications.map((application) => (
-
-              <article
-                key={application.application_id}
-                className="p-5 transition hover:bg-slate-50 sm:p-6"
-              >
-
-                {/* APPLICANT INFORMATION */}
-
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-
-                  <div className="min-w-0">
-
-                    <h2 className="text-lg font-black text-[#123B70]">
-                      {application.applicant_name ||
-                        "Job Seeker"}
-                    </h2>
-
-                    <p className="mt-1 text-sm font-semibold text-slate-700">
-                      Applied Position:{" "}
-                      {application.position_title ||
-                        "Job Position"}
-                    </p>
-
-                    <p className="mt-2 text-xs text-slate-500">
-                      Application Date:{" "}
-                      {formatDate(application.date_applied)}
-                    </p>
-
-                  </div>
-
-                  {/* APPLICATION STATUS */}
-
-                  <span
-                    className={`w-fit rounded-full px-3 py-1 text-xs font-bold capitalize ${statusClass(application.status)}`}
-                  >
-                    {application.status}
-                  </span>
-
-                </div>
-
-                {/* CONTACT INFORMATION */}
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-
-                  <div>
-                    <p className="text-xs font-semibold text-slate-400">
-                      Email
-                    </p>
-
-                    <p className="mt-1 break-all text-sm text-slate-700">
-                      {application.applicant_email ||
-                        "Not available"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-semibold text-slate-400">
-                      Contact Number
-                    </p>
-
-                    <p className="mt-1 text-sm text-slate-700">
-                      {application.contact_number ||
-                        "Not available"}
-                    </p>
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <p className="text-xs font-semibold text-slate-400">
-                      Address
-                    </p>
-
-                    <p className="mt-1 text-sm text-slate-700">
-                      {application.applicant_address || "Not available"}
-                    </p>
-                  </div>
-
-                </div>
-
-                {/* UPDATE STATUS */}
-
-                <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center">
-
-                  <label
-                    htmlFor={`status-${application.application_id}`}
-                    className="text-xs font-bold text-slate-500"
-                  >
-                    Update Application Status
-                  </label>
-
-                  <select
-                    id={`status-${application.application_id}`}
-                    value={application.status}
-                    disabled={
-                      updatingId === application.application_id
-                    }
-                    onChange={(event) =>
-                      void handleStatusChange(
-                        application,
-                        event.target.value
-                      )
-                    }
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:opacity-50"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="under_review">Under Review</option>
-                    <option value="shortlisted">Shortlisted</option>
-                    <option value="interview">Interview</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="hired">Hired</option>
-                    <option value="withdrawn">Withdrawn</option>
-                  </select>
-
-                  {updatingId === application.application_id && (
-                    <span className="text-xs text-slate-500">
-                      Updating...
+            {applicationGroups.map((group) => (
+              <section key={group.key} aria-label={`Applications for ${group.name}`}>
+                <header className="flex items-center justify-between gap-3 bg-slate-50 px-3 py-2.5 sm:px-4">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0759AE] text-[10px] font-bold text-white">
+                      {group.name.trim().charAt(0).toUpperCase()}
                     </span>
-                  )}
-
-                </div>
-
-              </article>
-
+                    <div className="min-w-0">
+                      <p className="truncate text-[11px] font-bold text-slate-800">
+                        {group.name}
+                      </p>
+                      <p className="truncate text-[9px] text-slate-400">
+                        {group.email}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    aria-expanded={expandedApplicants.has(group.key)}
+                    aria-controls={
+                      expandedApplicants.has(group.key)
+                        ? `employer-applications-${encodeURIComponent(group.key)}`
+                        : undefined
+                    }
+                    aria-label={`${expandedApplicants.has(group.key) ? "Hide" : "Show"} applications for ${group.name} (${group.applications.length})`}
+                    onClick={() =>
+                      setExpandedApplicants((current) => {
+                        const next = new Set(current);
+                        if (next.has(group.key)) next.delete(group.key);
+                        else next.add(group.key);
+                        return next;
+                      })
+                    }
+                    className="flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-semibold text-slate-600 transition hover:bg-white hover:text-[#0759AE] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                  >
+                    <span className="rounded-full bg-white px-2 py-0.5 text-[9px] text-slate-500 ring-1 ring-slate-200">
+                      {group.applications.length}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className={`text-sm leading-none transition-transform ${
+                        expandedApplicants.has(group.key) ? "rotate-180" : ""
+                      }`}
+                    >
+                      ▾
+                    </span>
+                  </button>
+                </header>
+                {expandedApplicants.has(group.key) && (
+                  <div
+                    id={`employer-applications-${encodeURIComponent(group.key)}`}
+                    className="divide-y divide-slate-100"
+                  >
+                    {group.applications.map((application, index) => {
+                      const status = getApplicationStatus(application);
+                      const statusStyle =
+                        STATUSES.find((item) => item.value === status)?.color ||
+                        "bg-slate-100 text-slate-600";
+                      return (
+                        <article
+                          key={application.application_id}
+                          className="flex flex-col gap-3 px-3 py-3 pl-5 hover:bg-slate-50 sm:flex-row sm:items-center sm:pl-8 sm:pr-4"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[9px] font-bold uppercase tracking-wide text-[#0759AE]">
+                              Application no. {index + 1}
+                            </p>
+                            <p className="mt-1 truncate text-[10px] font-semibold text-slate-800">
+                              {application.position_title || "Position not specified"}
+                            </p>
+                            <p className="truncate text-[9px] text-slate-500">
+                              Applied {formatDate(application.date_applied)}
+                              {application.contact_number
+                                ? ` · ${application.contact_number}`
+                                : ""}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
+                            <label
+                              className="sr-only"
+                              htmlFor={`employer-application-status-${application.application_id}`}
+                            >
+                              Update application status
+                            </label>
+                            <select
+                              id={`employer-application-status-${application.application_id}`}
+                              value={status}
+                              disabled={updatingId === application.application_id}
+                              onChange={(event) =>
+                                void handleStatusChange(application, event.target.value)
+                              }
+                              className={`max-w-full rounded-lg border px-3 py-2 text-[10px] font-bold outline-none transition focus:ring-2 focus:ring-blue-200 disabled:cursor-wait disabled:opacity-60 ${statusStyle}`}
+                            >
+                              {STATUSES.map((item) => (
+                                <option key={item.value} value={item.value}>
+                                  {item.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          {application.applicant_address && (
+                            <p className="shrink-0 text-[9px] text-slate-400 sm:max-w-48 sm:text-right">
+                              {application.applicant_address}
+                            </p>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
             ))}
-
           </div>
-
         )}
-
-      </div>
-
+      </section>
     </div>
   );
 }
