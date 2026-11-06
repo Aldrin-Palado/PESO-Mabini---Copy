@@ -1,4 +1,5 @@
-import React, { useState, type FormEvent } from "react";
+import React, { useEffect, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import AppIcon from "../components/AppIcon";
 
 type Employer = {
@@ -64,6 +65,11 @@ export type EmployerFormValues = {
   address: string;
 };
 
+type ActionsPosition = {
+  top: number;
+  left: number;
+};
+
 function getVerificationStatus(employer: Employer): EmployerVerificationStatus {
   if (employer.verification_status) return employer.verification_status;
   return employer.is_verified ? "verified" : "pending";
@@ -109,6 +115,7 @@ export default function EmployersModule({
   EmptyMessage,
 }: Props) {
   const [openActionsEmployerId, setOpenActionsEmployerId] = useState<string | null>(null);
+  const [actionsPosition, setActionsPosition] = useState<ActionsPosition | null>(null);
   const [detailsEmployer, setDetailsEmployer] = useState<Employer | null>(null);
   const [editingEmployer, setEditingEmployer] = useState<Employer | null>(null);
   const [formValues, setFormValues] = useState<EmployerFormValues | null>(null);
@@ -118,6 +125,22 @@ export default function EmployersModule({
   const [actionError, setActionError] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [appliedStatusFilter, setAppliedStatusFilter] = useState("all");
+
+  useEffect(() => {
+    if (!openActionsEmployerId) return;
+
+    const closeOnViewportChange = () => {
+      setOpenActionsEmployerId(null);
+      setActionsPosition(null);
+    };
+
+    window.addEventListener("scroll", closeOnViewportChange, true);
+    window.addEventListener("resize", closeOnViewportChange);
+    return () => {
+      window.removeEventListener("scroll", closeOnViewportChange, true);
+      window.removeEventListener("resize", closeOnViewportChange);
+    };
+  }, [openActionsEmployerId]);
 
   const visibleEmployers = employers.filter((employer) => {
     if (appliedStatusFilter === "all") return true;
@@ -218,17 +241,39 @@ export default function EmployersModule({
   const renderActions = (employer: Employer) => {
     const actionId = employer.employer_id || employer.id || employer.email || "";
     const isOpen = openActionsEmployerId === actionId;
-    const closeActions = () => setOpenActionsEmployerId(null);
+    const closeActions = () => {
+      setOpenActionsEmployerId(null);
+      setActionsPosition(null);
+    };
 
     return (
       <div className="relative inline-block text-left">
         <button
           type="button"
-          aria-label="Show employer actions"
+          aria-label={`Show actions for ${employer.name || employer.company_name || "employer"}`}
           aria-expanded={isOpen}
-          onClick={() =>
-            setOpenActionsEmployerId(isOpen ? null : actionId)
-          }
+          onClick={(event) => {
+            if (isOpen) {
+              closeActions();
+              return;
+            }
+
+            const rect = event.currentTarget.getBoundingClientRect();
+            const menuHeight = 126;
+            const menuWidth = 144;
+            const openBelow =
+              window.innerHeight - rect.bottom >= menuHeight + 8;
+            setActionsPosition({
+              top: openBelow
+                ? rect.bottom + 8
+                : Math.max(8, rect.top - menuHeight - 8),
+              left: Math.min(
+                Math.max(8, window.innerWidth - menuWidth - 8),
+                Math.max(8, rect.right - menuWidth),
+              ),
+            });
+            setOpenActionsEmployerId(actionId);
+          }}
           className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
         >
           <span
@@ -238,8 +283,11 @@ export default function EmployersModule({
             ▾
           </span>
         </button>
-        {isOpen && (
-          <div className="absolute right-0 z-30 mt-2 min-w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+        {isOpen && actionsPosition && createPortal(
+          <div
+            className="fixed z-[200] w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg"
+            style={actionsPosition}
+          >
             <button
               type="button"
               onClick={() => {
@@ -286,7 +334,8 @@ export default function EmployersModule({
                   ? "Activate"
                   : "Deactivate"}
             </button>
-          </div>
+          </div>,
+          document.body,
         )}
       </div>
     );

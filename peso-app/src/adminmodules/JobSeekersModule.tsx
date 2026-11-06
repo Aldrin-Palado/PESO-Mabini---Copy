@@ -1,4 +1,5 @@
-import React, { useState, type FormEvent } from "react";
+import React, { useEffect, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import AppIcon from "../components/AppIcon";
 import { openStoredResume } from "../services/resumes";
 
@@ -155,6 +156,11 @@ const detailFields: {
   },
 ];
 
+type ActionsPosition = {
+  top: number;
+  left: number;
+};
+
 function getRegistrationDetails(jobSeeker: JobSeeker): Record<string, any> {
   const value = jobSeeker.registration_details;
 
@@ -210,6 +216,8 @@ export default function JobSeekersModule({
   LoadingMessage,
   EmptyMessage,
 }: Props) {
+  const [openActionsSeekerId, setOpenActionsSeekerId] = useState<string | null>(null);
+  const [actionsPosition, setActionsPosition] = useState<ActionsPosition | null>(null);
   const [openingResumeId, setOpeningResumeId] = useState<string | null>(null);
   const [resumeError, setResumeError] = useState("");
   const [screeningSeeker, setScreeningSeeker] = useState<JobSeeker | null>(null);
@@ -222,6 +230,22 @@ export default function JobSeekersModule({
   const [genderFilter, setGenderFilter] = useState("all");
   const [appliedStatusFilter, setAppliedStatusFilter] = useState("all");
   const [appliedGenderFilter, setAppliedGenderFilter] = useState("all");
+
+  useEffect(() => {
+    if (!openActionsSeekerId) return;
+
+    const closeOnViewportChange = () => {
+      setOpenActionsSeekerId(null);
+      setActionsPosition(null);
+    };
+
+    window.addEventListener("scroll", closeOnViewportChange, true);
+    window.addEventListener("resize", closeOnViewportChange);
+    return () => {
+      window.removeEventListener("scroll", closeOnViewportChange, true);
+      window.removeEventListener("resize", closeOnViewportChange);
+    };
+  }, [openActionsSeekerId]);
 
   const visibleJobSeekers = jobSeekers.filter((jobSeeker) => {
     const registration = getRegistrationDetails(jobSeeker);
@@ -323,24 +347,59 @@ export default function JobSeekersModule({
     }
   };
 
-  const renderActions = (jobSeeker: JobSeeker, rowId: string) => (
-    <details className="group relative inline-block text-left">
-      <summary
-        aria-label="Show job seeker actions"
-        className="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200 [&::-webkit-details-marker]:hidden"
-      >
-        <span
-          aria-hidden="true"
-          className="transition group-open:rotate-180"
-        >
-          ▾
-        </span>
-      </summary>
-      <div className="absolute right-0 z-30 mt-2 min-w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+  const renderActions = (jobSeeker: JobSeeker, rowId: string) => {
+    const isOpen = openActionsSeekerId === rowId;
+    const closeActions = () => {
+      setOpenActionsSeekerId(null);
+      setActionsPosition(null);
+    };
+
+    return (
+      <div className="relative inline-block text-left">
         <button
           type="button"
+          aria-label={`Show actions for ${getSeekerName(jobSeeker)}`}
+          aria-expanded={isOpen}
           onClick={(event) => {
-            event.currentTarget.closest("details")?.removeAttribute("open");
+            if (isOpen) {
+              closeActions();
+              return;
+            }
+
+            const rect = event.currentTarget.getBoundingClientRect();
+            const menuHeight = jobSeeker.resume_url ? 168 : 126;
+            const menuWidth = 144;
+            const openBelow =
+              window.innerHeight - rect.bottom >= menuHeight + 8;
+            setActionsPosition({
+              top: openBelow
+                ? rect.bottom + 8
+                : Math.max(8, rect.top - menuHeight - 8),
+              left: Math.min(
+                Math.max(8, window.innerWidth - menuWidth - 8),
+                Math.max(8, rect.right - menuWidth),
+              ),
+            });
+            setOpenActionsSeekerId(rowId);
+          }}
+          className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
+        >
+          <span
+            aria-hidden="true"
+            className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
+          >
+            ▾
+          </span>
+        </button>
+        {isOpen && actionsPosition && createPortal(
+          <div
+            className="fixed z-[200] max-h-[calc(100vh-1rem)] w-36 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg"
+            style={actionsPosition}
+          >
+        <button
+          type="button"
+          onClick={() => {
+            closeActions();
             setScreeningSeeker(jobSeeker);
           }}
           className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
@@ -349,8 +408,8 @@ export default function JobSeekersModule({
         </button>
         <button
           type="button"
-          onClick={(event) => {
-            event.currentTarget.closest("details")?.removeAttribute("open");
+          onClick={() => {
+            closeActions();
             startEditing(jobSeeker);
           }}
           disabled={!jobSeeker.job_seeker_id || deletingId === jobSeeker.job_seeker_id}
@@ -361,8 +420,8 @@ export default function JobSeekersModule({
         {jobSeeker.resume_url && (
           <button
             type="button"
-            onClick={(event) => {
-              event.currentTarget.closest("details")?.removeAttribute("open");
+            onClick={() => {
+              closeActions();
               void openResume(jobSeeker, rowId);
             }}
             disabled={openingResumeId === rowId}
@@ -373,8 +432,8 @@ export default function JobSeekersModule({
         )}
         <button
           type="button"
-          onClick={(event) => {
-            event.currentTarget.closest("details")?.removeAttribute("open");
+          onClick={() => {
+            closeActions();
             void deleteJobSeeker(jobSeeker);
           }}
           disabled={!jobSeeker.job_seeker_id || deletingId === jobSeeker.job_seeker_id}
@@ -382,9 +441,12 @@ export default function JobSeekersModule({
         >
           {deletingId === jobSeeker.job_seeker_id ? "Deleting..." : "Delete"}
         </button>
+          </div>,
+          document.body,
+        )}
       </div>
-    </details>
-  );
+    );
+  };
 
   return (
     <div className="space-y-5">
