@@ -89,15 +89,6 @@ export default function JobPostsModule({
   EmptyMessage,
   formatDate,
 }: Props) {
-  const activeCount = jobs.filter(
-    (job) => getDisplayStatus(job).toLowerCase() === "active",
-  ).length;
-  const inactiveCount = jobs.filter(
-    (job) => getDisplayStatus(job).toLowerCase() === "inactive",
-  ).length;
-  const closedCount = jobs.filter(
-    (job) => getDisplayStatus(job).toLowerCase() === "closed",
-  ).length;
   const visibleJobs = jobs.filter((job) => {
     const searchText =
       `${getJobTitle(job)} ${getEmployerName(job)} ${job.location || ""}`.toLowerCase();
@@ -112,7 +103,7 @@ export default function JobPostsModule({
     <div className="space-y-5">
       <ModuleHeader
         title="Job Posts"
-        description="View and monitor job vacancies posted by employers."
+        description="View and monitor job vacancies posted by employers and PESO staff/admin."
         onRefresh={onRefresh}
       />
 
@@ -124,55 +115,6 @@ export default function JobPostsModule({
           {loadError}
         </p>
       )}
-
-      <section
-        aria-label="Job post statistics"
-        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
-      >
-        {[
-          {
-            label: "Job posts",
-            value: jobs.length,
-            icon: "briefcase" as const,
-            color: "bg-blue-50 text-blue-700",
-          },
-          {
-            label: "Active",
-            value: activeCount,
-            icon: "check" as const,
-            color: "bg-emerald-50 text-emerald-700",
-          },
-          {
-            label: "Inactive",
-            value: inactiveCount,
-            icon: "clock" as const,
-            color: "bg-amber-50 text-amber-800",
-          },
-          {
-            label: "Closed",
-            value: closedCount,
-            icon: "x" as const,
-            color: "bg-red-50 text-red-700",
-          },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
-          >
-            <span
-              className={`flex h-11 w-11 items-center justify-center rounded-xl ${stat.color}`}
-            >
-              <AppIcon name={stat.icon} className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="text-xs font-medium text-slate-500">{stat.label}</p>
-              <p className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">
-                {stat.value}
-              </p>
-            </div>
-          </div>
-        ))}
-      </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <div className="mb-4">
