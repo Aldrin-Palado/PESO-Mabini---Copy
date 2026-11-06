@@ -178,22 +178,6 @@ function EmployerRegistration({ onBack }: EmployerRegistrationProps) {
                 linkTo={null}
               />
             </div>
-            <div className="mb-6 flex items-center justify-between gap-4">
-              <button
-                type="button"
-                onClick={onBack}
-                disabled={loading}
-                className="inline-flex items-center rounded-full border border-[#D5DEEB] bg-white px-4 py-2 text-sm font-semibold text-[#3156A2] transition hover:border-[#315FEA] hover:bg-[#EEF3FF] hover:text-[#102A4C] disabled:opacity-60"
-              >
-                <AppIcon name="arrowLeft" className="mr-1 inline h-4 w-4" /> Change account type
-              </button>
-              <Link
-                to="/"
-                className="inline-flex items-center rounded-full border border-[#D5DEEB] bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-[#315FEA] hover:bg-[#EEF3FF] hover:text-[#3156A2]"
-              >
-                Back to home
-              </Link>
-            </div>
             <div className="mb-2 flex items-center justify-between text-xs text-slate-500">
               <span>Step {step + 1} of 4</span>
               <span>{registrationSteps[step].title}</span>
