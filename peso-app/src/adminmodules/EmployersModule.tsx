@@ -148,16 +148,6 @@ export default function EmployersModule({
     if (appliedStatusFilter === "all") return true;
     return getVerificationStatus(employer) === appliedStatusFilter;
   });
-  const verifiedCount = employers.filter(
-    (employer) => getVerificationStatus(employer) === "verified",
-  ).length;
-  const pendingCount = employers.filter(
-    (employer) => getVerificationStatus(employer) === "pending",
-  ).length;
-  const notApprovedCount = employers.filter(
-    (employer) => getVerificationStatus(employer) === "not_approved",
-  ).length;
-
   const startEditing = (employer: Employer) => {
     setActionError("");
     setEditingEmployer(employer);
@@ -363,50 +353,6 @@ export default function EmployersModule({
           {actionError}
         </p>
       )}
-
-      <section aria-label="Employer statistics" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          {
-            label: "Total employers",
-            value: employers.length,
-            icon: "building" as const,
-            color: "bg-blue-50 text-blue-700",
-          },
-          {
-            label: "Verified",
-            value: verifiedCount,
-            icon: "check" as const,
-            color: "bg-emerald-50 text-emerald-700",
-          },
-          {
-            label: "Pending",
-            value: pendingCount,
-            icon: "clock" as const,
-            color: "bg-amber-50 text-amber-700",
-          },
-          {
-            label: "Not approved",
-            value: notApprovedCount,
-            icon: "x" as const,
-            color: "bg-red-50 text-red-700",
-          },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
-          >
-            <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${stat.color}`}>
-              <AppIcon name={stat.icon} className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="text-xs font-medium text-slate-500">{stat.label}</p>
-              <p className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">
-                {stat.value}
-              </p>
-            </div>
-          </div>
-        ))}
-      </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <div className="mb-4">
@@ -710,30 +656,6 @@ export default function EmployersModule({
               <div className="flex shrink-0 items-center gap-2">
                 <button
                     type="button"
-                    onClick={() =>
-                      downloadCsv(
-                        `${(detailsEmployer.name ||
-                          detailsEmployer.company_name ||
-                          detailsEmployer.business_name ||
-                          "employer")
-                          .toLowerCase()
-                          .replace(/[^a-z0-9]+/g, "-")
-                          .replace(/^-|-$/g, "")}-details.csv`,
-                        Object.entries(detailsEmployer)
-                          .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-                          .map(([key, value]) => ({
-                            section: "Employer Profile",
-                            label: formatDetailLabel(key),
-                            value: formatDetailValue(value),
-                          })),
-                      )
-                    }
-                    className="rounded-lg bg-[#0759AE] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#064A91]"
-                >
-                    Export CSV
-                </button>
-                <button
-                    type="button"
                     onClick={() => setDetailsEmployer(null)}
                     aria-label="Close employer details"
                     className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
@@ -775,6 +697,31 @@ export default function EmployersModule({
                 );
               })}
             </dl>
+            <footer className="flex justify-end border-t border-slate-200 px-5 py-4 sm:px-6">
+              <button
+                type="button"
+                onClick={() =>
+                  downloadCsv(
+                    `${(detailsEmployer.name ||
+                      detailsEmployer.company_name ||
+                      detailsEmployer.business_name ||
+                      "employer")
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, "-")
+                      .replace(/^-|-$/g, "")}-details.csv`,
+                    Object.entries(detailsEmployer)
+                      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+                      .map(([key, value]) => ({
+                        label: formatDetailLabel(key),
+                        value: formatDetailValue(value),
+                      })),
+                  )
+                }
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                Export CSV
+              </button>
+            </footer>
           </section>
         </div>
       )}

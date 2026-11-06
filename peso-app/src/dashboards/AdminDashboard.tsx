@@ -49,6 +49,7 @@ type Permissions = {
   employers: boolean;
   job_seekers: boolean;
   notifications: boolean;
+  peso_posts: boolean;
 };
 
 type AuditLog = {
@@ -173,6 +174,24 @@ type Announcement = {
   created_at: string;
 };
 
+type DashboardMetric = {
+  label: string;
+  value: number;
+};
+
+type DashboardStats = Partial<Record<AdminModule, DashboardMetric[]>>;
+
+async function getDashboardCount(
+  query: PromiseLike<{
+    count: number | null;
+    error: { message: string } | null;
+  }>,
+): Promise<number> {
+  const { count, error } = await query;
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
 /* ============================================================
    MAIN DASHBOARD
 ============================================================ */
@@ -195,6 +214,8 @@ export default function AdminDashboard() {
     employers: 0,
     jobSeekers: 0,
   });
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({});
+  const [dashboardStatsError, setDashboardStatsError] = useState("");
 
   const [auditLogs, setAuditLogs] =
     useState<AuditLog[]>([]);
@@ -306,10 +327,13 @@ export default function AdminDashboard() {
   ============================================================ */
 
   useEffect(() => {
-    if (account) {
+    if (
+      account &&
+      (account.role === "superadmin" || permissions.includes("Dashboard"))
+    ) {
       loadDashboardCounts();
     }
-  }, [account]);
+  }, [account, permissions]);
 
   /* ============================================================
      LOAD MODULE DATA
@@ -525,7 +549,8 @@ export default function AdminDashboard() {
             job_application,
             employers,
             job_seekers,
-            notifications
+            notifications,
+            peso_posts
             `
           )
           .eq(
@@ -611,6 +636,9 @@ export default function AdminDashboard() {
 
     if (permission.notifications) {
       result.push("Announcement");
+    }
+
+    if (permission.peso_posts) {
       result.push("PESO Posts");
     }
 
@@ -726,55 +754,220 @@ export default function AdminDashboard() {
   ============================================================ */
 
   const loadDashboardCounts = async () => {
+    if (!account) return;
+
     try {
-      const [
-        jobsResult,
-        applicationsResult,
-        employersResult,
-        jobSeekersResult,
-      ] = await Promise.all([
-        supabase
-          .from("job_vacancy")
-          .select("*", {
-            count: "exact",
-            head: true,
-          }),
+      const accessibleModules =
+        account.role === "superadmin"
+          ? [
+              "Job Post",
+              "Applications",
+              "Employers",
+              "Job Seekers",
+              "Announcement",
+              "PESO Posts",
+            ]
+          : permissions;
+      const nextStats: DashboardStats = {};
+      const statTasks: Promise<void>[] = [];
 
-        supabase
-          .from("application")
-          .select("*", {
-            count: "exact",
-            head: true,
-          }),
+      if (accessibleModules.includes("Job Post")) {
+        statTasks.push(
+          (async () => {
+            const [total, open, draft, closed] = await Promise.all([
+              getDashboardCount(
+                supabase
+                  .from("job_vacancy")
+                  .select("*", { count: "exact", head: true }),
+              ),
+              getDashboardCount(
+                supabase
+                  .from("job_vacancy")
+                  .select("*", { count: "exact", head: true })
+                  .eq("status", "open"),
+              ),
+              getDashboardCount(
+                supabase
+                  .from("job_vacancy")
+                  .select("*", { count: "exact", head: true })
+                  .eq("status", "draft"),
+              ),
+              getDashboardCount(
+                supabase
+                  .from("job_vacancy")
+                  .select("*", { count: "exact", head: true })
+                  .eq("status", "closed"),
+              ),
+            ]);
+            nextStats["Job Post"] = [
+              { label: "Total job posts", value: total },
+              { label: "Open", value: open },
+              { label: "Draft", value: draft },
+              { label: "Closed", value: closed },
+            ];
+          })(),
+        );
+      }
 
-        supabase
-          .from("employer")
-          .select("*", {
-            count: "exact",
-            head: true,
-          }),
+      if (accessibleModules.includes("Applications")) {
+        statTasks.push(
+          (async () => {
+            const statuses = [
+              ["pending", "Pending"],
+              ["under_review", "Under Review"],
+              ["shortlisted", "Shortlisted"],
+              ["interview", "Interview"],
+              ["hired", "Hired"],
+              ["rejected", "Rejected"],
+              ["withdrawn", "Withdrawn"],
+            ] as const;
+            const [total, ...statusCounts] = await Promise.all([
+              getDashboardCount(
+                supabase
+                  .from("application")
+                  .select("*", { count: "exact", head: true }),
+              ),
+              ...statuses.map(([status]) =>
+                getDashboardCount(
+                  supabase
+                    .from("application")
+                    .select("*", { count: "exact", head: true })
+                    .eq("status", status),
+                ),
+              ),
+            ]);
+            nextStats.Applications = [
+              { label: "Total applications", value: total },
+              ...statuses.map(([_, label], index) => ({
+                label,
+                value: statusCounts[index],
+              })),
+            ];
+          })(),
+        );
+      }
 
-        supabase
-          .from("job_seeker")
-          .select("*", {
-            count: "exact",
-            head: true,
-          }),
-      ]);
+      if (accessibleModules.includes("Employers")) {
+        statTasks.push(
+          (async () => {
+            const [total, verified, pending, notApproved] = await Promise.all([
+              getDashboardCount(
+                supabase
+                  .from("employer")
+                  .select("*", { count: "exact", head: true }),
+              ),
+              getDashboardCount(
+                supabase
+                  .from("employer")
+                  .select("*", { count: "exact", head: true })
+                  .eq("verification_status", "verified"),
+              ),
+              getDashboardCount(
+                supabase
+                  .from("employer")
+                  .select("*", { count: "exact", head: true })
+                  .eq("verification_status", "pending"),
+              ),
+              getDashboardCount(
+                supabase
+                  .from("employer")
+                  .select("*", { count: "exact", head: true })
+                  .eq("verification_status", "not_approved"),
+              ),
+            ]);
+            nextStats.Employers = [
+              { label: "Total employers", value: total },
+              { label: "Verified", value: verified },
+              { label: "Pending", value: pending },
+              { label: "Not approved", value: notApproved },
+            ];
+          })(),
+        );
+      }
 
-      setCounts({
-        jobs: jobsResult.count ?? 0,
-        applications:
-          applicationsResult.count ?? 0,
-        employers:
-          employersResult.count ?? 0,
-        jobSeekers:
-          jobSeekersResult.count ?? 0,
-      });
+      if (accessibleModules.includes("Job Seekers")) {
+        statTasks.push(
+          (async () => {
+            const [total, applications] = await Promise.all([
+              getDashboardCount(
+                supabase
+                  .from("job_seeker")
+                  .select("*", { count: "exact", head: true }),
+              ),
+              getDashboardCount(
+                supabase
+                  .from("application")
+                  .select("*", { count: "exact", head: true }),
+              ),
+            ]);
+            nextStats["Job Seekers"] = [
+              { label: "Registered job seekers", value: total },
+              { label: "Active", value: total },
+              { label: "Inactive", value: 0 },
+              { label: "Applications submitted", value: applications },
+            ];
+          })(),
+        );
+      }
+
+      if (accessibleModules.includes("Announcement")) {
+        statTasks.push(
+          (async () => {
+            const total = await getDashboardCount(
+              supabase
+                .from("peso_announcements")
+                .select("*", { count: "exact", head: true }),
+            );
+            nextStats.Announcement = [
+              { label: "Total announcements", value: total },
+            ];
+          })(),
+        );
+      }
+
+      if (accessibleModules.includes("PESO Posts")) {
+        statTasks.push(
+          (async () => {
+            const [total, published, draft] = await Promise.all([
+              getDashboardCount(
+                supabase
+                  .from("peso_posts")
+                  .select("*", { count: "exact", head: true }),
+              ),
+              getDashboardCount(
+                supabase
+                  .from("peso_posts")
+                  .select("*", { count: "exact", head: true })
+                  .eq("status", "published"),
+              ),
+              getDashboardCount(
+                supabase
+                  .from("peso_posts")
+                  .select("*", { count: "exact", head: true })
+                  .eq("status", "draft"),
+              ),
+            ]);
+            nextStats["PESO Posts"] = [
+              { label: "Total posts", value: total },
+              { label: "Published", value: published },
+              { label: "Drafts", value: draft },
+            ];
+          })(),
+        );
+      }
+
+      await Promise.all(statTasks);
+      setDashboardStats(nextStats);
+      setDashboardStatsError("");
     } catch (error) {
       console.error(
         "Dashboard count error:",
         error
+      );
+      setDashboardStatsError(
+        error instanceof Error
+          ? error.message
+          : "Unable to load dashboard statistics.",
       );
     }
   };
@@ -1520,7 +1713,9 @@ export default function AdminDashboard() {
       case "Dashboard":
         return (
           <DashboardModule
-            counts={counts}
+            stats={dashboardStats}
+            permissions={permissions}
+            statsError={dashboardStatsError}
             account={account}
             logs={auditLogs}
             onRefresh={() => {

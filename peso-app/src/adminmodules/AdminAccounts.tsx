@@ -30,6 +30,7 @@ type Permissions = {
   employers: boolean;
   job_seekers: boolean;
   notifications: boolean;
+  peso_posts: boolean;
 };
 
 const permissionList = [
@@ -59,7 +60,11 @@ const permissionList = [
   },
   {
     key: "notifications",
-    label: "Announcement",
+    label: "Announcements",
+  },
+  {
+    key: "peso_posts",
+    label: "PESO Posts",
   },
 ] as const;
 
@@ -75,6 +80,7 @@ const defaultStaffPermissions: StaffPermissionValues = {
   employers: false,
   job_seekers: false,
   notifications: false,
+  peso_posts: false,
 };
 
 type StaffActionsPosition = {
@@ -456,6 +462,7 @@ export default function AdminAccounts() {
         employers: false,
         job_seekers: false,
         notifications: false,
+        peso_posts: false,
       });
     }
   };
@@ -513,6 +520,9 @@ export default function AdminAccounts() {
 
           notifications:
             permissions.notifications,
+
+          peso_posts:
+            permissions.peso_posts,
 
           updated_at:
             new Date().toISOString(),

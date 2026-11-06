@@ -403,9 +403,6 @@ export default function PESOPosts() {
     const matchesStatus = statusFilter === "All" || post.status === statusFilter;
     return matchesSearch && matchesCategory && matchesStatus;
   });
-  const publishedCount = posts.filter((post) => post.status === "published").length;
-  const draftCount = posts.length - publishedCount;
-
   return (
     <div className="space-y-6">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -439,19 +436,6 @@ export default function PESOPosts() {
           {notice}
         </p>
       )}
-
-      <section aria-label="Post statistics" className="grid gap-4 sm:grid-cols-3">
-        {[
-          { label: "Total posts", value: posts.length, color: "text-[#123B70]" },
-          { label: "Published", value: publishedCount, color: "text-green-600" },
-          { label: "Drafts", value: draftCount, color: "text-orange-500" },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-            <p className="text-sm text-gray-500">{stat.label}</p>
-            <p className={`mt-2 text-3xl font-bold ${stat.color}`}>{stat.value}</p>
-          </div>
-        ))}
-      </section>
 
       {showForm && (
         <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm md:p-7">

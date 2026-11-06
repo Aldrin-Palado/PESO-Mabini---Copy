@@ -1,5 +1,4 @@
 export type CsvExportRow = {
-  section: string;
   label: string;
   value: unknown;
 };
@@ -21,12 +20,8 @@ function escapeCsvCell(value: string): string {
 
 export function downloadCsv(filename: string, rows: CsvExportRow[]): void {
   const csv = [
-    ["Section", "Field", "Value"],
-    ...rows.map(({ section, label, value }) => [
-      section,
-      label,
-      formatCsvValue(value),
-    ]),
+    ["Field", "Value"],
+    ...rows.map(({ label, value }) => [label, formatCsvValue(value)]),
   ]
     .map((row) => row.map(escapeCsvCell).join(","))
     .join("\r\n")

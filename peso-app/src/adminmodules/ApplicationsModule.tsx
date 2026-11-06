@@ -151,15 +151,6 @@ export default function ApplicationsModule({
     [applications],
   );
 
-  const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const application of applications) {
-      const status = getApplicationStatus(application);
-      counts[status] = (counts[status] || 0) + 1;
-    }
-    return counts;
-  }, [applications]);
-
   const visibleApplications = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
     return applications.filter((application) => {
@@ -365,7 +356,7 @@ export default function ApplicationsModule({
                 statusFilter === status.value ? "ring-2 ring-blue-500 ring-offset-1" : ""
               }`}
             >
-              {status.label}: {statusCounts[status.value] || 0}
+              {status.label}
             </button>
           ))}
         </div>

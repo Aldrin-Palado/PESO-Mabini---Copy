@@ -10,12 +10,12 @@ type Account = {
   role: "superadmin" | "staff";
 };
 
-type DashboardCounts = {
-  jobs: number;
-  applications: number;
-  employers: number;
-  jobSeekers: number;
+type DashboardMetric = {
+  label: string;
+  value: number;
 };
+
+type DashboardStats = Partial<Record<AdminModule, DashboardMetric[]>>;
 
 type ActivityLog = {
   log_id: string;
@@ -25,79 +25,14 @@ type ActivityLog = {
 };
 
 type Props = {
-  counts: DashboardCounts;
+  stats: DashboardStats;
+  permissions: AdminModule[];
+  statsError?: string;
   account: Account | null;
   logs: ActivityLog[];
   onRefresh: () => void;
   onNavigate: (page: AdminModule) => void;
 };
-
-const metrics = [
-  {
-    key: "jobs",
-    title: "Job Posts",
-    description: "Posted opportunities",
-    icon: "briefcase",
-    iconStyle: "bg-cyan-100 text-cyan-700",
-  },
-  {
-    key: "applications",
-    title: "Applications",
-    description: "Applications received",
-    icon: "document",
-    iconStyle: "bg-blue-100 text-blue-700",
-  },
-  {
-    key: "employers",
-    title: "Employers",
-    description: "Registered employers",
-    icon: "building",
-    iconStyle: "bg-amber-100 text-amber-700",
-  },
-  {
-    key: "jobSeekers",
-    title: "Job Seekers",
-    description: "Registered job seekers",
-    icon: "people",
-    iconStyle: "bg-rose-100 text-rose-700",
-  },
-] as const;
-
-function ActivityIcon({ type }: { type: string }) {
-  const iconClass = "h-5 w-5";
-
-  if (type === "briefcase") {
-    return (
-      <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <rect x="3" y="7" width="18" height="14" rx="2" strokeWidth="1.8" />
-        <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18m-11 0v2h4v-2" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
-      </svg>
-    );
-  }
-
-  if (type === "document") {
-    return (
-      <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M7 3h7l5 5v13H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" strokeLinejoin="round" strokeWidth="1.8" />
-        <path d="M14 3v5h5M9 13h6m-6 4h6" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
-      </svg>
-    );
-  }
-
-  if (type === "building") {
-    return (
-      <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M3 21h18M5 21V7l7-4 7 4v14M9 10h.01M15 10h.01M9 14h.01M15 14h.01M10 21v-4h4v4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2m16 0v-2a4 4 0 0 0-3-3.87M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7-8.87a4 4 0 0 1 0 7.75" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
-    </svg>
-  );
-}
 
 function formatActivityDate(date: string) {
   return new Intl.DateTimeFormat(undefined, {
@@ -107,13 +42,23 @@ function formatActivityDate(date: string) {
 }
 
 export default function DashboardModule({
-  counts,
+  stats,
+  permissions,
+  statsError,
   account,
   logs,
   onRefresh,
   onNavigate,
 }: Props) {
   const displayName = account?.full_name.trim().split(/\s+/)[0] || "there";
+  const sections: AdminModule[] = [
+    "Job Post",
+    "Applications",
+    "Employers",
+    "Job Seekers",
+    "Announcement",
+    "PESO Posts",
+  ];
 
   return (
     <div className="space-y-7">
@@ -141,23 +86,48 @@ export default function DashboardModule({
         </button>
       </section>
 
-      <section aria-label="PESO MABINI service totals" className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <article
-            key={metric.key}
-            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${metric.iconStyle}`}>
-              <ActivityIcon type={metric.icon} />
-            </div>
-            <p className="mt-5 text-3xl font-bold tracking-tight text-slate-950">
-              {counts[metric.key]}
-            </p>
-            <h4 className="mt-1 font-semibold text-slate-800">{metric.title}</h4>
-            <p className="mt-1 text-sm text-slate-500">{metric.description}</p>
-          </article>
-        ))}
-      </section>
+      {statsError && (
+        <p
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+        >
+          Dashboard statistics could not be loaded: {statsError}
+        </p>
+      )}
+
+      <div className="space-y-6">
+        {sections.map((section) => {
+          const sectionStats = stats[section];
+          if (!permissions.includes(section) || !sectionStats?.length) return null;
+
+          return (
+            <section
+              key={section}
+              aria-label={`${section} statistics`}
+              className="space-y-3"
+            >
+              <h4 className="border-b border-slate-200 pb-2 text-base font-bold text-slate-800">
+                {section}
+              </h4>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {sectionStats.map((metric) => (
+                  <article
+                    key={metric.label}
+                    className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                  >
+                    <p className="text-sm font-medium text-slate-500">
+                      {metric.label}
+                    </p>
+                    <p className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
+                      {metric.value}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          );
+        })}
+      </div>
 
       {account?.role === "superadmin" && (
         <section className="flex flex-col gap-5 rounded-xl border border-blue-100 bg-blue-50/70 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">

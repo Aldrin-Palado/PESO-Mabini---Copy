@@ -260,16 +260,6 @@ export default function JobSeekersModule({
       (appliedGenderFilter === "all" || gender === appliedGenderFilter)
     );
   });
-  const activeCount = jobSeekers.filter(
-    (jobSeeker) => jobSeeker.is_active !== false,
-  ).length;
-  const inactiveCount = jobSeekers.length - activeCount;
-  const applicationCount = jobSeekers.reduce(
-    (total, jobSeeker) =>
-      total + (applicationCounts[jobSeeker.job_seeker_id || ""] ?? 0),
-    0,
-  );
-
   const startEditing = (jobSeeker: JobSeeker) => {
     setActionError("");
     setEditingSeeker(jobSeeker);
@@ -468,25 +458,6 @@ export default function JobSeekersModule({
           {actionError}
         </p>
       )}
-
-      <section aria-label="Job seeker statistics" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          { label: "Registered job seekers", value: jobSeekers.length, icon: "users" as const, color: "bg-blue-50 text-blue-700" },
-          { label: "Active", value: activeCount, icon: "check" as const, color: "bg-emerald-50 text-emerald-700" },
-          { label: "Inactive", value: inactiveCount, icon: "x" as const, color: "bg-red-50 text-red-700" },
-          { label: "Applications submitted", value: applicationCount, icon: "file" as const, color: "bg-amber-50 text-amber-800" },
-        ].map((stat) => (
-          <div key={stat.label} className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
-            <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${stat.color}`}>
-              <AppIcon name={stat.icon} className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="text-xs font-medium text-slate-500">{stat.label}</p>
-              <p className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">{stat.value}</p>
-            </div>
-          </div>
-        ))}
-      </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <div className="mb-4">
@@ -905,64 +876,6 @@ function ScreeningModal({
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
-              onClick={() =>
-                downloadCsv(
-                  `${getSeekerName(jobSeeker)
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, "-")
-                    .replace(/^-|-$/g, "")}-details.csv`,
-                  [
-                    {
-                      section: "Profile",
-                      label: "Full Name",
-                      value: getSeekerName(jobSeeker),
-                    },
-                    {
-                      section: "Profile",
-                      label: "Email",
-                      value: jobSeeker.email,
-                    },
-                    {
-                      section: "Profile",
-                      label: "Contact Number",
-                      value: jobSeeker.contact_no || jobSeeker.phone,
-                    },
-                    {
-                      section: "Profile",
-                      label: "Present Address",
-                      value: jobSeeker.address || details.presentAddress,
-                    },
-                    { section: "Profile", label: "Status", value: status },
-                    {
-                      section: "Profile",
-                      label: "Registered On",
-                      value: jobSeeker.created_at
-                        ? new Date(jobSeeker.created_at).toLocaleString()
-                        : "-",
-                    },
-                    {
-                      section: "Profile",
-                      label: "Resume",
-                      value: jobSeeker.resume_url
-                        ? "Uploaded"
-                        : "Not uploaded",
-                    },
-                    ...detailFields.flatMap((group) =>
-                      group.fields.map((field) => ({
-                        section: group.section,
-                        label: field.label,
-                        value: details[field.key],
-                      })),
-                    ),
-                  ],
-                )
-              }
-              className="rounded-lg bg-[#0759AE] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#064A91]"
-            >
-              Export CSV
-            </button>
-            <button
-              type="button"
               onClick={onClose}
               aria-label="Close screening details"
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-100"
@@ -1028,6 +941,56 @@ function ScreeningModal({
               </section>
             ))
           )}
+          <div className="flex justify-end border-t border-slate-200 pt-4">
+            <button
+              type="button"
+              onClick={() =>
+                downloadCsv(
+                  `${getSeekerName(jobSeeker)
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, "-")
+                    .replace(/^-|-$/g, "")}-details.csv`,
+                  [
+                    {
+                      label: "Full Name",
+                      value: getSeekerName(jobSeeker),
+                    },
+                    { label: "Email", value: jobSeeker.email },
+                    {
+                      label: "Contact Number",
+                      value: jobSeeker.contact_no || jobSeeker.phone,
+                    },
+                    {
+                      label: "Present Address",
+                      value: jobSeeker.address || details.presentAddress,
+                    },
+                    { label: "Status", value: status },
+                    {
+                      label: "Registered On",
+                      value: jobSeeker.created_at
+                        ? new Date(jobSeeker.created_at).toLocaleString()
+                        : "-",
+                    },
+                    {
+                      label: "Resume",
+                      value: jobSeeker.resume_url
+                        ? "Uploaded"
+                        : "Not uploaded",
+                    },
+                    ...detailFields.flatMap((group) =>
+                      group.fields.map((field) => ({
+                        label: `${group.section} - ${field.label}`,
+                        value: details[field.key],
+                      })),
+                    ),
+                  ],
+                )
+              }
+              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              Export CSV
+            </button>
+          </div>
         </div>
       </div>
     </div>
