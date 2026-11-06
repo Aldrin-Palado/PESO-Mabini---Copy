@@ -89,6 +89,7 @@ function isEmployerVerificationStatus(
 function formatDetailLabel(key: string): string {
   return key
     .replace(/_/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
@@ -711,11 +712,20 @@ export default function EmployersModule({
                     type="button"
                     onClick={() =>
                       downloadCsv(
-                        "employer-details.csv",
-                        Object.entries(detailsEmployer).map(([key, value]) => ({
-                          label: formatDetailLabel(key),
-                          value: formatDetailValue(value),
-                        })),
+                        `${(detailsEmployer.name ||
+                          detailsEmployer.company_name ||
+                          detailsEmployer.business_name ||
+                          "employer")
+                          .toLowerCase()
+                          .replace(/[^a-z0-9]+/g, "-")
+                          .replace(/^-|-$/g, "")}-details.csv`,
+                        Object.entries(detailsEmployer)
+                          .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+                          .map(([key, value]) => ({
+                            section: "Employer Profile",
+                            label: formatDetailLabel(key),
+                            value: formatDetailValue(value),
+                          })),
                       )
                     }
                     className="rounded-lg bg-[#0759AE] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#064A91]"

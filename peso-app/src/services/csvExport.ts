@@ -1,4 +1,5 @@
 export type CsvExportRow = {
+  section: string;
   label: string;
   value: unknown;
 };
@@ -6,7 +7,10 @@ export type CsvExportRow = {
 function formatCsvValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "";
   if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (typeof value === "object") return JSON.stringify(value);
+  if (Array.isArray(value)) {
+    return value.map(formatCsvValue).filter(Boolean).join(", ");
+  }
+  if (typeof value === "object") return JSON.stringify(value, null, 2);
   return String(value);
 }
 
@@ -17,11 +21,16 @@ function escapeCsvCell(value: string): string {
 
 export function downloadCsv(filename: string, rows: CsvExportRow[]): void {
   const csv = [
-    ["Field", "Value"],
-    ...rows.map(({ label, value }) => [label, formatCsvValue(value)]),
+    ["Section", "Field", "Value"],
+    ...rows.map(({ section, label, value }) => [
+      section,
+      label,
+      formatCsvValue(value),
+    ]),
   ]
     .map((row) => row.map(escapeCsvCell).join(","))
-    .join("\r\n");
+    .join("\r\n")
+    .concat("\r\n");
   const blob = new Blob(["\uFEFF", csv], {
     type: "text/csv;charset=utf-8",
   });

@@ -906,35 +906,56 @@ function ScreeningModal({
             <button
               type="button"
               onClick={() =>
-                downloadCsv("job-seeker-details.csv", [
-                  { label: "Full Name", value: getSeekerName(jobSeeker) },
-                  { label: "Email", value: jobSeeker.email },
-                  {
-                    label: "Contact Number",
-                    value: jobSeeker.contact_no || jobSeeker.phone,
-                  },
-                  {
-                    label: "Present Address",
-                    value: jobSeeker.address || details.presentAddress,
-                  },
-                  { label: "Status", value: status },
-                  {
-                    label: "Registered On",
-                    value: jobSeeker.created_at
-                      ? new Date(jobSeeker.created_at).toLocaleString()
-                      : "-",
-                  },
-                  {
-                    label: "Resume",
-                    value: jobSeeker.resume_url ? "Uploaded" : "Not uploaded",
-                  },
-                  ...detailFields.flatMap((group) =>
-                    group.fields.map((field) => ({
-                      label: `${group.section} - ${field.label}`,
-                      value: details[field.key],
-                    })),
-                  ),
-                ])
+                downloadCsv(
+                  `${getSeekerName(jobSeeker)
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, "-")
+                    .replace(/^-|-$/g, "")}-details.csv`,
+                  [
+                    {
+                      section: "Profile",
+                      label: "Full Name",
+                      value: getSeekerName(jobSeeker),
+                    },
+                    {
+                      section: "Profile",
+                      label: "Email",
+                      value: jobSeeker.email,
+                    },
+                    {
+                      section: "Profile",
+                      label: "Contact Number",
+                      value: jobSeeker.contact_no || jobSeeker.phone,
+                    },
+                    {
+                      section: "Profile",
+                      label: "Present Address",
+                      value: jobSeeker.address || details.presentAddress,
+                    },
+                    { section: "Profile", label: "Status", value: status },
+                    {
+                      section: "Profile",
+                      label: "Registered On",
+                      value: jobSeeker.created_at
+                        ? new Date(jobSeeker.created_at).toLocaleString()
+                        : "-",
+                    },
+                    {
+                      section: "Profile",
+                      label: "Resume",
+                      value: jobSeeker.resume_url
+                        ? "Uploaded"
+                        : "Not uploaded",
+                    },
+                    ...detailFields.flatMap((group) =>
+                      group.fields.map((field) => ({
+                        section: group.section,
+                        label: field.label,
+                        value: details[field.key],
+                      })),
+                    ),
+                  ],
+                )
               }
               className="rounded-lg bg-[#0759AE] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#064A91]"
             >
