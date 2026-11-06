@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "../services/supabase";
 import AppIcon from "../components/AppIcon";
 import ProfileAvatar from "../components/ProfileAvatar";
@@ -74,6 +75,11 @@ const defaultStaffPermissions: StaffPermissionValues = {
   employers: false,
   job_seekers: false,
   notifications: false,
+};
+
+type StaffActionsPosition = {
+  top: number;
+  left: number;
 };
 
 async function logStaffAccountCreation(
@@ -168,6 +174,8 @@ export default function AdminAccounts() {
   const [savingStaff, setSavingStaff] = useState(false);
   const [updatingStaffStatusId, setUpdatingStaffStatusId] = useState<string | null>(null);
   const [openActionsStaffId, setOpenActionsStaffId] = useState<string | null>(null);
+  const [staffActionsPosition, setStaffActionsPosition] =
+    useState<StaffActionsPosition | null>(null);
   const [actionError, setActionError] = useState("");
   const [staffStatusFilter, setStaffStatusFilter] =
     useState<StaffStatusFilter>("all");
@@ -177,6 +185,22 @@ export default function AdminAccounts() {
     if (staffStatusFilter === "deactivated") return !account.is_active;
     return true;
   });
+
+  useEffect(() => {
+    if (!openActionsStaffId) return;
+
+    const closeOnViewportChange = () => {
+      setOpenActionsStaffId(null);
+      setStaffActionsPosition(null);
+    };
+
+    window.addEventListener("scroll", closeOnViewportChange, true);
+    window.addEventListener("resize", closeOnViewportChange);
+    return () => {
+      window.removeEventListener("scroll", closeOnViewportChange, true);
+      window.removeEventListener("resize", closeOnViewportChange);
+    };
+  }, [openActionsStaffId]);
 
   /* =====================================================
      LOAD STAFF
@@ -620,10 +644,13 @@ export default function AdminAccounts() {
     setUpdatingStaffStatusId(null);
   };
 
-  const renderStaffActions = (account: Staff, openUpward: boolean) => {
+  const renderStaffActions = (account: Staff) => {
     const isOpen = openActionsStaffId === account.peso_staff_id;
     const isUpdating = updatingStaffStatusId === account.peso_staff_id;
-    const closeActions = () => setOpenActionsStaffId(null);
+    const closeActions = () => {
+      setOpenActionsStaffId(null);
+      setStaffActionsPosition(null);
+    };
 
     return (
       <div className="relative inline-block text-left">
@@ -631,9 +658,28 @@ export default function AdminAccounts() {
           type="button"
           aria-label={`Show actions for ${account.full_name}`}
           aria-expanded={isOpen}
-          onClick={() =>
-            setOpenActionsStaffId(isOpen ? null : account.peso_staff_id)
-          }
+          onClick={(event) => {
+            if (isOpen) {
+              closeActions();
+              return;
+            }
+
+            const rect = event.currentTarget.getBoundingClientRect();
+            const menuHeight = 126;
+            const menuWidth = 144;
+            const openBelow =
+              window.innerHeight - rect.bottom >= menuHeight + 8;
+            setStaffActionsPosition({
+              top: openBelow
+                ? rect.bottom + 8
+                : Math.max(8, rect.top - menuHeight - 8),
+              left: Math.min(
+                Math.max(8, window.innerWidth - menuWidth - 8),
+                Math.max(8, rect.right - menuWidth),
+              ),
+            });
+            setOpenActionsStaffId(account.peso_staff_id);
+          }}
           className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-white text-xs text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
         >
           <span
@@ -643,11 +689,11 @@ export default function AdminAccounts() {
             ▾
           </span>
         </button>
-        {isOpen && (
+        {isOpen && staffActionsPosition && createPortal(
           <div
-            className={`absolute right-0 z-30 min-w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg ${
-              openUpward ? "bottom-full mb-2" : "top-full mt-2"
-            }`}
+            id={`staff-actions-${account.peso_staff_id}`}
+            className="fixed z-[200] w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg"
+            style={staffActionsPosition}
           >
             <button
               type="button"
@@ -690,7 +736,8 @@ export default function AdminAccounts() {
                   ? "Deactivate"
                   : "Activate"}
             </button>
-          </div>
+          </div>,
+          document.body,
         )}
       </div>
     );
@@ -1030,7 +1077,7 @@ export default function AdminAccounts() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredStaff.map((account, index) => (
+                {filteredStaff.map((account) => (
                   <tr
                     key={account.peso_staff_id}
                     className="align-middle hover:bg-slate-50"
@@ -1079,10 +1126,7 @@ export default function AdminAccounts() {
                       </span>
                     </td>
                     <td className="px-2 py-2">
-                      {renderStaffActions(
-                        account,
-                        index >= filteredStaff.length - 2,
-                      )}
+                      {renderStaffActions(account)}
                     </td>
                   </tr>
                 ))}
