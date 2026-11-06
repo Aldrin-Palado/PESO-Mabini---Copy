@@ -1,4 +1,5 @@
 import type { AdminModule } from "../components/AdminSidebar";
+import AppIcon, { type AppIconName } from "../components/AppIcon";
 
 type Account = {
   id: string;
@@ -16,6 +17,46 @@ type DashboardMetric = {
 };
 
 type DashboardStats = Partial<Record<AdminModule, DashboardMetric[]>>;
+type ScoreboardModule = Extract<
+  AdminModule,
+  "Job Post" | "Applications" | "Employers" | "Job Seekers" | "Announcement" | "PESO Posts"
+>;
+
+const sectionDesign: Record<
+  ScoreboardModule,
+  { title: string; description: string; icon: AppIconName }
+> = {
+  "Job Post": {
+    title: "Job Posts",
+    description: "Vacancy status and availability",
+    icon: "briefcase",
+  },
+  Applications: {
+    title: "Applications",
+    description: "Applicant progress at a glance",
+    icon: "file",
+  },
+  Employers: {
+    title: "Employers",
+    description: "Employer registrations and verification",
+    icon: "building",
+  },
+  "Job Seekers": {
+    title: "Job Seekers",
+    description: "Job seeker registrations and activity",
+    icon: "users",
+  },
+  Announcement: {
+    title: "Announcements",
+    description: "Updates shared with the community",
+    icon: "bell",
+  },
+  "PESO Posts": {
+    title: "PESO Posts",
+    description: "Official programs, events, and updates",
+    icon: "megaphone",
+  },
+};
 
 type ActivityLog = {
   log_id: string;
@@ -51,7 +92,7 @@ export default function DashboardModule({
   onNavigate,
 }: Props) {
   const displayName = account?.full_name.trim().split(/\s+/)[0] || "there";
-  const sections: AdminModule[] = [
+  const sections: ScoreboardModule[] = [
     "Job Post",
     "Applications",
     "Employers",
@@ -104,21 +145,38 @@ export default function DashboardModule({
             <section
               key={section}
               aria-label={`${section} statistics`}
-              className="space-y-3"
+              className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
             >
-              <h4 className="border-b border-slate-200 pb-2 text-base font-bold text-slate-800">
-                {section}
-              </h4>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <header className="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-blue-50/80 to-white px-4 py-4 sm:px-5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0759AE] text-white shadow-sm shadow-blue-900/10">
+                  <AppIcon name={sectionDesign[section].icon} className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <h4 className="font-bold text-slate-900">
+                    {sectionDesign[section].title}
+                  </h4>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {sectionDesign[section].description}
+                  </p>
+                </div>
+                <span className="ml-auto hidden rounded-full border border-blue-100 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#3156A2] sm:inline-flex">
+                  Overview
+                </span>
+              </header>
+              <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-4">
                 {sectionStats.map((metric) => (
                   <article
                     key={metric.label}
-                    className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                    className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50/70 p-4 transition hover:border-blue-200 hover:bg-blue-50/50"
                   >
-                    <p className="text-sm font-medium text-slate-500">
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-y-3 left-0 w-1 rounded-r-full bg-[#2D66B3]"
+                    />
+                    <p className="pl-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                       {metric.label}
                     </p>
-                    <p className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
+                    <p className="mt-2 pl-2 text-3xl font-bold tracking-tight text-[#123B70]">
                       {metric.value}
                     </p>
                   </article>
