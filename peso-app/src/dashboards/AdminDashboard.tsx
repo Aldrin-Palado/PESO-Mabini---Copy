@@ -1383,37 +1383,32 @@ export default function AdminDashboard() {
     );
   };
 
-  const deleteJobSeeker = async (jobSeekerId: string) => {
+  const updateJobSeekerActiveStatus = async (
+    jobSeekerId: string,
+    isActive: boolean,
+  ) => {
     const { data, error } = await supabase
       .from("job_seeker")
-      .delete()
+      .update({ is_active: isActive })
       .eq("job_seeker_id", jobSeekerId)
-      .select("job_seeker_id")
+      .select("*")
       .maybeSingle();
 
     if (error) {
-      console.error("Job seeker deletion error:", error);
-      throw new Error(`Job seeker could not be deleted: ${error.message}`);
+      console.error("Job seeker account status update error:", error);
+      throw new Error(`Job seeker account status could not be updated: ${error.message}`);
     }
     if (!data) {
-      throw new Error("Job seeker was not deleted because the record no longer exists.");
+      throw new Error(
+        "Job seeker account status was not updated because the record no longer exists.",
+      );
     }
 
     setJobSeekers((current) =>
-      current.filter((jobSeeker) => jobSeeker.job_seeker_id !== jobSeekerId),
+      current.map((jobSeeker) =>
+        jobSeeker.job_seeker_id === jobSeekerId ? data : jobSeeker,
+      ),
     );
-    setApplications((current) =>
-      current.filter((application) => application.job_seeker_id !== jobSeekerId),
-    );
-    setJobSeekerApplicationCounts((current) => {
-      const nextCounts = { ...current };
-      delete nextCounts[jobSeekerId];
-      return nextCounts;
-    });
-    setCounts((current) => ({
-      ...current,
-      jobSeekers: Math.max(0, current.jobSeekers - 1),
-    }));
   };
 
   /* ============================================================
@@ -1901,14 +1896,13 @@ export default function AdminDashboard() {
         return (
           <JobSeekersModule
             jobSeekers={filteredJobSeekers}
-            applicationCounts={jobSeekerApplicationCounts}
             loadError={moduleError}
             search={jobSeekerSearch}
             setSearch={setJobSeekerSearch}
             loading={moduleLoading}
             onUpdate={updateJobSeeker}
             onUpdateVerificationStatus={updateJobSeekerVerificationStatus}
-            onDelete={deleteJobSeeker}
+            onToggleActive={updateJobSeekerActiveStatus}
             ModuleHeader={ModuleHeader}
             LoadingMessage={LoadingMessage}
             EmptyMessage={EmptyMessage}

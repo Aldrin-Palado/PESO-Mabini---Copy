@@ -27,7 +27,6 @@ type JobSeeker = {
 
 type Props = {
   jobSeekers: JobSeeker[];
-  applicationCounts: Record<string, number>;
   loadError?: string;
   search: string;
   setSearch: (value: string) => void;
@@ -41,7 +40,7 @@ type Props = {
     jobSeekerId: string,
     status: JobSeekerVerificationStatus,
   ) => Promise<void>;
-  onDelete: (jobSeekerId: string) => Promise<void>;
+  onToggleActive: (jobSeekerId: string, isActive: boolean) => Promise<void>;
 
   ModuleHeader: React.ComponentType<{
     title: string;
@@ -261,14 +260,13 @@ function isVerificationStatus(
 
 export default function JobSeekersModule({
   jobSeekers,
-  applicationCounts,
   loadError,
   search,
   setSearch,
   loading,
   onUpdate,
   onUpdateVerificationStatus,
-  onDelete,
+  onToggleActive,
   ModuleHeader,
   LoadingMessage,
   EmptyMessage,
@@ -281,7 +279,7 @@ export default function JobSeekersModule({
   const [editingSeeker, setEditingSeeker] = useState<JobSeeker | null>(null);
   const [formValues, setFormValues] = useState<JobSeekerFormValues | null>(null);
   const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [updatingActiveId, setUpdatingActiveId] = useState<string | null>(null);
   const [updatingVerificationId, setUpdatingVerificationId] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -391,24 +389,31 @@ export default function JobSeekersModule({
     }
   };
 
-  const deleteJobSeeker = async (jobSeeker: JobSeeker) => {
+  const toggleJobSeekerActive = async (jobSeeker: JobSeeker) => {
     const jobSeekerId = jobSeeker.job_seeker_id;
     if (!jobSeekerId) return;
+    const nextIsActive = jobSeeker.is_active === false;
     const confirmed = window.confirm(
-      `Delete ${getSeekerName(jobSeeker)}'s profile? This permanently deletes their applications. Their sign-in account may remain active.`,
+      `${nextIsActive ? "Activate" : "Deactivate"} ${getSeekerName(jobSeeker)}'s account? ${
+        nextIsActive
+          ? "They will be able to access their job seeker account."
+          : "They will no longer be able to access their job seeker account."
+      }`,
     );
     if (!confirmed) return;
 
-    setDeletingId(jobSeekerId);
+    setUpdatingActiveId(jobSeekerId);
     setActionError("");
     try {
-      await onDelete(jobSeekerId);
+      await onToggleActive(jobSeekerId, nextIsActive);
     } catch (error) {
       setActionError(
-        error instanceof Error ? error.message : "Unable to delete job seeker.",
+        error instanceof Error
+          ? error.message
+          : "Unable to update job seeker account status.",
       );
     } finally {
-      setDeletingId(null);
+      setUpdatingActiveId(null);
     }
   };
 
@@ -455,7 +460,7 @@ export default function JobSeekersModule({
             }
 
             const rect = event.currentTarget.getBoundingClientRect();
-            const menuHeight = jobSeeker.resume_url ? 168 : 126;
+            const menuHeight = jobSeeker.resume_url ? 210 : 168;
             const menuWidth = 144;
             const openBelow =
               window.innerHeight - rect.bottom >= menuHeight + 8;
@@ -500,7 +505,7 @@ export default function JobSeekersModule({
             closeActions();
             startEditing(jobSeeker);
           }}
-          disabled={!jobSeeker.job_seeker_id || deletingId === jobSeeker.job_seeker_id}
+          disabled={!jobSeeker.job_seeker_id || updatingActiveId === jobSeeker.job_seeker_id}
           className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-50"
         >
           Edit
@@ -522,12 +527,20 @@ export default function JobSeekersModule({
           type="button"
           onClick={() => {
             closeActions();
-            void deleteJobSeeker(jobSeeker);
+            void toggleJobSeekerActive(jobSeeker);
           }}
-          disabled={!jobSeeker.job_seeker_id || deletingId === jobSeeker.job_seeker_id}
-          className="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+          disabled={!jobSeeker.job_seeker_id || updatingActiveId === jobSeeker.job_seeker_id}
+          className={`block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold transition disabled:opacity-50 ${
+            jobSeeker.is_active === false
+              ? "text-emerald-700 hover:bg-emerald-50"
+              : "text-amber-700 hover:bg-amber-50"
+          }`}
         >
-          {deletingId === jobSeeker.job_seeker_id ? "Deleting..." : "Delete"}
+          {updatingActiveId === jobSeeker.job_seeker_id
+            ? "Updating..."
+            : jobSeeker.is_active === false
+              ? "Activate"
+              : "Deactivate"}
         </button>
           </div>,
           document.body,
@@ -686,9 +699,6 @@ export default function JobSeekersModule({
                               {profileComplete ? "Ready for verification" : "Profile incomplete"} · {completedSteps}/{checklist.length} steps
                             </p>
                           </div>
-                          <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                            isActive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
-                          }`}>{isActive ? "Active" : "Inactive"}</span>
                         </div>
                         <div className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
                           <p className="flex min-w-0 items-center gap-2">
@@ -703,9 +713,14 @@ export default function JobSeekersModule({
                             <AppIcon name="mapPin" className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                             <span className="line-clamp-2">{location}</span>
                           </p>
-                          <p className="text-slate-500 sm:col-span-2">
-                            {applicationCounts[jobSeeker.job_seeker_id || ""] ?? 0} applications
-                          </p>
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-slate-500">
+                            Account status
+                          </span>
+                          <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            isActive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+                          }`}>{isActive ? "Active" : "Deactivated"}</span>
                         </div>
                         <label className="mt-3 block text-xs font-semibold text-slate-600">
                           Verification status
@@ -750,13 +765,13 @@ export default function JobSeekersModule({
               <thead className="bg-gradient-to-r from-[#1766B4] to-[#124A91] text-left">
                 <tr>
                   {[
-                    ["Job Seeker", "w-[19%]"],
+                    ["Job Seeker", "w-[18%]"],
                     ["Email", "w-[18%]"],
-                    ["Phone", "w-[13%]"],
-                    ["Location", "w-[17%]"],
-                    ["Status", "w-[15%]"],
-                    ["Applications", "w-[8%]"],
-                    ["Actions", "w-[10%]"],
+                    ["Phone", "w-[12%]"],
+                    ["Location", "w-[16%]"],
+                    ["Account Status", "w-[12%]"],
+                    ["Verification", "w-[15%]"],
+                    ["Actions", "w-[9%]"],
                   ].map(([label, width]) => (
                     <th key={label} className={`${width} whitespace-nowrap px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white`}>
                       {label}
@@ -772,7 +787,7 @@ export default function JobSeekersModule({
                     const registrationDetails = getRegistrationDetails(jobSeeker);
                     const location = registrationDetails.presentAddress || jobSeeker.address || "-";
                     const isActive = jobSeeker.is_active !== false;
-                    const status = isActive ? "Active" : "Inactive";
+                    const status = isActive ? "Active" : "Deactivated";
                     const checklist = getJobSeekerChecklist(jobSeeker);
                     const completedSteps = checklist.filter((item) => item.complete).length;
                     const profileComplete = completedSteps === checklist.length;
@@ -816,11 +831,12 @@ export default function JobSeekersModule({
                           <span className="block truncate">{location}</span>
                         </td>
                         <td className="px-3 py-3">
-                          <div className="flex flex-col items-start gap-1">
-                            <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                              isActive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
-                            }`}>{status}</span>
-                            <select
+                          <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            isActive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+                          }`}>{status}</span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <select
                               aria-label={`Verification status for ${name}`}
                               value={verificationStatus}
                               onChange={(event) => {
@@ -832,7 +848,7 @@ export default function JobSeekersModule({
                                 !jobSeeker.job_seeker_id ||
                                 updatingVerificationId === jobSeeker.job_seeker_id
                               }
-                              className={`max-w-full rounded-full border-0 px-2 py-1 text-[10px] font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 ${
+                              className={`w-full max-w-full rounded-lg border border-slate-200 px-2 py-2 text-[10px] font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 ${
                                 verificationStatus === "verified"
                                   ? "bg-emerald-50 text-emerald-700"
                                   : verificationStatus === "not_approved"
@@ -845,11 +861,7 @@ export default function JobSeekersModule({
                                 Verified
                               </option>
                               <option value="not_approved">Not approved</option>
-                            </select>
-                          </div>
-                        </td>
-                        <td className="px-3 py-3 text-center text-xs text-slate-700">
-                          {applicationCounts[jobSeeker.job_seeker_id || ""] ?? 0}
+                          </select>
                         </td>
                         <td className="px-3 py-3">
                           {renderActions(jobSeeker, rowId)}
