@@ -662,8 +662,6 @@ export default function JobSeekersModule({
               {visibleJobSeekers.map((jobSeeker, index) => {
                 const name = getSeekerName(jobSeeker);
                 const registration = getRegistrationDetails(jobSeeker);
-                const gender = registration.sex || jobSeeker.sex || "-";
-                const education = registration.educationLevel || jobSeeker.education_level || "-";
                 const location = registration.presentAddress || jobSeeker.address || "-";
                 const isActive = jobSeeker.is_active !== false;
                 const checklist = getJobSeekerChecklist(jobSeeker);
@@ -680,7 +678,14 @@ export default function JobSeekersModule({
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <h3 className="truncate text-sm font-bold text-slate-900">{name}</h3>
+                          <div className="min-w-0">
+                            <h3 className="truncate text-sm font-bold text-slate-900">{name}</h3>
+                            <p className={`mt-1 text-[10px] font-semibold ${
+                              profileComplete ? "text-emerald-700" : "text-amber-700"
+                            }`}>
+                              {profileComplete ? "Ready for verification" : "Profile incomplete"} · {completedSteps}/{checklist.length} steps
+                            </p>
+                          </div>
                           <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                             isActive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
                           }`}>{isActive ? "Active" : "Inactive"}</span>
@@ -694,25 +699,14 @@ export default function JobSeekersModule({
                             <AppIcon name="phone" className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                             <span className="truncate">{jobSeeker.contact_no || jobSeeker.phone || "Phone not provided"}</span>
                           </p>
-                          <p className="flex min-w-0 items-center gap-2">
-                            <AppIcon name="graduationCap" className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                            <span className="truncate">{education}</span>
-                          </p>
-                          <p className="flex min-w-0 items-center gap-2">
+                          <p className="flex min-w-0 items-start gap-2 sm:col-span-2">
                             <AppIcon name="mapPin" className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                            <span className="truncate">{location}</span>
+                            <span className="line-clamp-2">{location}</span>
                           </p>
                           <p className="text-slate-500 sm:col-span-2">
-                            {gender} · {applicationCounts[jobSeeker.job_seeker_id || ""] ?? 0} applications
+                            {applicationCounts[jobSeeker.job_seeker_id || ""] ?? 0} applications
                           </p>
                         </div>
-                        <p className={`mt-3 inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                          profileComplete
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-amber-50 text-amber-800"
-                        }`}>
-                          {profileComplete ? "Ready for verification" : "Profile incomplete"} · {completedSteps}/{checklist.length} steps
-                        </p>
                         <label className="mt-3 block text-xs font-semibold text-slate-600">
                           Verification status
                           <select
@@ -752,20 +746,17 @@ export default function JobSeekersModule({
             </div>
 
             <div className="hidden overflow-x-auto 2xl:block">
-            <table className="w-full min-w-[1200px] table-fixed">
+            <table className="w-full min-w-[1040px] table-fixed">
               <thead className="bg-gradient-to-r from-[#1766B4] to-[#124A91] text-left">
                 <tr>
                   {[
-                    ["Name", "w-[13%]"],
-                    ["Email", "w-[14%]"],
-                    ["Phone", "w-[9%]"],
-                    ["Gender", "w-[7%]"],
-                    ["Education", "w-[11%]"],
-                    ["Location", "w-[12%]"],
-                    ["Status", "w-[12%]"],
+                    ["Job Seeker", "w-[20%]"],
+                    ["Email", "w-[20%]"],
+                    ["Phone", "w-[14%]"],
+                    ["Location", "w-[18%]"],
+                    ["Status", "w-[14%]"],
                     ["Applications", "w-[6%]"],
-                    ["Created", "w-[7%]"],
-                    ["Actions", "w-[9%]"],
+                    ["Actions", "w-[8%]"],
                   ].map(([label, width]) => (
                     <th key={label} className={`${width} whitespace-nowrap px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white`}>
                       {label}
@@ -779,15 +770,7 @@ export default function JobSeekersModule({
                     const name = getSeekerName(jobSeeker);
 
                     const registrationDetails = getRegistrationDetails(jobSeeker);
-                    const gender = registrationDetails.sex || jobSeeker.sex || "-";
-                    const education =
-                      registrationDetails.educationLevel ||
-                      jobSeeker.education_level ||
-                      "-";
-                    const location =
-                      registrationDetails.presentAddress ||
-                      jobSeeker.address ||
-                      "-";
+                    const location = registrationDetails.presentAddress || jobSeeker.address || "-";
                     const isActive = jobSeeker.is_active !== false;
                     const status = isActive ? "Active" : "Inactive";
                     const checklist = getJobSeekerChecklist(jobSeeker);
@@ -808,25 +791,26 @@ export default function JobSeekersModule({
                           index % 2 === 0 ? "bg-white" : "bg-blue-50/40"
                         }`}
                       >
-                          <td className="px-3 py-3">
-                            <div className="flex min-w-0 items-center gap-3">
-                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-[#1766B4]">
-                                <AppIcon name="user" className="h-4 w-4" />
-                              </span>
-                              <span className="truncate text-xs font-bold text-slate-900" title={name}>{name}</span>
+                        <td className="px-3 py-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-[#1766B4]">
+                              <AppIcon name="user" className="h-4 w-4" />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="truncate text-xs font-bold text-slate-900" title={name}>{name}</p>
+                              <p className={`mt-1 text-[10px] font-semibold ${
+                                profileComplete ? "text-emerald-700" : "text-amber-700"
+                              }`}>
+                                {profileComplete ? "Ready for verification" : "Profile incomplete"} · {completedSteps}/{checklist.length}
+                              </p>
                             </div>
-                          </td>
-                          <td className="truncate px-3 py-3 text-xs text-slate-700" title={jobSeeker.email || ""}>
+                          </div>
+                        </td>
+                        <td className="truncate px-3 py-3 text-xs text-slate-700" title={jobSeeker.email || ""}>
                           <span className="block truncate">{jobSeeker.email || "-"}</span>
                         </td>
                         <td className="truncate px-3 py-3 text-xs text-slate-700" title={jobSeeker.contact_no || jobSeeker.phone || ""}>
                           <span className="block truncate">{jobSeeker.contact_no || jobSeeker.phone || "-"}</span>
-                        </td>
-                        <td className="truncate px-3 py-3 text-xs text-slate-700" title={String(gender)}>
-                          <span className="block truncate">{gender}</span>
-                        </td>
-                        <td className="truncate px-3 py-3 text-xs text-slate-700" title={String(education)}>
-                          <span className="block truncate">{education}</span>
                         </td>
                         <td className="truncate px-3 py-3 text-xs text-slate-700" title={String(location)}>
                           <span className="block truncate">{location}</span>
@@ -862,20 +846,10 @@ export default function JobSeekersModule({
                               </option>
                               <option value="not_approved">Not approved</option>
                             </select>
-                            <span className={`text-[10px] font-semibold ${
-                              profileComplete ? "text-emerald-700" : "text-amber-700"
-                            }`}>
-                              {profileComplete ? "Ready" : `${completedSteps}/${checklist.length} complete`}
-                            </span>
                           </div>
                         </td>
                         <td className="px-3 py-3 text-center text-xs text-slate-700">
                           {applicationCounts[jobSeeker.job_seeker_id || ""] ?? 0}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">
-                          {jobSeeker.created_at
-                            ? new Date(jobSeeker.created_at).toLocaleDateString()
-                            : "-"}
                         </td>
                         <td className="px-3 py-3">
                           {renderActions(jobSeeker, rowId)}
