@@ -58,8 +58,6 @@ type Props = {
   onToggleActive: (employerId: string, isActive: boolean) => Promise<void>;
 
   ModuleHeader: React.ComponentType<{
-    title: string;
-    description: string;
     onRefresh?: () => void;
   }>;
 
@@ -446,11 +444,7 @@ export default function EmployersModule({
   return (
     <div className="space-y-5">
 
-      <ModuleHeader
-        title="Employers"
-        description="View and manage registered employers of PESO Mabini."
-        onRefresh={onRefresh}
-      />
+      <ModuleHeader onRefresh={onRefresh} />
 
       {loadError && (
         <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">

@@ -116,7 +116,7 @@ export default function AdminSidebar({
           <PesoLogo
             size="sidebar"
             showName
-            subtitle={isSuperadmin ? "Super Admin Portal" : "Admin Portal"}
+            subtitle={isSuperadmin ? "Admin Portal" : "Staff Portal"}
             tone="light"
             linkTo={null}
             className="min-w-0"

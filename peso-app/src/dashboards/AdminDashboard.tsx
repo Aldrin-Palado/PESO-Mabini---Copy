@@ -2111,7 +2111,7 @@ export default function AdminDashboard() {
 
       <p className="text-[10px] leading-tight text-slate-500 sm:text-xs">
         {account?.role === "superadmin"
-          ? "Super Administrator"
+          ? "Admin"
           : "PESO Staff"}
       </p>
 
@@ -2294,21 +2294,6 @@ function AuditLogs({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="mt-1 text-sm text-slate-500">
-            Audit trail for admin and staff activities (who did what, where, and when).
-          </p>
-          <p className="mt-0.5 text-xs text-slate-400">
-            Showing all available logs by default. Use the date range to narrow results.
-          </p>
-        </div>
-        <p className="hidden text-right text-[10px] text-slate-400 md:block">
-          Showing up to 500 recent records.<br />
-          Use filters to narrow down results.
-        </p>
-      </div>
-
       {loadError && (
         <div
           role="alert"
@@ -2637,38 +2622,20 @@ function MyProfile({
 ================================================================ */
 
 function ModuleHeader({
-  title,
-  description,
   onRefresh,
 }: {
-  title: string;
-  description: string;
   onRefresh?: () => void;
 }) {
+  if (!onRefresh) return null;
+
   return (
-    <div className="flex items-center justify-between">
-
-      <div>
-
-        <h3 className="text-lg font-bold text-slate-900">
-          {title}
-        </h3>
-
-        <p className="mt-1 text-sm text-slate-500">
-          {description}
-        </p>
-
-      </div>
-
-      {onRefresh && (
-        <button
-          onClick={onRefresh}
-          className="rounded-md bg-[#203F8B] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#193474]"
-        >
-          Refresh
-        </button>
-      )}
-
+    <div className="flex justify-end">
+      <button
+        onClick={onRefresh}
+        className="rounded-md bg-[#203F8B] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#193474]"
+      >
+        Refresh
+      </button>
     </div>
   );
 }

@@ -34,8 +34,6 @@ type Props = {
   loading: boolean;
   onRefresh: () => void;
   ModuleHeader: ComponentType<{
-    title: string;
-    description: string;
     onRefresh?: () => void;
   }>;
   StatusBadge: ComponentType<{
@@ -102,11 +100,7 @@ export default function JobPostsModule({
 
   return (
     <div className="space-y-5">
-      <ModuleHeader
-        title="Job Posts"
-        description="View and monitor job vacancies posted by employers and PESO staff/admin."
-        onRefresh={onRefresh}
-      />
+      <ModuleHeader onRefresh={onRefresh} />
 
       {loadError && (
         <p

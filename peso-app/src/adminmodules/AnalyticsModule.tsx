@@ -69,8 +69,6 @@ type Props = {
   onRefresh: () => void;
 
   ModuleHeader: React.ComponentType<{
-    title: string;
-    description: string;
     onRefresh?: () => void;
   }>;
 
@@ -412,11 +410,7 @@ export default function AnalyticsModule({
 
       {/* HEADER */}
 
-      <ModuleHeader
-        title="Analytics & Reports"
-        description="View employment service statistics and system activity."
-        onRefresh={onRefresh}
-      />
+      <ModuleHeader onRefresh={onRefresh} />
 
       {/* LOADING */}
 

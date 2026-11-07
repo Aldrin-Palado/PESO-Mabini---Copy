@@ -107,7 +107,7 @@ export default function JobSeekerSidebar({
                 <span className="text-red-600">MABINI</span>
               </h1>
 
-              <p className="text-xs text-gray-500">Job Seeker</p>
+              <p className="text-xs text-gray-500">Job Seekers Portal</p>
             </div>
           </div>
 

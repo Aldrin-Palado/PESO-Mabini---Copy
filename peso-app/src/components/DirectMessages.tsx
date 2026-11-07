@@ -499,10 +499,6 @@ export default function DirectMessages({
 
   return (
     <section className="space-y-5">
-      <header>
-        <h1 className="text-2xl font-black text-[#123B70]">Messages</h1>
-      </header>
-
       {error && (
         <div
           role="alert"

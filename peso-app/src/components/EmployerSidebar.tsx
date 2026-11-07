@@ -76,7 +76,7 @@ function EmployersSidebar({
                 <span className="text-blue-800">PESO </span>
                 <span className="text-red-600">MABINI</span>
               </h1>
-              <p className="text-xs text-gray-500">Employer</p>
+              <p className="text-xs text-gray-500">Employers Portal</p>
             </div>
           </div>
 

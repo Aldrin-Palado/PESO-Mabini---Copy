@@ -91,7 +91,6 @@ export default function DashboardModule({
   onRefresh,
   onNavigate,
 }: Props) {
-  const displayName = account?.full_name.trim().split(/\s+/)[0] || "there";
   const sections: ScoreboardModule[] = [
     "Job Post",
     "Applications",
@@ -103,22 +102,11 @@ export default function DashboardModule({
 
   return (
     <div className="space-y-7">
-      <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#3156A2]">
-            PESO MABINI administration
-          </p>
-          <h3 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
-            Dashboard
-          </h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Welcome back, {displayName}. Here is your service overview.
-          </p>
-        </div>
+      <section className="flex justify-end">
         <button
           type="button"
           onClick={onRefresh}
-          className="inline-flex items-center justify-center gap-2 self-start rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#203F8B] sm:self-auto"
+          className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#203F8B]"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M20 7v5h-5M4 17v-5h5m10.1-2A7 7 0 0 0 6 6L4 8m16 8-2 2a7 7 0 0 1-13.1-4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />

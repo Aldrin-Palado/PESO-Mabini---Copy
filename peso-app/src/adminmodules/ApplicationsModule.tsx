@@ -310,32 +310,6 @@ export default function ApplicationsModule({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="shrink-0">
-          <h3 className="text-lg font-bold text-slate-900">Applications</h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Review job applications and update their progress.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2 lg:justify-end">
-          {STATUSES.map((status) => (
-            <button
-              key={status.value}
-              type="button"
-              onClick={() =>
-                setStatusFilter(statusFilter === status.value ? "All" : status.value)
-              }
-              aria-pressed={statusFilter === status.value}
-              className={`rounded-full px-2.5 py-1.5 text-[10px] font-semibold transition ${status.color} ${
-                statusFilter === status.value ? "ring-2 ring-blue-500 ring-offset-1" : ""
-              }`}
-            >
-              {status.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {loadError && (
         <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800">
           {loadError}

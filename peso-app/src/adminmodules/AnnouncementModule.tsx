@@ -20,8 +20,6 @@ type Props = {
   onDelete: (id: string) => void;
 
   ModuleHeader: React.ComponentType<{
-    title: string;
-    description: string;
     onRefresh?: () => void;
   }>;
 
@@ -47,10 +45,7 @@ export default function AnnouncementModule({
   return (
     <div className="space-y-6">
 
-      <ModuleHeader
-        title="Announcement"
-        description="Create and manage PESO MABINI announcements."
-      />
+      <ModuleHeader />
 
       {/* CREATE ANNOUNCEMENT */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
