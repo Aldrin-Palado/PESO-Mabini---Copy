@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import AppIcon, { type AppIconName } from "../components/AppIcon";
 import jobseeker1 from "../assets/images/jobseeker1.jfif";
 import jobseeker2 from "../assets/images/jobseeker2.jfif";
@@ -199,6 +200,8 @@ export default function Employers() {
           </div>
         </section>
       </main>
+
+      <Footer />
 
       {/* Login / registration prompt */}
       {showAuthModal && (

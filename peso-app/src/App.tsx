@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 
 import About from "./pages/About";
@@ -18,6 +19,16 @@ import StaffDashboard from "./dashboards/StaffDashboard";
 
 const publicPagePaths = new Set(["/", "/about", "/jobs", "/employers", "/contact"]);
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
 function PublicAIChatbot() {
   const { pathname } = useLocation();
 
@@ -28,6 +39,7 @@ function App() {
   return (
     <BrowserRouter>
       <SessionTimeout />
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
