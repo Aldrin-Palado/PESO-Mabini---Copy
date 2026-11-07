@@ -14,6 +14,11 @@ export interface OpenJobVacancyRow {
   employer_name: string | null;
   job_classification: "local" | "international";
   employer_verified: boolean;
+  employer_address: string | null;
+  employer_description: string | null;
+  employer_industry: string | null;
+  employer_website: string | null;
+  employer_logo_url: string | null;
 }
 
 export interface PublicJobVacancyPreviewRow {
@@ -39,5 +44,11 @@ export interface JobVacancy {
 
   employer?: {
     name?: string;
+    address?: string | null;
+    description?: string | null;
+    industry?: string | null;
+    website?: string | null;
+    logoUrl?: string | null;
+    verified?: boolean;
   };
 }

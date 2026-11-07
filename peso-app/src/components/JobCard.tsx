@@ -13,6 +13,7 @@ interface JobCardProps {
 
 function JobCard({ job, index, isAuthenticated }: JobCardProps) {
   const [isLoginPromptOpen, setIsLoginPromptOpen] = useState(false);
+  const [isCompanyProfileOpen, setIsCompanyProfileOpen] = useState(false);
   const [isCheckingLogin, setIsCheckingLogin] = useState(false);
   const [loginError, setLoginError] = useState("");
   const navigate = useNavigate();
@@ -31,15 +32,18 @@ function JobCard({ job, index, isAuthenticated }: JobCardProps) {
     : "Recently posted";
 
   useEffect(() => {
-    if (!isLoginPromptOpen) return;
+    if (!isLoginPromptOpen && !isCompanyProfileOpen) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsLoginPromptOpen(false);
+      if (event.key === "Escape") {
+        setIsCompanyProfileOpen(false);
+        setIsLoginPromptOpen(false);
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isLoginPromptOpen]);
+  }, [isLoginPromptOpen, isCompanyProfileOpen]);
 
   const openJobInPortal = async () => {
     if (isCheckingLogin) return;
@@ -103,13 +107,50 @@ function JobCard({ job, index, isAuthenticated }: JobCardProps) {
       >
         <div className="px-6 pb-5 pt-5 sm:px-7">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0759AE] text-sm font-black text-white shadow-sm">
-              {job.employer?.name?.charAt(0).toUpperCase() || "E"}
-            </div>
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => setIsCompanyProfileOpen(true)}
+                aria-label={`View ${job.employer?.name || "employer"} company profile`}
+                className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#0759AE] text-sm font-black text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                {job.employer?.logoUrl ? (
+                  <img
+                    src={job.employer.logoUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  job.employer?.name?.charAt(0).toUpperCase() || "E"
+                )}
+              </button>
+            ) : (
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0759AE] text-sm font-black text-white shadow-sm">
+                {job.employer?.name?.charAt(0).toUpperCase() || "E"}
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-medium text-slate-400">{postedDate}</p>
-              <p className="mt-0.5 truncate text-sm font-medium text-slate-700">
-                {job.employer?.name || "Employer"}
+              <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm font-medium text-slate-700">
+                {isAuthenticated ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsCompanyProfileOpen(true)}
+                    className="truncate text-left hover:text-blue-700 hover:underline focus:outline-none focus:underline"
+                  >
+                    {job.employer?.name || "Employer"}
+                  </button>
+                ) : (
+                  job.employer?.name || "Employer"
+                )}
+                {job.employer?.verified && (
+                  <span
+                    title="Verified employer"
+                    className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white"
+                  >
+                    <AppIcon name="check" className="h-3 w-3" />
+                  </span>
+                )}
               </p>
               <h3 className="mt-2 text-lg font-black leading-snug text-slate-950 transition-colors group-hover:text-sky-700 sm:text-xl">
                 {job.position_title}
@@ -184,6 +225,105 @@ function JobCard({ job, index, isAuthenticated }: JobCardProps) {
           )}
         </div>
       </article>
+
+      {isCompanyProfileOpen && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setIsCompanyProfileOpen(false);
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`company-name-${job.job_vacancy_id}`}
+            className="my-auto max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl ring-1 ring-black/5"
+          >
+            <div className="flex items-start gap-4 border-b border-slate-100 p-6 sm:p-8">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-blue-50 text-2xl font-black text-blue-700">
+                {job.employer?.logoUrl ? (
+                  <img
+                    src={job.employer.logoUrl}
+                    alt={`${job.employer.name || "Company"} logo`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  job.employer?.name?.charAt(0).toUpperCase() || "E"
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2
+                  id={`company-name-${job.job_vacancy_id}`}
+                  className="flex flex-wrap items-center gap-2 text-xl font-black text-slate-950 sm:text-2xl"
+                >
+                  {job.employer?.name || "Employer"}
+                  {job.employer?.verified && (
+                    <span
+                      title="Verified employer"
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white"
+                    >
+                      <AppIcon name="check" className="h-3.5 w-3.5" />
+                    </span>
+                  )}
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  {job.employer?.industry || "Company profile"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCompanyProfileOpen(false)}
+                aria-label="Close company profile"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <AppIcon name="x" className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-6 p-6 sm:p-8">
+              <section>
+                <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                  About the company
+                </h3>
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                  {job.employer?.description ||
+                    "This company has not added a background description yet."}
+                </p>
+              </section>
+              <dl className="grid gap-4 sm:grid-cols-2">
+                {job.employer?.address && (
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Address
+                    </dt>
+                    <dd className="mt-1 text-sm text-slate-800">
+                      {job.employer.address}
+                    </dd>
+                  </div>
+                )}
+                {job.employer?.website && (
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Website
+                    </dt>
+                    <dd className="mt-1 break-all text-sm">
+                      <a
+                        href={job.employer.website}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-semibold text-blue-700 hover:underline"
+                      >
+                        {job.employer.website}
+                      </a>
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+          </section>
+        </div>
+      )}
 
       {isLoginPromptOpen && (
         <div

@@ -90,6 +90,12 @@ function JobVacancies() {
               job_classification: job.job_classification,
               employer: {
                 name: job.employer_name ?? undefined,
+                address: job.employer_address,
+                description: job.employer_description,
+                industry: job.employer_industry,
+                website: job.employer_website,
+                logoUrl: job.employer_logo_url,
+                verified: job.employer_verified,
               },
             };
           })

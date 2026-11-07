@@ -41,6 +41,9 @@ interface EmployerProfile {
   email: string | null;
   is_verified: boolean;
   logo_url: string | null;
+  company_description: string | null;
+  industry: string | null;
+  website: string | null;
 }
 
 interface JobPost {
@@ -378,7 +381,7 @@ export default function EmployerDashboard() {
       await supabase
         .from("employer")
         .select(
-          "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified, logo_url"
+          "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified, logo_url, company_description, industry, website"
         )
         .eq("user_id", user.id)
         .maybeSingle();
@@ -648,6 +651,10 @@ export default function EmployerDashboard() {
         updatedProfile.contact_person?.trim() || null,
       contact_no: updatedProfile.company_phone.trim() || null,
       logo_url: logoUrl,
+      email: updatedProfile.company_email.trim(),
+      company_description: updatedProfile.company_description.trim() || null,
+      industry: updatedProfile.industry?.trim() || null,
+      website: updatedProfile.website?.trim() || null,
     };
 
     const { data, error: updateError } = await supabase
@@ -655,7 +662,7 @@ export default function EmployerDashboard() {
       .update(changes)
       .eq("user_id", user.id)
       .select(
-        "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified, logo_url"
+        "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified, logo_url, company_description, industry, website"
       )
       .maybeSingle();
 
@@ -819,9 +826,9 @@ export default function EmployerDashboard() {
     company_email: profile.email || "",
     company_phone: profile.contact_no || "",
     company_address: profile.address || "",
-    company_description: "",
-    industry: null,
-    website: null,
+    company_description: profile.company_description || "",
+    industry: profile.industry,
+    website: profile.website,
     contact_person: profile.contact_person || "",
     company_logo_url: profile.logo_url,
   };

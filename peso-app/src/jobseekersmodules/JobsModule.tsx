@@ -32,6 +32,11 @@ type Job = {
   title: string;
   company: string;
   employerVerified: boolean;
+  companyAddress: string | null;
+  companyDescription: string | null;
+  companyIndustry: string | null;
+  companyWebsite: string | null;
+  companyLogoUrl: string | null;
   location: string;
   type: string;
   classification: "local" | "international";
@@ -72,6 +77,7 @@ export default function JobsModule({
   const [type, setType] = useState("All");
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [companyModalJob, setCompanyModalJob] = useState<Job | null>(null);
   const [applicationJob, setApplicationJob] = useState<Job | null>(null);
   const [applicationDetails, setApplicationDetails] = useState<ApplicationDetails>({
     fullName: seeker.full_name ?? "",
@@ -135,6 +141,11 @@ export default function JobsModule({
             title: row.position_title,
             company: row.employer_name || "Company name not provided",
             employerVerified: row.employer_verified,
+            companyAddress: row.employer_address,
+            companyDescription: row.employer_description,
+            companyIndustry: row.employer_industry,
+            companyWebsite: row.employer_website,
+            companyLogoUrl: row.employer_logo_url,
             location: row.location || "Location not specified",
             type: row.employment_type || "Type not specified",
             classification: row.job_classification,
@@ -207,19 +218,23 @@ export default function JobsModule({
     };
   }, [seeker.job_seeker_id]);
 
-  // Handle Escape key when job details are open
+  // Handle Escape key when a profile or job dialog is open.
   useEffect(() => {
-    if (!selectedJob) return;
+    if (!selectedJob && !companyModalJob) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setSelectedJob(null);
+        if (companyModalJob) {
+          setCompanyModalJob(null);
+        } else {
+          setSelectedJob(null);
+        }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedJob]);
+  }, [selectedJob, companyModalJob]);
 
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
@@ -559,13 +574,32 @@ export default function JobsModule({
               >
                 <div className="px-5 pb-5 pt-5 sm:px-7">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0759AE] text-sm font-black text-white">
-                      {job.company.charAt(0).toUpperCase()}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCompanyModalJob(job)}
+                      aria-label={`View ${job.company} company profile`}
+                      className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#0759AE] text-sm font-black text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    >
+                      {job.companyLogoUrl ? (
+                        <img
+                          src={job.companyLogoUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        job.company.charAt(0).toUpperCase()
+                      )}
+                    </button>
                     <div className="min-w-0 flex-1">
                       <p className="text-[11px] font-medium text-slate-400">{postedDate}</p>
-                      <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm font-medium text-slate-700">
-                        {job.company}
+                      <p className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                        <button
+                          type="button"
+                          onClick={() => setCompanyModalJob(job)}
+                          className="truncate text-left hover:text-blue-700 hover:underline focus:outline-none focus:underline"
+                        >
+                          {job.company}
+                        </button>
                         {job.employerVerified && (
                           <span
                             title="Verified employer"
@@ -671,12 +705,31 @@ export default function JobsModule({
             <div className="max-h-[92vh] overflow-y-auto">
               <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur sm:px-8">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-lg font-black text-blue-700">
-                    {selectedJob.company.charAt(0).toUpperCase()}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCompanyModalJob(selectedJob)}
+                    aria-label={`View ${selectedJob.company} company profile`}
+                    className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-blue-50 text-lg font-black text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {selectedJob.companyLogoUrl ? (
+                      <img
+                        src={selectedJob.companyLogoUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      selectedJob.company.charAt(0).toUpperCase()
+                    )}
+                  </button>
                   <div className="min-w-0">
                     <p className="flex min-w-0 items-center gap-1.5 truncate text-sm font-bold text-blue-700">
-                      {selectedJob.company}
+                      <button
+                        type="button"
+                        onClick={() => setCompanyModalJob(selectedJob)}
+                        className="truncate text-left hover:underline focus:outline-none focus:underline"
+                      >
+                        {selectedJob.company}
+                      </button>
                       {selectedJob.employerVerified && (
                         <span
                           title="Verified employer"
@@ -716,7 +769,13 @@ export default function JobsModule({
                     {selectedJob.title}
                   </h2>
                   <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-slate-600">
-                    {selectedJob.company}
+                    <button
+                      type="button"
+                      onClick={() => setCompanyModalJob(selectedJob)}
+                      className="text-left hover:text-blue-700 hover:underline focus:outline-none focus:underline"
+                    >
+                      {selectedJob.company}
+                    </button>
                     {selectedJob.employerVerified && (
                       <span
                         title="Verified employer"
@@ -871,6 +930,107 @@ export default function JobsModule({
                   </div>
                 </div>
               </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {companyModalJob && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setCompanyModalJob(null);
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`company-name-${companyModalJob.id}`}
+            className="my-auto max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl ring-1 ring-black/5"
+          >
+            <div className="flex items-start gap-4 border-b border-slate-100 p-6 sm:p-8">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-blue-50 text-2xl font-black text-blue-700">
+                {companyModalJob.companyLogoUrl ? (
+                  <img
+                    src={companyModalJob.companyLogoUrl}
+                    alt={`${companyModalJob.company} logo`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  companyModalJob.company.charAt(0).toUpperCase()
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2
+                  id={`company-name-${companyModalJob.id}`}
+                  className="flex flex-wrap items-center gap-2 text-xl font-black text-slate-950 sm:text-2xl"
+                >
+                  {companyModalJob.company}
+                  {companyModalJob.employerVerified && (
+                    <span
+                      title="Verified employer"
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white"
+                    >
+                      <AppIcon name="check" className="h-3.5 w-3.5" />
+                    </span>
+                  )}
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  {companyModalJob.companyIndustry || "Company profile"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCompanyModalJob(null)}
+                aria-label="Close company profile"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <AppIcon name="x" className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-6 p-6 sm:p-8">
+              <section>
+                <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                  About the company
+                </h3>
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                  {companyModalJob.companyDescription ||
+                    "This company has not added a background description yet."}
+                </p>
+              </section>
+
+              <dl className="grid gap-4 sm:grid-cols-2">
+                {companyModalJob.companyAddress && (
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Address
+                    </dt>
+                    <dd className="mt-1 text-sm text-slate-800">
+                      {companyModalJob.companyAddress}
+                    </dd>
+                  </div>
+                )}
+                {companyModalJob.companyWebsite && (
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Website
+                    </dt>
+                    <dd className="mt-1 break-all text-sm">
+                      <a
+                        href={companyModalJob.companyWebsite}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-semibold text-blue-700 hover:underline"
+                      >
+                        {companyModalJob.companyWebsite}
+                      </a>
+                    </dd>
+                  </div>
+                )}
+              </dl>
             </div>
           </section>
         </div>
