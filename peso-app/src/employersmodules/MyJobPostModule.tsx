@@ -563,14 +563,6 @@ export default function MyJobPostModule({
         >
           + New Job Post
         </button>
-        {!isVerified && (
-          <p
-            role="status"
-            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800"
-          >
-            Your account must be verified before you can post a job.
-          </p>
-        )}
       </div>
 
       {/* MESSAGE */}

@@ -1,5 +1,6 @@
 
 import type { Dispatch, SetStateAction } from "react";
+import AppIcon from "./AppIcon";
 
 const pesoLogo = new URL("../assets/images/Peso-logo.png", import.meta.url).href;
 
@@ -20,12 +21,12 @@ interface EmployersSidebarProps {
 
 const menuItems: {
   name: EmployerMenuName;
-  icon: string;
+  icon?: string;
 }[] = [
   { name: "Dashboard", icon: "▦" },
   { name: "My Job Posts", icon: "▤" },
   { name: "Applications", icon: "✓" },
-  { name: "Messages", icon: "✉" },
+  { name: "Messages" },
   { name: "Company Profile", icon: "▣" },
 ];
 
@@ -111,8 +112,12 @@ function EmployersSidebar({
                       : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
                   }`}
                 >
-                  <span className="flex w-5 justify-center text-lg">
-                    {item.icon}
+                  <span className="flex w-5 justify-center" aria-hidden="true">
+                    {item.name === "Messages" ? (
+                      <AppIcon name="message" className="h-5 w-5" />
+                    ) : (
+                      item.icon
+                    )}
                   </span>
 
                   {item.name}
