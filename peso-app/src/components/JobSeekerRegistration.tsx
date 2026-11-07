@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AuthSideImage from "./AuthSideImage";
-import EmployerRegistration from "./EmployerRegistration";
 import PesoLogo from "./PesoLogo";
 import { supabase } from "../services/supabase";
 
@@ -20,21 +19,26 @@ function Register() {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
+    companyName: "",
+    industry: "",
+    companyAddress: "",
+    contactPerson: "",
+    contactNumber: "",
+    website: "",
+    description: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     setFormData((previous) => ({
       ...previous,
       [event.target.name]: event.target.value,
     }));
   };
-
-  if (accountType === "employer") {
-    return <EmployerRegistration onBack={() => setAccountType("jobseeker")} />;
-  }
 
   const handleRegister = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -52,20 +56,40 @@ function Register() {
     setLoading(true);
     try {
       const email = formData.email.trim().toLowerCase();
+      const isEmployer = accountType === "employer";
       const firstName = formData.firstName.trim();
       const lastName = formData.lastName.trim();
-      const fullName = `${firstName} ${lastName}`.replace(/\s+/g, " ").trim();
+      const fullName = isEmployer
+        ? formData.contactPerson.trim()
+        : `${firstName} ${lastName}`.replace(/\s+/g, " ").trim();
 
       const { data, error } = await supabase.auth.signUp({
         email,
         password: formData.password,
         options: {
           data: {
-            first_name: firstName,
-            last_name: lastName,
             full_name: fullName,
-            role: "jobseeker",
-            registration_details: {},
+            role: isEmployer ? "employer" : "jobseeker",
+            ...(isEmployer
+              ? {
+                  company_name: formData.companyName.trim(),
+                  business_address: formData.companyAddress.trim(),
+                  contact_person: fullName,
+                  contact_no: formData.contactNumber.trim(),
+                  employer_registration_details: {
+                    industries: formData.industry.trim()
+                      ? [formData.industry.trim()]
+                      : [],
+                    industry: formData.industry.trim(),
+                    website: formData.website.trim(),
+                    company_description: formData.description.trim(),
+                  },
+                }
+              : {
+                  first_name: firstName,
+                  last_name: lastName,
+                  registration_details: {},
+                }),
           },
         },
       });
@@ -82,7 +106,9 @@ function Register() {
       }
 
       alert(
-        "Account created successfully! Please check your email to confirm your account, then sign in and complete your profile setup before applying for jobs.",
+        isEmployer
+          ? "Account created. Please check your email to confirm it, then sign in and complete your PESO registration paperwork in the employer portal."
+          : "Account created successfully! Please check your email to confirm your account, then sign in and complete your profile setup before applying for jobs.",
       );
       navigate("/login");
     } catch (error) {
@@ -117,8 +143,8 @@ function Register() {
                 Create your account
               </h2>
               <p className="mt-3 text-sm leading-6 text-slate-500 sm:text-base">
-                Create your PESO MABINI account now. Complete your job seeker
-                profile after signing in to get ready to apply.
+                Create your PESO MABINI account now. Complete your profile
+                after signing in to access employment services.
               </p>
             </div>
 
@@ -132,7 +158,11 @@ function Register() {
                     type="button"
                     aria-pressed={accountType === "jobseeker"}
                     onClick={() => setAccountType("jobseeker")}
-                    className="rounded-2xl border border-[#315FEA] bg-[#EEF3FF] p-4 text-left shadow-sm ring-2 ring-[#315FEA]/10"
+                    className={`rounded-2xl border p-4 text-left shadow-sm transition ${
+                      accountType === "jobseeker"
+                        ? "border-[#315FEA] bg-[#EEF3FF] ring-2 ring-[#315FEA]/10"
+                        : "border-[#D5DEEB] bg-white hover:border-[#315FEA]/50 hover:bg-blue-50/40"
+                    }`}
                   >
                     <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[#315FEA] text-xs font-extrabold tracking-wide text-white">
                       JS
@@ -147,7 +177,11 @@ function Register() {
                     type="button"
                     aria-pressed={accountType === "employer"}
                     onClick={() => setAccountType("employer")}
-                    className="rounded-2xl border border-[#D5DEEB] bg-white p-4 text-left transition hover:border-[#315FEA]/50 hover:bg-blue-50/40"
+                    className={`rounded-2xl border p-4 text-left transition ${
+                      accountType === "employer"
+                        ? "border-[#315FEA] bg-[#EEF3FF] shadow-sm ring-2 ring-[#315FEA]/10"
+                        : "border-[#D5DEEB] bg-white hover:border-[#315FEA]/50 hover:bg-blue-50/40"
+                    }`}
                   >
                     <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-xs font-extrabold tracking-wide text-slate-600">
                       EMP
@@ -160,45 +194,154 @@ function Register() {
                 </div>
               </div>
 
-              <div className="grid gap-5 sm:grid-cols-2">
-                <label className="block text-sm font-medium text-slate-800">
-                  Surname <span className="text-red-600">*</span>
-                  <input
-                    type="text"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    placeholder="Enter surname"
-                    required
-                    className={`${fieldClassName} mt-2`}
-                  />
-                </label>
-                <label className="block text-sm font-medium text-slate-800">
-                  First Name <span className="text-red-600">*</span>
-                  <input
-                    type="text"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    placeholder="Enter first name"
-                    required
-                    className={`${fieldClassName} mt-2`}
-                  />
-                </label>
-              </div>
-
-              <label className="block text-sm font-medium text-slate-800">
-                Email address <span className="text-red-600">*</span>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Enter your email"
-                  required
-                  className={`${fieldClassName} mt-2`}
-                />
-              </label>
+              {accountType === "employer" ? (
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <label className="block text-sm font-medium text-slate-800">
+                    Company Name <span className="text-red-600">*</span>
+                    <input
+                      name="companyName"
+                      value={formData.companyName}
+                      onChange={handleChange}
+                      placeholder="Enter company name"
+                      autoComplete="organization"
+                      maxLength={200}
+                      required
+                      className={`${fieldClassName} mt-2`}
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-800">
+                    Industry
+                    <input
+                      name="industry"
+                      value={formData.industry}
+                      onChange={handleChange}
+                      placeholder="e.g. Retail, Manufacturing"
+                      maxLength={150}
+                      className={`${fieldClassName} mt-2`}
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-800">
+                    Company Email <span className="text-red-600">*</span>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="Enter company email"
+                      autoComplete="email"
+                      maxLength={254}
+                      required
+                      className={`${fieldClassName} mt-2`}
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-800">
+                    Contact Number <span className="text-red-600">*</span>
+                    <input
+                      type="tel"
+                      name="contactNumber"
+                      value={formData.contactNumber}
+                      onChange={handleChange}
+                      placeholder="Enter contact number"
+                      autoComplete="tel"
+                      maxLength={30}
+                      required
+                      className={`${fieldClassName} mt-2`}
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-800">
+                    Contact Person <span className="text-red-600">*</span>
+                    <input
+                      name="contactPerson"
+                      value={formData.contactPerson}
+                      onChange={handleChange}
+                      placeholder="Enter contact person"
+                      autoComplete="name"
+                      maxLength={150}
+                      required
+                      className={`${fieldClassName} mt-2`}
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-800">
+                    Company Website
+                    <input
+                      type="url"
+                      name="website"
+                      value={formData.website}
+                      onChange={handleChange}
+                      placeholder="https://example.com"
+                      maxLength={2048}
+                      className={`${fieldClassName} mt-2`}
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-800 sm:col-span-2">
+                    Company Address <span className="text-red-600">*</span>
+                    <textarea
+                      name="companyAddress"
+                      value={formData.companyAddress}
+                      onChange={handleChange}
+                      placeholder="Enter company address"
+                      autoComplete="street-address"
+                      maxLength={500}
+                      rows={3}
+                      required
+                      className={`${fieldClassName} mt-2`}
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-800 sm:col-span-2">
+                    Company Description
+                    <textarea
+                      name="description"
+                      value={formData.description}
+                      onChange={handleChange}
+                      placeholder="Tell job seekers about your company"
+                      maxLength={2000}
+                      rows={4}
+                      className={`${fieldClassName} mt-2`}
+                    />
+                  </label>
+                </div>
+              ) : (
+                <>
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <label className="block text-sm font-medium text-slate-800">
+                      Surname <span className="text-red-600">*</span>
+                      <input
+                        type="text"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        placeholder="Enter surname"
+                        required
+                        className={`${fieldClassName} mt-2`}
+                      />
+                    </label>
+                    <label className="block text-sm font-medium text-slate-800">
+                      First Name <span className="text-red-600">*</span>
+                      <input
+                        type="text"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        placeholder="Enter first name"
+                        required
+                        className={`${fieldClassName} mt-2`}
+                      />
+                    </label>
+                  </div>
+                  <label className="block text-sm font-medium text-slate-800">
+                    Email address <span className="text-red-600">*</span>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="Enter your email"
+                      required
+                      className={`${fieldClassName} mt-2`}
+                    />
+                  </label>
+                </>
+              )}
 
               <label className="block text-sm font-medium text-slate-800">
                 Password
