@@ -404,6 +404,7 @@ export default function JobSeekerDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [screeningDetailsOpen, setScreeningDetailsOpen] = useState(false);
   const [editingScreening, setEditingScreening] = useState(false);
   const [savingScreening, setSavingScreening] = useState(false);
   const [screeningForm, setScreeningForm] = useState<ScreeningDetails>({});
@@ -668,6 +669,7 @@ export default function JobSeekerDashboard() {
     setScreeningForm(details);
     setProfileError("");
     setProfileSuccess("");
+    setScreeningDetailsOpen(true);
     setEditingScreening(true);
   };
 
@@ -1109,7 +1111,28 @@ export default function JobSeekerDashboard() {
           </form>
         </div>
 
-        <form
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-black text-[#123B70]">PESO Screening Details</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Show or hide the information PESO needs for your employment profile.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setScreeningDetailsOpen((open) => !open)}
+              aria-expanded={screeningDetailsOpen}
+              aria-controls="job-seeker-screening-details"
+              className="shrink-0 rounded-xl border border-blue-200 px-4 py-2.5 text-sm font-bold text-[#0759AE] transition hover:bg-blue-50"
+            >
+              {screeningDetailsOpen ? "Hide Screening Details" : "Show Screening Details"}
+            </button>
+          </div>
+        </section>
+
+        {screeningDetailsOpen && <form
+          id="job-seeker-screening-details"
           onSubmit={saveScreening}
           className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
         >
@@ -1363,7 +1386,7 @@ export default function JobSeekerDashboard() {
               </button>
             </div>
           )}
-        </form>
+        </form>}
 
         {/* RESUME */}
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

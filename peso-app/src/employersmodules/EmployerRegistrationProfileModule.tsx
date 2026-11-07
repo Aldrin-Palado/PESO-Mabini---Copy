@@ -175,6 +175,7 @@ export default function EmployerRegistrationProfileModule({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [registrationDetailsOpen, setRegistrationDetailsOpen] = useState(false);
 
   useEffect(() => {
     setForm(getInitialDetails(registrationDetails, profile));
@@ -330,16 +331,30 @@ export default function EmployerRegistrationProfileModule({
   return (
     <div className="space-y-7">
       <header>
-        <p className="text-xs font-bold uppercase tracking-wider text-[#0759AE]">
-          PESO registration
-        </p>
-        <h2 className="mt-1 text-2xl font-black text-[#123B70]">
-          Employer Registration Details
-        </h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-          Complete this form and submit the required paperwork from your profile.
-          Required items are marked with an asterisk.
-        </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-[#0759AE]">
+              PESO registration
+            </p>
+            <h2 className="mt-1 text-2xl font-black text-[#123B70]">
+              Employer Registration Details
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+              Complete your PESO registration and submit the required paperwork.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setRegistrationDetailsOpen((open) => !open)}
+            aria-expanded={registrationDetailsOpen}
+            aria-controls="employer-registration-details"
+            className="shrink-0 rounded-xl border border-blue-200 px-4 py-2.5 text-sm font-bold text-[#0759AE] transition hover:bg-blue-50"
+          >
+            {registrationDetailsOpen
+              ? "Hide PESO Details"
+              : "Show PESO Details"}
+          </button>
+        </div>
       </header>
 
       <section className="rounded-2xl border border-blue-100 bg-blue-50 p-4 sm:p-5">
@@ -354,26 +369,29 @@ export default function EmployerRegistrationProfileModule({
             {completedRegistrationSteps}/{registrationChecklist.length} complete
           </span>
         </div>
-        <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {registrationChecklist.map((item) => (
-            <li
-              key={item.label}
-              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium ${
-                item.complete
-                  ? "bg-emerald-100 text-emerald-800"
-                  : "bg-white text-slate-600"
-              }`}
-            >
-              <span aria-hidden="true">{item.complete ? "✓" : "○"}</span>
-              {item.label}
-            </li>
-          ))}
-        </ul>
+        {registrationDetailsOpen && (
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {registrationChecklist.map((item) => (
+              <li
+                key={item.label}
+                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium ${
+                  item.complete
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-white text-slate-600"
+                }`}
+              >
+                <span aria-hidden="true">{item.complete ? "✓" : "○"}</span>
+                {item.label}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       {success && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{success}</p>}
 
+      {registrationDetailsOpen && <div id="employer-registration-details" className="space-y-6">
       <form onSubmit={(event) => void handleSubmit(event)} className="space-y-6">
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <h3 className="font-bold text-slate-900">Establishment Information</h3>
@@ -530,6 +548,7 @@ export default function EmployerRegistrationProfileModule({
           asText(asRecord(registrationDetails).establishment_status) === "New Registrant",
         ).length} document types, plus any applicable job vacancy ads.
       </p>
+      </div>}
     </div>
   );
 }
