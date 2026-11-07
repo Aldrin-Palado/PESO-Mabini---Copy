@@ -106,7 +106,9 @@ export default function MyJobPostModule({
 
   const openCreateForm = () => {
     if (!isVerified) {
-      setMessage("Your employer account must be verified before you can post a job.");
+      window.alert(
+        "Your account is not verified yet. Please wait for your account to be verified before posting jobs.",
+      );
       return;
     }
 
@@ -278,7 +280,9 @@ export default function MyJobPostModule({
     }
 
     if (!editingId && !isVerified) {
-      setMessage("Your employer account must be verified before you can post a job.");
+      window.alert(
+        "Your account is not verified yet. Please wait for your account to be verified before posting jobs.",
+      );
       return;
     }
 
@@ -552,15 +556,14 @@ export default function MyJobPostModule({
           <p className="mt-1 text-sm text-slate-500">{publisherDescription}</p>
         </div>
 
-        {isVerified ? (
-          <button
-            type="button"
-            onClick={openCreateForm}
-            className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white hover:bg-blue-800"
-          >
-            + New Job Post
-          </button>
-        ) : (
+        <button
+          type="button"
+          onClick={openCreateForm}
+          className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white hover:bg-blue-800"
+        >
+          + New Job Post
+        </button>
+        {!isVerified && (
           <p
             role="status"
             className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800"

@@ -7,6 +7,7 @@ import type {
   EmployerDocumentStatus,
   EmployerVerificationDocument,
 } from "../services/employerRegistration";
+import { getEmployerRegistrationChecklist } from "../services/employerRegistration";
 
 type Employer = {
   id?: string;
@@ -156,6 +157,7 @@ export default function EmployersModule({
   const [documentActionError, setDocumentActionError] = useState("");
   const [openingDocumentId, setOpeningDocumentId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [completionFilter, setCompletionFilter] = useState("all");
 
   useEffect(() => {
     if (!openActionsEmployerId) return;
@@ -174,8 +176,19 @@ export default function EmployersModule({
   }, [openActionsEmployerId]);
 
   const visibleEmployers = employers.filter((employer) => {
-    if (statusFilter === "all") return true;
-    return getVerificationStatus(employer) === statusFilter;
+    const statusMatches =
+      statusFilter === "all" || getVerificationStatus(employer) === statusFilter;
+    const checklist = getEmployerRegistrationChecklist(
+      employer.registration_details,
+      employer.verification_documents,
+      employer,
+    );
+    const isComplete = checklist.every((item) => item.complete);
+    const completionMatches =
+      completionFilter === "all" ||
+      (completionFilter === "ready" && isComplete) ||
+      (completionFilter === "incomplete" && !isComplete);
+    return statusMatches && completionMatches;
   });
   const registrationDetails =
     detailsEmployer?.registration_details &&
@@ -199,6 +212,19 @@ export default function EmployersModule({
     status: EmployerVerificationStatus,
   ) => {
     if (!employer.employer_id) return;
+    if (
+      status === "verified" &&
+      !getEmployerRegistrationChecklist(
+        employer.registration_details,
+        employer.verification_documents,
+        employer,
+      ).every((item) => item.complete)
+    ) {
+      setActionError(
+        "Complete all company profile, registration form, certification, and paperwork steps before verifying this employer.",
+      );
+      return;
+    }
     setUpdatingStatusId(employer.employer_id);
     setActionError("");
     try {
@@ -445,7 +471,7 @@ export default function EmployersModule({
             Search company and contact details, or filter by verification status.
           </p>
         </div>
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-end">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_190px_190px] lg:items-end">
         <label className="block text-xs font-semibold text-slate-600">
           Search employers
           <span className="relative mt-1.5 block">
@@ -459,7 +485,7 @@ export default function EmployersModule({
           </span>
         </label>
         <label className="block text-xs font-semibold text-slate-600">
-          Account status
+          Verification status
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
@@ -469,6 +495,18 @@ export default function EmployersModule({
             <option value="verified">Verified</option>
             <option value="pending">Pending</option>
             <option value="not_approved">Not approved</option>
+          </select>
+        </label>
+        <label className="block text-xs font-semibold text-slate-600">
+          Registration progress
+          <select
+            value={completionFilter}
+            onChange={(event) => setCompletionFilter(event.target.value)}
+            className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+          >
+            <option value="all">All profiles</option>
+            <option value="ready">Ready for verification</option>
+            <option value="incomplete">Incomplete</option>
           </select>
         </label>
         </div>
@@ -505,6 +543,13 @@ export default function EmployersModule({
                   employer.full_name ||
                   "Unnamed Employer";
                 const status = getVerificationStatus(employer);
+                const checklist = getEmployerRegistrationChecklist(
+                  employer.registration_details,
+                  employer.verification_documents,
+                  employer,
+                );
+                const completedSteps = checklist.filter((item) => item.complete).length;
+                const isReady = completedSteps === checklist.length;
 
                 return (
                   <article
@@ -542,7 +587,15 @@ export default function EmployersModule({
                             }`}
                           >
                             <option value="pending">Pending</option>
-                            <option value="verified">Verified</option>
+                            <option
+                              value="verified"
+                              disabled={
+                                status !== "verified" &&
+                                !checklist.every((item) => item.complete)
+                              }
+                            >
+                              Verified
+                            </option>
                             <option value="not_approved">Not approved</option>
                           </select>
                         </div>
@@ -564,6 +617,13 @@ export default function EmployersModule({
                             <span className="line-clamp-2">{employer.address || "Location not provided"}</span>
                           </p>
                         </div>
+                        <p className={`mt-3 inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                          isReady
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-amber-50 text-amber-800"
+                        }`}>
+                          {isReady ? "Ready for verification" : "Registration incomplete"} · {completedSteps}/{checklist.length} steps
+                        </p>
                         <div className="mt-4 border-t border-slate-100 pt-3">
                           {renderActions(employer)}
                         </div>
@@ -604,6 +664,13 @@ export default function EmployersModule({
                       "Unnamed Employer";
 
                     const status = getVerificationStatus(employer);
+                    const checklist = getEmployerRegistrationChecklist(
+                      employer.registration_details,
+                      employer.verification_documents,
+                      employer,
+                    );
+                    const completedSteps = checklist.filter((item) => item.complete).length;
+                    const isReady = completedSteps === checklist.length;
 
                     return (
                       <tr
@@ -625,6 +692,11 @@ export default function EmployersModule({
                               {name}
                             </span>
                           </div>
+                          <span className={`mt-1 ml-[3.25rem] block text-[10px] font-semibold ${
+                            isReady ? "text-emerald-700" : "text-amber-700"
+                          }`}>
+                            {isReady ? "Ready for verification" : "Registration incomplete"} · {completedSteps}/{checklist.length}
+                          </span>
                         </td>
                         <td className="truncate px-3 py-3 text-xs text-slate-700" title={employer.email || ""}>
                           {employer.email || "-"}
@@ -664,7 +736,15 @@ export default function EmployersModule({
                             }`}
                           >
                             <option value="pending">Pending</option>
-                            <option value="verified">Verified</option>
+                            <option
+                              value="verified"
+                              disabled={
+                                status !== "verified" &&
+                                !checklist.every((item) => item.complete)
+                              }
+                            >
+                              Verified
+                            </option>
                             <option value="not_approved">Not approved</option>
                           </select>
                         </td>
@@ -756,6 +836,49 @@ export default function EmployersModule({
                 );
               })}
             </dl>
+            {(() => {
+              const checklist = getEmployerRegistrationChecklist(
+                detailsEmployer.registration_details,
+                detailsEmployer.verification_documents,
+                detailsEmployer,
+              );
+              const completedSteps = checklist.filter((item) => item.complete).length;
+              const isReady = completedSteps === checklist.length;
+              return (
+                <section className="border-t border-slate-200 px-5 py-5 sm:px-6">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Registration readiness
+                    </h3>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      isReady
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-amber-50 text-amber-800"
+                    }`}>
+                      {isReady ? "Ready for verification" : "Incomplete"} · {completedSteps}/{checklist.length}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Readiness confirms required form fields and uploads are present; uploaded documents still require PESO review.
+                  </p>
+                  <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {checklist.map((item) => (
+                      <li
+                        key={item.label}
+                        className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium ${
+                          item.complete
+                            ? "bg-emerald-50 text-emerald-800"
+                            : "bg-amber-50 text-amber-900"
+                        }`}
+                      >
+                        <span aria-hidden="true">{item.complete ? "✓" : "•"}</span>
+                        {item.label}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              );
+            })()}
             {registrationDetails && (
                 <section className="border-t border-slate-200 px-5 py-5 sm:px-6">
                   <h3 className="text-sm font-bold text-slate-900">

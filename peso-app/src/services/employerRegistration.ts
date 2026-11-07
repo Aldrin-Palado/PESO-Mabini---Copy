@@ -77,6 +77,132 @@ export type EmployerVerificationDocument = {
   review_note?: string | null;
 };
 
+export type EmployerRegistrationChecklistItem = {
+  label: string;
+  complete: boolean;
+};
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (typeof value === "string") {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? parsed as Record<string, unknown>
+        : {};
+    } catch {
+      return {};
+    }
+  }
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function hasValue(value: unknown): boolean {
+  if (typeof value === "number") return Number.isFinite(value) && value >= 0;
+  if (typeof value === "boolean") return value;
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+export function getEmployerRegistrationChecklist(
+  registrationDetailsValue: unknown,
+  verificationDocumentsValue: unknown,
+  employerProfileValue: unknown,
+): EmployerRegistrationChecklistItem[] {
+  const details = asRecord(registrationDetailsValue);
+  const employer = asRecord(employerProfileValue);
+  const certification = asRecord(details.certification);
+  const documents = Array.isArray(verificationDocumentsValue)
+    ? verificationDocumentsValue.filter(
+        (document): document is Record<string, unknown> =>
+          Boolean(document) && typeof document === "object" && !Array.isArray(document),
+      )
+    : [];
+  const uploadedTypes = new Set(
+    documents
+      .map((document) => document.document_type)
+      .filter((type): type is string => typeof type === "string"),
+  );
+  const establishmentStatus = details.establishment_status;
+  const industries = Array.isArray(details.industries)
+    ? details.industries.filter((industry) => typeof industry === "string")
+    : [];
+  const residentCountsPresent =
+    hasValue(details.mabini_residents) &&
+    hasValue(details.non_mabini_residents) &&
+    hasValue(details.total_employees);
+  const headcountsMatch =
+    residentCountsPresent &&
+    Number(details.mabini_residents) + Number(details.non_mabini_residents) ===
+      Number(details.total_employees);
+
+  const requiredDocumentTypes = employerDocumentRequirements
+    .filter(
+      (requirement) =>
+        requirement.id !== "company_profile" ||
+        establishmentStatus === "New Registrant",
+    )
+    .map((requirement) => requirement.id);
+
+  return [
+    {
+      label: "Basic company profile",
+      complete:
+        hasValue(employer.name) &&
+        hasValue(employer.email) &&
+        hasValue(employer.contact_person) &&
+        hasValue(employer.contact_no) &&
+        hasValue(employer.address),
+    },
+    {
+      label: "Establishment information",
+      complete:
+        hasValue(details.acronym) &&
+        hasValue(establishmentStatus) &&
+        hasValue(details.tin) &&
+        hasValue(details.establishment_type) &&
+        hasValue(details.workforce),
+    },
+    {
+      label: "Employment information",
+      complete:
+        headcountsMatch &&
+        industries.length > 0 &&
+        (!industries.includes("Others") || hasValue(details.other_industry)),
+    },
+    {
+      label: "Contact details",
+      complete: [
+        "hr_manager_name",
+        "hr_manager_position",
+        "hr_manager_contact",
+        "hr_staff_name",
+        "hr_staff_position",
+        "address_house_street",
+        "address_barangay",
+        "address_city",
+        "telephone",
+        "mobile",
+        "facebook_page",
+        "email",
+        "website",
+      ].every((key) => hasValue(details[key])),
+    },
+    {
+      label: "Certification and consent",
+      complete:
+        certification.consent_accepted === true &&
+        hasValue(certification.authorized_representative_signature),
+    },
+    {
+      label: "Required paperwork",
+      complete:
+        requiredDocumentTypes.every((type) => uploadedTypes.has(type)) &&
+        uploadedTypes.has("job_vacancy_ads"),
+    },
+  ];
+}
+
 export const maxEmployerDocumentSize = 1024 * 1024 * 1024;
 export const maxJobAdFiles = 10;
 

@@ -18,6 +18,7 @@ type Seeker = {
   contact_no?: string | null;
   address?: string | null;
   resume_url?: string | null;
+  verification_status?: "pending" | "verified" | "not_approved" | null;
 };
 
 type JobSeekerPage =
@@ -59,6 +60,7 @@ type ApplicationDetails = {
 type Props = {
   seeker: Seeker;
   profileComplete: boolean;
+  isVerified: boolean;
   initialJobId?: string;
   onNavigate: (page: JobSeekerPage) => void;
 };
@@ -66,6 +68,7 @@ type Props = {
 export default function JobsModule({
   seeker,
   profileComplete,
+  isVerified,
   initialJobId,
   onNavigate,
 }: Props) {
@@ -296,6 +299,13 @@ export default function JobsModule({
   };
 
   const openApplicationForm = (job: Job) => {
+    if (!isVerified) {
+      window.alert(
+        "Your account is not verified yet. Please wait for your account to be verified before applying for jobs.",
+      );
+      return;
+    }
+
     if (!profileComplete) {
       onNavigate("Profile");
       return;
@@ -318,6 +328,13 @@ export default function JobsModule({
   ) => {
     event.preventDefault();
     if (!applicationJob || applicationSubmitting) return;
+
+    if (!isVerified) {
+      setApplicationError(
+        "Your account is not verified yet. Please wait for your account to be verified before applying for jobs.",
+      );
+      return;
+    }
 
     if (
       !applicationDetails.fullName.trim() ||
@@ -364,6 +381,23 @@ export default function JobsModule({
       }
       if (!jobRow || jobRow.status !== "open") {
         throw new Error("This job is no longer accepting applications.");
+      }
+
+      const { data: currentSeeker, error: seekerStatusError } = await supabase
+        .from("job_seeker")
+        .select("verification_status")
+        .eq("job_seeker_id", seeker.job_seeker_id)
+        .maybeSingle();
+
+      if (seekerStatusError) {
+        throw new Error(
+          `Unable to verify your account status: ${seekerStatusError.message}`,
+        );
+      }
+      if (currentSeeker?.verification_status !== "verified") {
+        throw new Error(
+          "Your account is not verified yet. Please wait for your account to be verified before applying for jobs.",
+        );
       }
 
       const { data: existingApplication, error: existingError } = await supabase

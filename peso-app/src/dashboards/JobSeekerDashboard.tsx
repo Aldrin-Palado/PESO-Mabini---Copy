@@ -47,6 +47,7 @@ type Seeker = {
   address: string | null;
   birth_date: string | null;
   resume_url: string | null;
+  verification_status: "pending" | "verified" | "not_approved";
   registration_details: unknown;
 };
 
@@ -556,6 +557,7 @@ export default function JobSeekerDashboard() {
             address,
             birth_date,
             resume_url,
+            verification_status,
             registration_details
           `
         )
@@ -1539,6 +1541,7 @@ export default function JobSeekerDashboard() {
             profileComplete={areJobSeekerProfileSectionsComplete(
               seeker.registration_details,
             )}
+            isVerified={seeker.verification_status === "verified"}
             onNavigate={(page) =>
               handlePageChange(
                 page === "Applications"

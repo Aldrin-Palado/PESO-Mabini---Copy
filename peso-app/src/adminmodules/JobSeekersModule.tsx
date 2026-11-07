@@ -3,6 +3,10 @@ import { createPortal } from "react-dom";
 import AppIcon from "../components/AppIcon";
 import { downloadCsv } from "../services/csvExport";
 import { openStoredResume } from "../services/resumes";
+import {
+  getIncompleteJobSeekerProfileSections,
+  JOB_SEEKER_PROFILE_SECTION_TITLES,
+} from "../services/jobSeekerProfile";
 
 type JobSeeker = {
   id?: string;
@@ -16,6 +20,7 @@ type JobSeeker = {
   address?: string;
   status?: string;
   is_active?: boolean;
+  verification_status?: JobSeekerVerificationStatus;
   created_at?: string;
   [key: string]: any;
 };
@@ -32,6 +37,10 @@ type Props = {
     jobSeekerId: string,
     values: JobSeekerFormValues,
   ) => Promise<void>;
+  onUpdateVerificationStatus: (
+    jobSeekerId: string,
+    status: JobSeekerVerificationStatus,
+  ) => Promise<void>;
   onDelete: (jobSeekerId: string) => Promise<void>;
 
   ModuleHeader: React.ComponentType<{
@@ -46,6 +55,11 @@ type Props = {
     message: string;
   }>;
 };
+
+export type JobSeekerVerificationStatus =
+  | "pending"
+  | "verified"
+  | "not_approved";
 
 export type JobSeekerFormValues = {
   full_name: string;
@@ -180,6 +194,31 @@ function getRegistrationDetails(jobSeeker: JobSeeker): Record<string, any> {
   return {};
 }
 
+function getJobSeekerChecklist(jobSeeker: JobSeeker) {
+  const incompleteSections = new Set(
+    getIncompleteJobSeekerProfileSections(jobSeeker.registration_details),
+  );
+  return [
+    {
+      label: "Account basics",
+      complete:
+        getSeekerName(jobSeeker) !== "Unnamed Job Seeker" &&
+        Boolean(jobSeeker.email?.trim()),
+    },
+    ...JOB_SEEKER_PROFILE_SECTION_TITLES.map((label) => ({
+      label,
+      complete: !incompleteSections.has(label),
+    })),
+    {
+      label: "Resume upload",
+      complete: Boolean(
+        typeof jobSeeker.resume_url === "string" &&
+        jobSeeker.resume_url.trim(),
+      ),
+    },
+  ];
+}
+
 function formatDetailValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "-";
   if (Array.isArray(value)) {
@@ -202,6 +241,24 @@ function getSeekerName(jobSeeker: JobSeeker): string {
   );
 }
 
+function getVerificationStatus(
+  jobSeeker: JobSeeker,
+): JobSeekerVerificationStatus {
+  if (
+    jobSeeker.verification_status === "verified" ||
+    jobSeeker.verification_status === "not_approved"
+  ) {
+    return jobSeeker.verification_status;
+  }
+  return "pending";
+}
+
+function isVerificationStatus(
+  value: string,
+): value is JobSeekerVerificationStatus {
+  return value === "pending" || value === "verified" || value === "not_approved";
+}
+
 export default function JobSeekersModule({
   jobSeekers,
   applicationCounts,
@@ -210,6 +267,7 @@ export default function JobSeekersModule({
   setSearch,
   loading,
   onUpdate,
+  onUpdateVerificationStatus,
   onDelete,
   ModuleHeader,
   LoadingMessage,
@@ -224,9 +282,12 @@ export default function JobSeekersModule({
   const [formValues, setFormValues] = useState<JobSeekerFormValues | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [updatingVerificationId, setUpdatingVerificationId] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [genderFilter, setGenderFilter] = useState("all");
+  const [completionFilter, setCompletionFilter] = useState("all");
+  const [verificationFilter, setVerificationFilter] = useState("all");
 
   useEffect(() => {
     if (!openActionsSeekerId) return;
@@ -251,9 +312,18 @@ export default function JobSeekersModule({
       jobSeeker.is_active === undefined || jobSeeker.is_active
         ? "active"
         : "inactive";
+    const complete = getJobSeekerChecklist(jobSeeker).every(
+      (item) => item.complete,
+    );
+    const verificationStatus = getVerificationStatus(jobSeeker);
     return (
       (statusFilter === "all" || activeStatus === statusFilter) &&
-      (genderFilter === "all" || gender === genderFilter)
+      (genderFilter === "all" || gender === genderFilter) &&
+      (verificationFilter === "all" ||
+        verificationStatus === verificationFilter) &&
+      (completionFilter === "all" ||
+        (completionFilter === "ready" && complete) ||
+        (completionFilter === "incomplete" && !complete))
     );
   });
   const startEditing = (jobSeeker: JobSeeker) => {
@@ -287,6 +357,37 @@ export default function JobSeekersModule({
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const updateVerificationStatus = async (
+    jobSeeker: JobSeeker,
+    status: JobSeekerVerificationStatus,
+  ) => {
+    const jobSeekerId = jobSeeker.job_seeker_id;
+    if (!jobSeekerId) return;
+    if (
+      status === "verified" &&
+      !getJobSeekerChecklist(jobSeeker).every((item) => item.complete)
+    ) {
+      setActionError(
+        "Complete the job seeker account, registration form, certification, and resume before verifying this profile.",
+      );
+      return;
+    }
+
+    setUpdatingVerificationId(jobSeekerId);
+    setActionError("");
+    try {
+      await onUpdateVerificationStatus(jobSeekerId, status);
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "Unable to update job seeker verification status.",
+      );
+    } finally {
+      setUpdatingVerificationId(null);
     }
   };
 
@@ -459,10 +560,10 @@ export default function JobSeekersModule({
         <div className="mb-4">
           <h2 className="text-sm font-bold text-slate-900">Find job seekers</h2>
           <p className="mt-1 text-xs text-slate-500">
-            Search profiles and filter by account status or gender.
+            Search profiles and filter by account status, completion, or gender.
           </p>
         </div>
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_200px_auto] lg:items-end">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_170px_170px] lg:items-end xl:grid-cols-[minmax(0,1fr)_160px_170px_160px_160px]">
           <label className="block text-xs font-semibold text-slate-600">
             Search job seekers
             <span className="relative mt-1.5 block">
@@ -474,6 +575,31 @@ export default function JobSeekersModule({
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-sm font-normal text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
               />
             </span>
+          </label>
+          <label className="block text-xs font-semibold text-slate-600">
+            Profile completion
+            <select
+              value={completionFilter}
+              onChange={(event) => setCompletionFilter(event.target.value)}
+              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+            >
+              <option value="all">All profiles</option>
+              <option value="ready">Ready for verification</option>
+              <option value="incomplete">Incomplete</option>
+            </select>
+          </label>
+          <label className="block text-xs font-semibold text-slate-600">
+            Verification status
+            <select
+              value={verificationFilter}
+              onChange={(event) => setVerificationFilter(event.target.value)}
+              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+            >
+              <option value="all">All</option>
+              <option value="pending">Pending</option>
+              <option value="verified">Verified</option>
+              <option value="not_approved">Not approved</option>
+            </select>
           </label>
           <label className="block text-xs font-semibold text-slate-600">
             Account status
@@ -516,7 +642,7 @@ export default function JobSeekersModule({
         <div className="flex flex-col gap-1 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div>
             <h2 className="text-base font-bold text-slate-900">Registered job seekers</h2>
-            <p className="mt-0.5 text-xs text-slate-500">Profiles, contact information, and account status</p>
+            <p className="mt-0.5 text-xs text-slate-500">Profiles, contact information, account status, and verification readiness</p>
           </div>
           <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
             Showing {visibleJobSeekers.length} of {jobSeekers.length}
@@ -540,6 +666,10 @@ export default function JobSeekersModule({
                 const education = registration.educationLevel || jobSeeker.education_level || "-";
                 const location = registration.presentAddress || jobSeeker.address || "-";
                 const isActive = jobSeeker.is_active !== false;
+                const checklist = getJobSeekerChecklist(jobSeeker);
+                const completedSteps = checklist.filter((item) => item.complete).length;
+                const profileComplete = completedSteps === checklist.length;
+                const verificationStatus = getVerificationStatus(jobSeeker);
                 const rowId = String(jobSeeker.id || jobSeeker.job_seeker_id || index);
 
                 return (
@@ -576,6 +706,41 @@ export default function JobSeekersModule({
                             {gender} · {applicationCounts[jobSeeker.job_seeker_id || ""] ?? 0} applications
                           </p>
                         </div>
+                        <p className={`mt-3 inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                          profileComplete
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-amber-50 text-amber-800"
+                        }`}>
+                          {profileComplete ? "Ready for verification" : "Profile incomplete"} · {completedSteps}/{checklist.length} steps
+                        </p>
+                        <label className="mt-3 block text-xs font-semibold text-slate-600">
+                          Verification status
+                          <select
+                            value={verificationStatus}
+                            onChange={(event) => {
+                              if (isVerificationStatus(event.target.value)) {
+                                void updateVerificationStatus(jobSeeker, event.target.value);
+                              }
+                            }}
+                            disabled={
+                              !jobSeeker.job_seeker_id ||
+                              updatingVerificationId === jobSeeker.job_seeker_id
+                            }
+                            className={`mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold disabled:opacity-60 ${
+                              verificationStatus === "verified"
+                                ? "bg-emerald-50 text-emerald-700"
+                                : verificationStatus === "not_approved"
+                                  ? "bg-red-50 text-red-700"
+                                  : "bg-amber-50 text-amber-800"
+                            }`}
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="verified" disabled={!profileComplete && verificationStatus !== "verified"}>
+                              Verified
+                            </option>
+                            <option value="not_approved">Not approved</option>
+                          </select>
+                        </label>
                         <div className="mt-4 border-t border-slate-100 pt-3">
                           {renderActions(jobSeeker, rowId)}
                         </div>
@@ -625,6 +790,10 @@ export default function JobSeekersModule({
                       "-";
                     const isActive = jobSeeker.is_active !== false;
                     const status = isActive ? "Active" : "Inactive";
+                    const checklist = getJobSeekerChecklist(jobSeeker);
+                    const completedSteps = checklist.filter((item) => item.complete).length;
+                    const profileComplete = completedSteps === checklist.length;
+                    const verificationStatus = getVerificationStatus(jobSeeker);
 
                     const rowId = String(
                       jobSeeker.id ||
@@ -663,9 +832,42 @@ export default function JobSeekersModule({
                           <span className="block truncate">{location}</span>
                         </td>
                         <td className="px-3 py-3">
-                          <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                            isActive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
-                          }`}>{status}</span>
+                          <div className="flex flex-col items-start gap-1">
+                            <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                              isActive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+                            }`}>{status}</span>
+                            <select
+                              aria-label={`Verification status for ${name}`}
+                              value={verificationStatus}
+                              onChange={(event) => {
+                                if (isVerificationStatus(event.target.value)) {
+                                  void updateVerificationStatus(jobSeeker, event.target.value);
+                                }
+                              }}
+                              disabled={
+                                !jobSeeker.job_seeker_id ||
+                                updatingVerificationId === jobSeeker.job_seeker_id
+                              }
+                              className={`max-w-full rounded-full border-0 px-2 py-1 text-[10px] font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 ${
+                                verificationStatus === "verified"
+                                  ? "bg-emerald-50 text-emerald-700"
+                                  : verificationStatus === "not_approved"
+                                    ? "bg-red-50 text-red-700"
+                                    : "bg-amber-50 text-amber-800"
+                              }`}
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="verified" disabled={!profileComplete && verificationStatus !== "verified"}>
+                                Verified
+                              </option>
+                              <option value="not_approved">Not approved</option>
+                            </select>
+                            <span className={`text-[10px] font-semibold ${
+                              profileComplete ? "text-emerald-700" : "text-amber-700"
+                            }`}>
+                              {profileComplete ? "Ready" : `${completedSteps}/${checklist.length} complete`}
+                            </span>
+                          </div>
                         </td>
                         <td className="px-3 py-3 text-center text-xs text-slate-700">
                           {applicationCounts[jobSeeker.job_seeker_id || ""] ?? 0}
@@ -811,6 +1013,9 @@ function ScreeningModal({
   const hasDetails = Object.keys(details).length > 0;
   const status =
     jobSeeker.status || (jobSeeker.is_active ? "Active" : "Inactive");
+  const checklist = getJobSeekerChecklist(jobSeeker);
+  const completedSteps = checklist.filter((item) => item.complete).length;
+  const profileComplete = completedSteps === checklist.length;
 
   return (
     <div
@@ -863,10 +1068,43 @@ function ScreeningModal({
         </div>
 
         <div className="space-y-6 px-5 py-5 sm:px-6">
+          <section className="rounded-xl border border-slate-200 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h4 className="text-sm font-bold text-slate-900">
+                Profile verification readiness
+              </h4>
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                profileComplete
+                  ? "bg-emerald-50 text-emerald-700"
+                  : "bg-amber-50 text-amber-800"
+              }`}>
+                {profileComplete ? "Ready for verification" : "Profile incomplete"} · {completedSteps}/{checklist.length}
+              </span>
+            </div>
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              {checklist.map((item) => (
+                <li
+                  key={item.label}
+                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium ${
+                    item.complete
+                      ? "bg-emerald-50 text-emerald-800"
+                      : "bg-amber-50 text-amber-900"
+                  }`}
+                >
+                  <span aria-hidden="true">{item.complete ? "✓" : "•"}</span>
+                  {item.label}
+                </li>
+              ))}
+            </ul>
+          </section>
           <div className="grid gap-4 rounded-xl bg-slate-50 p-4 sm:grid-cols-2 lg:grid-cols-3">
             <ScreeningField label="Contact Number" value={jobSeeker.contact_no || jobSeeker.phone} />
             <ScreeningField label="Present Address" value={jobSeeker.address || details.presentAddress} />
             <ScreeningField label="Status" value={status} />
+            <ScreeningField
+              label="Verification Status"
+              value={getVerificationStatus(jobSeeker).replace("_", " ")}
+            />
             <ScreeningField label="Registered On" value={jobSeeker.created_at ? new Date(jobSeeker.created_at).toLocaleString() : "-"} />
             <ScreeningField label="Resume" value={jobSeeker.resume_url ? "Uploaded" : "Not uploaded"} />
             <div className="flex items-end">

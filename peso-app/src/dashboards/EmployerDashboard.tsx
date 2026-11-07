@@ -12,7 +12,7 @@ import MyJobPostModule from "../employersmodules/MyJobPostModule";
 import ApplicationsModule from "../employersmodules/ApplicationsModule";
 import CompanyProfileModule from "../employersmodules/CompanyProfileModule";
 import MessagesModule from "../employersmodules/MessagesModule";
-import VerificationDocumentsModule from "../employersmodules/VerificationDocumentsModule";
+import EmployerRegistrationProfileModule from "../employersmodules/EmployerRegistrationProfileModule";
 import type { EmployerVerificationDocument } from "../services/employerRegistration";
 
 import { supabase } from "../services/supabase";
@@ -31,8 +31,7 @@ type MenuName =
   | "My Job Posts"
   | "Applications"
   | "Messages"
-  | "Company Profile"
-  | "Verification Documents";
+  | "Company Profile";
 
 interface EmployerProfile {
   employer_id: string;
@@ -714,6 +713,54 @@ export default function EmployerDashboard() {
     return logoUrl;
   };
 
+  const handleSaveRegistrationDetails = async (
+    details: Record<string, unknown>,
+  ) => {
+    if (!profile?.user_id) {
+      throw new Error("Employer profile is not available.");
+    }
+
+    const text = (key: string) =>
+      typeof details[key] === "string" ? details[key] as string : "";
+    const industries = Array.isArray(details.industries)
+      ? details.industries.filter(
+          (industry): industry is string => typeof industry === "string",
+        )
+      : [];
+    const address = [
+      text("address_house_street"),
+      text("address_barangay"),
+      text("address_city"),
+    ].filter(Boolean).join(", ");
+    const changes = {
+      registration_details: details,
+      industry: industries.join(", ") || null,
+      website: text("website").trim() || null,
+      email: text("email").trim().toLowerCase() || profile.email,
+      address: address || profile.address,
+      contact_person: text("hr_manager_name").trim() || profile.contact_person,
+      contact_no: text("mobile").trim() || profile.contact_no,
+    };
+
+    const { data, error: updateError } = await supabase
+      .from("employer")
+      .update(changes)
+      .eq("user_id", profile.user_id)
+      .select(
+        "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified, logo_url, company_description, industry, website, registration_details, verification_documents",
+      )
+      .maybeSingle();
+
+    if (updateError) {
+      throw new Error(`Registration details could not be saved: ${updateError.message}`);
+    }
+    if (!data) {
+      throw new Error("Registration details were not saved. Check your employer permissions.");
+    }
+
+    setProfile(data as EmployerProfile);
+  };
+
   /* =========================
      DISPLAY VALUES
   ========================= */
@@ -869,25 +916,33 @@ export default function EmployerDashboard() {
 
       case "Company Profile":
         return (
-          <CompanyProfileModule
-            profile={companyProfile}
-            onSave={handleSaveCompanyProfile}
-          />
-        );
-
-      case "Verification Documents":
-        return (
-          <VerificationDocumentsModule
-            employerId={profile.employer_id}
-            userId={profile.user_id || ""}
-            registrationDetails={profile.registration_details}
-            verificationDocuments={profile.verification_documents}
-            onDocumentsSaved={(documents: EmployerVerificationDocument[]) =>
-              setProfile((current) =>
-                current ? { ...current, verification_documents: documents } : current,
-              )
-            }
-          />
+          <div className="space-y-8">
+            <CompanyProfileModule
+              profile={companyProfile}
+              onSave={handleSaveCompanyProfile}
+            />
+            <EmployerRegistrationProfileModule
+              profile={{
+                employer_id: profile.employer_id,
+                user_id: profile.user_id || "",
+                name: profile.name,
+                email: profile.email,
+                address: profile.address,
+                contact_person: profile.contact_person,
+                contact_no: profile.contact_no,
+                industry: profile.industry,
+                website: profile.website,
+              }}
+              registrationDetails={profile.registration_details}
+              verificationDocuments={profile.verification_documents}
+              onSave={handleSaveRegistrationDetails}
+              onDocumentsSaved={(documents: EmployerVerificationDocument[]) =>
+                setProfile((current) =>
+                  current ? { ...current, verification_documents: documents } : current,
+                )
+              }
+            />
+          </div>
         );
 
       case "Dashboard":

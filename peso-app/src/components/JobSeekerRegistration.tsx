@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AuthSideImage from "./AuthSideImage";
 import EmployerRegistration from "./EmployerRegistration";
 import PesoLogo from "./PesoLogo";
@@ -10,7 +10,10 @@ const fieldClassName =
 
 function Register() {
   const navigate = useNavigate();
-  const [accountType, setAccountType] = useState("jobseeker");
+  const [searchParams] = useSearchParams();
+  const [accountType, setAccountType] = useState(
+    searchParams.get("role") === "employer" ? "employer" : "jobseeker",
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);

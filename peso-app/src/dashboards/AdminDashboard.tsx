@@ -16,6 +16,7 @@ import EmployersModule, {
 } from "../adminmodules/EmployersModule";
 import JobSeekersModule, {
   type JobSeekerFormValues,
+  type JobSeekerVerificationStatus,
 } from "../adminmodules/JobSeekersModule";
 import ApplicationsModule from "../adminmodules/ApplicationsModule";
 import AnnouncementModule from "../adminmodules/AnnouncementModule";
@@ -27,6 +28,7 @@ import {
   type ApplicationDecisionResult,
 } from "../services/applicationDecisions";
 import type { EmployerVerificationDocument } from "../services/employerRegistration";
+import { isJobSeekerProfileComplete } from "../services/jobSeekerProfile";
 
 /* ============================================================
    TYPES
@@ -1335,6 +1337,52 @@ export default function AdminDashboard() {
     );
   };
 
+  const updateJobSeekerVerificationStatus = async (
+    jobSeekerId: string,
+    status: JobSeekerVerificationStatus,
+  ) => {
+    if (status === "verified") {
+      const seeker = jobSeekers.find(
+        (jobSeeker) => jobSeeker.job_seeker_id === jobSeekerId,
+      );
+      if (
+        !seeker ||
+        !String(seeker.full_name || "").trim() ||
+        !String(seeker.email || "").trim() ||
+        !isJobSeekerProfileComplete(seeker.registration_details, seeker.resume_url)
+      ) {
+        throw new Error(
+          "Complete the job seeker account, registration form, certification, and resume before verifying this profile.",
+        );
+      }
+    }
+
+    const { data, error } = await supabase
+      .from("job_seeker")
+      .update({ verification_status: status })
+      .eq("job_seeker_id", jobSeekerId)
+      .select("*")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Job seeker verification status update error:", error);
+      throw new Error(
+        `Job seeker verification status could not be updated: ${error.message}`,
+      );
+    }
+    if (!data) {
+      throw new Error(
+        "Job seeker status was not updated because the record no longer exists.",
+      );
+    }
+
+    setJobSeekers((current) =>
+      current.map((jobSeeker) =>
+        jobSeeker.job_seeker_id === jobSeekerId ? data : jobSeeker,
+      ),
+    );
+  };
+
   const deleteJobSeeker = async (jobSeekerId: string) => {
     const { data, error } = await supabase
       .from("job_seeker")
@@ -1859,6 +1907,7 @@ export default function AdminDashboard() {
             setSearch={setJobSeekerSearch}
             loading={moduleLoading}
             onUpdate={updateJobSeeker}
+            onUpdateVerificationStatus={updateJobSeekerVerificationStatus}
             onDelete={deleteJobSeeker}
             ModuleHeader={ModuleHeader}
             LoadingMessage={LoadingMessage}

@@ -186,14 +186,14 @@ export default function VerificationDocumentsModule({
     <div className="mx-auto max-w-5xl space-y-6">
       <header>
         <p className="text-xs font-bold uppercase tracking-wider text-[#0759AE]">
-          Employer verification
+          Employer profile
         </p>
         <h1 className="mt-1 text-2xl font-black text-[#123B70]">
-          Verification Documents
+          Registration Paperwork
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-          Submit the required files for PESO staff review. Uploaded files remain private,
-          and each document stays pending until PESO reviews it.
+          Upload the paperwork needed for your PESO employer registration here.
+          Files remain private and stay pending until PESO staff reviews them.
         </p>
       </header>
 

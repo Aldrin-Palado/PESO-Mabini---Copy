@@ -8,8 +8,7 @@ export type EmployerMenuName =
   | "My Job Posts"
   | "Applications"
   | "Messages"
-  | "Company Profile"
-  | "Verification Documents";
+  | "Company Profile";
 
 interface EmployersSidebarProps {
   activeMenu: EmployerMenuName;
@@ -28,7 +27,6 @@ const menuItems: {
   { name: "Applications", icon: "✓" },
   { name: "Messages", icon: "✉" },
   { name: "Company Profile", icon: "▣" },
-  { name: "Verification Documents", icon: "⇧" },
 ];
 
 function EmployersSidebar({
