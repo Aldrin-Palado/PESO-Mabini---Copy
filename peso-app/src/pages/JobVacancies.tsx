@@ -104,7 +104,10 @@ function JobVacancies() {
               job_vacancy_id: job.job_vacancy_id,
               position_title: job.position_title,
               job_classification: job.job_classification,
-              employer: { name: job.employer_name ?? undefined },
+              employer: {
+                name: job.employer_name ?? undefined,
+                logoUrl: job.employer_logo_url,
+              },
             };
           });
 

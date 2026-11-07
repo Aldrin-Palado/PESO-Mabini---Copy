@@ -12,6 +12,7 @@ type Job = {
   id: string;
   title: string;
   company: string;
+  companyLogoUrl: string | null;
   employerVerified: boolean;
   location: string;
   type: string;
@@ -106,6 +107,7 @@ export default function SavedJobsModule({
             id: row.job_vacancy_id,
             title: row.position_title,
             company: row.employer_name || "Company name not provided",
+            companyLogoUrl: row.employer_logo_url,
             employerVerified: row.employer_verified,
             location: row.location || "Location not specified",
             type: row.employment_type || "Type not specified",
@@ -274,8 +276,16 @@ export default function SavedJobsModule({
                 >
                   <div className="p-5 sm:p-7">
                     <div className="flex items-start gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0759AE] text-sm font-black text-white">
-                        {job.company.charAt(0).toUpperCase()}
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#0759AE] text-sm font-black text-white">
+                        {job.companyLogoUrl ? (
+                          <img
+                            src={job.companyLogoUrl}
+                            alt={`${job.company} logo`}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          job.company.charAt(0).toUpperCase()
+                        )}
                       </div>
 
                       <div className="min-w-0 flex-1">
@@ -358,6 +368,7 @@ export default function SavedJobsModule({
             id: selectedJob.id,
             title: selectedJob.title,
             company: selectedJob.company,
+            companyLogoUrl: selectedJob.companyLogoUrl,
             employerVerified: selectedJob.employerVerified,
             location: selectedJob.location,
             employmentType: selectedJob.type,

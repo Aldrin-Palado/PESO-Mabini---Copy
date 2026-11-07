@@ -11,6 +11,7 @@ type JobPost = {
   company_name?: string;
   employer_name?: string;
   employer_id?: string;
+  employer_logo_url?: string | null;
   location?: string;
   employment_type?: string;
   salary_min?: number | string | null;
@@ -194,8 +195,16 @@ export default function JobPostsModule({
                     className="p-4 transition hover:bg-slate-50/80 sm:p-5"
                   >
                     <div className="flex items-start gap-3">
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#1766B4]">
-                        <AppIcon name="briefcase" className="h-5 w-5" />
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-50 text-sm font-bold text-[#1766B4]">
+                        {job.employer_logo_url ? (
+                          <img
+                            src={job.employer_logo_url}
+                            alt={`${getEmployerName(job)} logo`}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          getEmployerName(job).charAt(0).toUpperCase()
+                        )}
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-start justify-between gap-2">
@@ -298,8 +307,21 @@ export default function JobPostsModule({
                           </div>
                         </div>
                       </td>
-                      <td className="truncate px-3 py-3 text-xs text-slate-700">
-                        {getEmployerName(job)}
+                      <td className="px-3 py-3 text-xs text-slate-700">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-50 text-xs font-bold text-[#1766B4]">
+                            {job.employer_logo_url ? (
+                              <img
+                                src={job.employer_logo_url}
+                                alt=""
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              getEmployerName(job).charAt(0).toUpperCase()
+                            )}
+                          </span>
+                          <span className="truncate">{getEmployerName(job)}</span>
+                        </div>
                       </td>
                       <td className="truncate px-3 py-3 text-xs text-slate-700">
                         {job.location || "-"}

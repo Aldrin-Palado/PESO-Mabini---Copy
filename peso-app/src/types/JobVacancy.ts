@@ -25,6 +25,7 @@ export interface PublicJobVacancyPreviewRow {
   job_vacancy_id: string;
   position_title: string;
   employer_name: string | null;
+  employer_logo_url: string | null;
   job_classification: "local" | "international";
 }
 

@@ -950,22 +950,34 @@ export default function JobsModule({
             aria-labelledby={`company-name-${companyModalJob.id}`}
             className="my-auto max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl ring-1 ring-black/5"
           >
-            <div className="flex items-start gap-4 border-b border-slate-100 p-6 sm:p-8">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-blue-50 text-2xl font-black text-blue-700">
-                {companyModalJob.companyLogoUrl ? (
-                  <img
-                    src={companyModalJob.companyLogoUrl}
-                    alt={`${companyModalJob.company} logo`}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  companyModalJob.company.charAt(0).toUpperCase()
-                )}
+            <div className="relative">
+              <div className="relative h-36 overflow-hidden bg-gradient-to-br from-[#064A91] via-[#0759AE] to-sky-400 sm:h-44">
+                <div className="absolute -right-8 -top-20 h-56 w-56 rounded-full border-[24px] border-white/10" />
+                <div className="absolute -bottom-28 left-1/3 h-56 w-56 rounded-full bg-white/10" />
+                <button
+                  type="button"
+                  onClick={() => setCompanyModalJob(null)}
+                  aria-label="Close company profile"
+                  className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/20 text-white transition hover:bg-black/35 focus:outline-none focus:ring-2 focus:ring-white"
+                >
+                  <AppIcon name="x" className="h-5 w-5" />
+                </button>
               </div>
-              <div className="min-w-0 flex-1">
+              <div className="relative px-6 pb-5 sm:px-8">
+                <div className="-mt-12 flex h-24 w-24 items-center justify-center overflow-hidden rounded-3xl border-4 border-white bg-blue-50 text-3xl font-black text-blue-700 shadow-lg">
+                  {companyModalJob.companyLogoUrl ? (
+                    <img
+                      src={companyModalJob.companyLogoUrl}
+                      alt={`${companyModalJob.company} logo`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    companyModalJob.company.charAt(0).toUpperCase()
+                  )}
+                </div>
                 <h2
                   id={`company-name-${companyModalJob.id}`}
-                  className="flex flex-wrap items-center gap-2 text-xl font-black text-slate-950 sm:text-2xl"
+                  className="mt-4 flex flex-wrap items-center gap-2 text-xl font-black text-slate-950 sm:text-2xl"
                 >
                   {companyModalJob.company}
                   {companyModalJob.employerVerified && (
@@ -981,20 +993,12 @@ export default function JobsModule({
                   {companyModalJob.companyIndustry || "Company profile"}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setCompanyModalJob(null)}
-                aria-label="Close company profile"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <AppIcon name="x" className="h-5 w-5" />
-              </button>
             </div>
 
-            <div className="space-y-6 p-6 sm:p-8">
+            <div className="space-y-6 border-t border-slate-100 p-6 sm:p-8">
               <section>
                 <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-                  About the company
+                  Company background
                 </h3>
                 <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">
                   {companyModalJob.companyDescription ||

@@ -244,7 +244,7 @@ export default function StaffDashboard() {
                 "job_vacancy_id, employer_id, position_title, description, requirements, location, employment_type, salary_min, salary_max, vacancies_available, status, date_posted, deadline",
               )
               .order("date_posted", { ascending: false }),
-            supabase.from("employer").select("employer_id, name"),
+            supabase.from("employer").select("employer_id, name, logo_url"),
           ]);
 
           if (jobsResult.error) throw jobsResult.error;
@@ -260,13 +260,15 @@ export default function StaffDashboard() {
           const employerNames = new Map(
             (employersResult.data ?? []).map((employer) => [
               employer.employer_id,
-              employer.name,
+              { name: employer.name, logo_url: employer.logo_url },
             ]),
           );
           rows = (jobsResult.data ?? []).map((job) => ({
             ...job,
             employer_name:
-              employerNames.get(job.employer_id) || job.employer_id,
+              employerNames.get(job.employer_id)?.name || job.employer_id,
+            employer_logo_url:
+              employerNames.get(job.employer_id)?.logo_url || null,
           }));
         } else if (activePage === "Employers") {
           const { data, error } = await supabase
@@ -1119,7 +1121,29 @@ function StaffRecordsModule({
                             "Not uploaded"
                           )
                         ) : (
-                          column.value(record)
+                          page === "Job Posts" && column.label === "Employer" ? (
+                            <span className="inline-flex max-w-full items-center gap-2">
+                              <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-50 text-xs font-bold text-blue-700">
+                                {typeof record.employer_logo_url === "string" &&
+                                record.employer_logo_url ? (
+                                  <img
+                                    src={record.employer_logo_url}
+                                    alt=""
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  textValue(record.employer_name, "E")
+                                    .charAt(0)
+                                    .toUpperCase()
+                                )}
+                              </span>
+                              <span className="truncate">
+                                {column.value(record)}
+                              </span>
+                            </span>
+                          ) : (
+                            column.value(record)
+                          )
                         )}
                       </td>
                     ))}

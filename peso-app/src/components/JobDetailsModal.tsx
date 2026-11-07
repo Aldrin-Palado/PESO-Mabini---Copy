@@ -5,6 +5,7 @@ export type JobDetails = {
   id: string;
   title: string;
   company: string;
+  companyLogoUrl?: string | null;
   employerVerified?: boolean;
   location?: string | null;
   employmentType?: string | null;
@@ -109,8 +110,16 @@ export default function JobDetailsModal({
         <div className="max-h-[92vh] overflow-y-auto">
           <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur sm:px-8">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-50 text-lg font-black text-sky-700">
-                {job.company.charAt(0).toUpperCase() || "E"}
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-sky-50 text-lg font-black text-sky-700">
+                {job.companyLogoUrl ? (
+                  <img
+                    src={job.companyLogoUrl}
+                    alt={`${job.company} logo`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  job.company.charAt(0).toUpperCase() || "E"
+                )}
               </div>
               <div className="min-w-0">
                 <p className="flex min-w-0 items-center gap-1.5 truncate text-sm font-bold text-sky-700">

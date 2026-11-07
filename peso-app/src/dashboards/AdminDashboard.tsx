@@ -1064,7 +1064,7 @@ export default function AdminDashboard() {
         }),
         supabase
           .from("employer")
-          .select("employer_id, name"),
+          .select("employer_id, name, logo_url"),
       ]);
 
       if (jobsResult.error) {
@@ -1087,13 +1087,15 @@ export default function AdminDashboard() {
       const employersById = new Map(
         (employersResult.data ?? []).map((employer) => [
           employer.employer_id,
-          employer.name,
+          { name: employer.name, logo_url: employer.logo_url },
         ]),
       );
       setJobPosts(
         (jobsResult.data ?? []).map((job) => ({
           ...job,
-          company_name: employersById.get(job.employer_id) || "",
+          company_name: employersById.get(job.employer_id)?.name || "",
+          employer_logo_url:
+            employersById.get(job.employer_id)?.logo_url || null,
         })),
       );
     } finally {

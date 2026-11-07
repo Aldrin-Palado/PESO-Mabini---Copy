@@ -22,6 +22,8 @@ type JobPost = {
 
 export default function PESOJobPostsModule() {
   const [employerId, setEmployerId] = useState<string | null>(null);
+  const [employerName, setEmployerName] = useState("PESO Mabini");
+  const [employerLogoUrl, setEmployerLogoUrl] = useState<string | null>(null);
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -32,7 +34,7 @@ export default function PESOJobPostsModule() {
 
     const { data: pesoEmployer, error: employerError } = await supabase
       .from("employer")
-      .select("employer_id")
+      .select("employer_id, name, logo_url")
       .eq("is_peso", true)
       .maybeSingle();
 
@@ -52,6 +54,8 @@ export default function PESOJobPostsModule() {
     }
 
     setEmployerId(pesoEmployer.employer_id);
+    setEmployerName(pesoEmployer.name || "PESO Mabini");
+    setEmployerLogoUrl(pesoEmployer.logo_url);
 
     const { data, error } = await supabase
       .from("job_vacancy")
@@ -121,7 +125,8 @@ export default function PESOJobPostsModule() {
       <MyJobPostModule
         jobs={jobs}
         employerId={employerId}
-        employerName="PESO Mabini"
+        employerName={employerName}
+        employerLogoUrl={employerLogoUrl}
         isVerified
         onRefresh={loadJobs}
         publisherTitle="PESO Job Posts"
