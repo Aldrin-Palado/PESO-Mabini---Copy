@@ -4,7 +4,6 @@ import Footer from "../components/Footer";
 import HeroBackground from "../components/HeroBackground";
 import Navbar from "../components/Navbar";
 import AppIcon from "../components/AppIcon";
-import AIChatbotModule from "../jobseekersmodules/AIChatbotModule";
 import type { PublicJobVacancyPreviewRow } from "../types/JobVacancy";
 import { supabase } from "../services/supabase";
 
@@ -688,8 +687,6 @@ function Home() {
       </main>
 
       <Footer />
-
-      <AIChatbotModule floating />
 
       {selectedPESOPost && (
         <div

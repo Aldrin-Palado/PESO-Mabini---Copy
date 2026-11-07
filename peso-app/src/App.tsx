@@ -1,10 +1,11 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Employers from "./pages/Employers";
 import Home from "./pages/Home";
 import JobVacancies from "./pages/JobVacancies";
+import AIChatbotModule from "./jobseekersmodules/AIChatbotModule";
 import ForgotPassword from "./components/ForgotPassword";
 import JobSeekerRegistration from "./components/JobSeekerRegistration";
 import Login from "./components/Login";
@@ -14,6 +15,14 @@ import AdminDashboard from "./dashboards/AdminDashboard";
 import EmployerDashboard from "./dashboards/EmployerDashboard";
 import JobSeekerDashboard from "./dashboards/JobSeekerDashboard";
 import StaffDashboard from "./dashboards/StaffDashboard";
+
+const publicPagePaths = new Set(["/", "/about", "/jobs", "/employers", "/contact"]);
+
+function PublicAIChatbot() {
+  const { pathname } = useLocation();
+
+  return publicPagePaths.has(pathname) ? <AIChatbotModule floating /> : null;
+}
 
 function App() {
   return (
@@ -39,6 +48,7 @@ function App() {
         <Route path="/jobseeker" element={<JobSeekerDashboard />} />
         <Route path="*" element={<Home />} />
       </Routes>
+      <PublicAIChatbot />
     </BrowserRouter>
   );
 }
