@@ -543,6 +543,7 @@ export default function EmployersModule({
                   employer.full_name ||
                   "Unnamed Employer";
                 const status = getVerificationStatus(employer);
+                const isActive = employer.is_active !== false;
                 const checklist = getEmployerRegistrationChecklist(
                   employer.registration_details,
                   employer.verification_documents,
@@ -565,6 +566,14 @@ export default function EmployersModule({
                           <h3 className="truncate text-sm font-bold text-slate-900">
                             {name}
                           </h3>
+                          <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            isActive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+                          }`}>
+                            {isActive ? "Active" : "Deactivated"}
+                          </span>
+                        </div>
+                        <label className="mt-3 block text-xs font-semibold text-slate-600">
+                          Verification status
                           <select
                             aria-label={`Verification status for ${name}`}
                             value={status}
@@ -598,7 +607,7 @@ export default function EmployersModule({
                             </option>
                             <option value="not_approved">Not approved</option>
                           </select>
-                        </div>
+                        </label>
                         <div className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
                           <p className="flex min-w-0 items-center gap-2">
                             <AppIcon name="mail" className="h-3.5 w-3.5 shrink-0 text-slate-400" />
@@ -639,13 +648,14 @@ export default function EmployersModule({
               <thead className="bg-gradient-to-r from-[#1766B4] to-[#124A91] text-left">
                 <tr>
                   {[
-                    ["Company", "w-[16%]"],
-                    ["Email", "w-[16%]"],
-                    ["Contact Person", "w-[13%]"],
-                    ["Phone", "w-[11%]"],
-                    ["Location", "w-[14%]"],
-                    ["Status", "w-[10%]"],
-                    ["Actions", "w-[20%]"],
+                    ["Company", "w-[14%]"],
+                    ["Email", "w-[14%]"],
+                    ["Contact Person", "w-[12%]"],
+                    ["Phone", "w-[10%]"],
+                    ["Location", "w-[15%]"],
+                    ["Account Status", "w-[12%]"],
+                    ["Verification", "w-[14%]"],
+                    ["Actions", "w-[9%]"],
                   ].map(([label, width]) => (
                     <th key={label} className={`${width} px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white`}>
                       {label}
@@ -664,6 +674,7 @@ export default function EmployersModule({
                       "Unnamed Employer";
 
                     const status = getVerificationStatus(employer);
+                    const isActive = employer.is_active !== false;
                     const checklist = getEmployerRegistrationChecklist(
                       employer.registration_details,
                       employer.verification_documents,
@@ -713,6 +724,13 @@ export default function EmployersModule({
                             <span className="line-clamp-2">{employer.address || "-"}</span>
                           </span>
                         </td>
+                        <td className="px-3 py-3">
+                          <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            isActive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+                          }`}>
+                            {isActive ? "Active" : "Deactivated"}
+                          </span>
+                        </td>
                         <td className="px-2 py-2">
                           <select
                             aria-label={`Verification status for ${name}`}
@@ -727,7 +745,7 @@ export default function EmployersModule({
                               !employer.employer_id ||
                               updatingStatusId === employer.employer_id
                             }
-                            className={`max-w-full rounded-full border-0 px-2.5 py-1.5 text-[11px] font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 ${
+                            className={`w-full max-w-full rounded-lg border border-slate-200 px-2 py-2 text-[10px] font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 ${
                               status === "verified"
                                 ? "bg-emerald-100 text-emerald-800"
                                 : status === "not_approved"
