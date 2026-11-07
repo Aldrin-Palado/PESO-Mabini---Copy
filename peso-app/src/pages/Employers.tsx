@@ -14,44 +14,44 @@ const recommendations: {
 }[] = [
   {
     icon: "graduationCap",
-    title: "Entry-Level Opportunities",
+    title: "Entry-Level Roles",
     description:
-      "Help fresh graduates and first-time job seekers begin their careers by posting entry-level positions.",
+      "Reach recent graduates and candidates beginning their careers with clear, accessible entry-level openings.",
     examples: "Office assistant, sales associate, service crew",
   },
   {
     icon: "wrench",
-    title: "Skilled and Technical Jobs",
+    title: "Skilled and Technical Roles",
     description:
-      "Find applicants with specific skills, training, or experience for your business needs.",
+      "Connect with applicants whose technical training and practical experience match your workforce needs.",
     examples: "Electrician, technician, machine operator",
   },
   {
     icon: "briefcase",
     title: "Professional Positions",
     description:
-      "Share openings that require specialized knowledge, qualifications, or professional experience.",
+      "Promote opportunities requiring specialized knowledge, professional credentials, or relevant experience.",
     examples: "Accountant, HR staff, supervisor",
   },
   {
     icon: "clock",
-    title: "Part-Time and Temporary Work",
+    title: "Flexible and Fixed-Term Work",
     description:
-      "Offer flexible or short-term opportunities for applicants looking for alternative work arrangements.",
+      "Make temporary, seasonal, and part-time openings visible to candidates seeking flexible arrangements.",
     examples: "Seasonal staff, part-time cashier, project assistant",
   },
   {
     icon: "factory",
-    title: "Local and Community Jobs",
+    title: "Local Opportunities",
     description:
-      "Post vacancies available in Mabini and nearby areas to connect with local job seekers.",
+      "Prioritize local recruitment by sharing vacancies available in Mabini and nearby communities.",
     examples: "Retail staff, hospitality staff, production worker",
   },
   {
     icon: "chart",
-    title: "Career Growth Opportunities",
+    title: "Career Development Roles",
     description:
-      "Promote positions where applicants can develop their skills and grow within your organization.",
+      "Highlight positions that offer structured learning, increased responsibility, and room to progress.",
     examples: "Trainee, junior staff, team leader",
   },
 ];
@@ -102,21 +102,22 @@ export default function Employers() {
             </div>
 
             <h1 className="hero-heading-compact font-black text-white">
-              Find the Right Talent. <span className="text-sky-300">Post a Job.</span>
+              Connect with Local Talent.{" "}
+              <span className="text-sky-300">Build Your Team.</span>
             </h1>
 
             <p className="hero-lead mt-6 max-w-2xl text-slate-300">
-              PESO Mabini helps employers connect with job seekers. Explore these
-              job posting ideas and share your opportunities with the local
-              community.
+              Partner with PESO Mabini to reach job seekers and promote
+              opportunities across the local community. Explore hiring
+              categories and prepare a clear, effective vacancy announcement.
             </p>
 
             <button
               type="button"
               onClick={() => setShowAuthModal(true)}
-              className="mt-8 inline-flex items-center justify-center rounded-full bg-yellow-400 px-6 py-3 text-sm font-bold text-slate-950 shadow-lg transition hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-300 focus:ring-offset-2 focus:ring-offset-slate-950"
+              className="mt-8 inline-flex items-center justify-center rounded-xl bg-yellow-400 px-6 py-3 text-sm font-bold text-slate-950 shadow-lg transition hover:-translate-y-0.5 hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-300 focus:ring-offset-2 focus:ring-offset-slate-950"
             >
-              Post a Job <AppIcon name="arrowRight" className="ml-2 h-4 w-4" />
+              Get Started <AppIcon name="arrowRight" className="ml-2 h-4 w-4" />
             </button>
           </div>
         </div>
@@ -127,16 +128,17 @@ export default function Employers() {
       {/* Job posting recommendations */}
       <main className="mx-auto max-w-7xl px-4 py-12 sm:px-5 sm:py-14 lg:px-8 lg:py-16">
         <section>
-          <div className="mx-auto mb-8 max-w-3xl text-center">
+          <div className="mx-auto mb-10 max-w-3xl text-center">
             <p className="text-sm font-bold uppercase tracking-wider text-sky-600">
-              Job Posting Ideas
+              Hiring with PESO Mabini
             </p>
             <h2 className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">
-              What kind of job can you post?
+              Find the right candidates for your business
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
-              Choose the type of opportunity your business needs. These are ideas
-              to help you prepare a clear and useful job announcement.
+              From entry-level openings to experienced professionals, share
+              opportunities that help your organization and the Mabini workforce
+              grow.
             </p>
           </div>
 
@@ -144,37 +146,32 @@ export default function Employers() {
             {recommendations.map((item) => (
               <article
                 key={item.title}
-                className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 pl-7 shadow-sm transition before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-gradient-to-b before:from-yellow-400 before:to-red-500 before:content-[''] hover:-translate-y-1 hover:border-sky-300 hover:shadow-md"
+                className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-sky-200 hover:shadow-lg"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 text-2xl">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50">
                   <AppIcon name={item.icon} className="h-6 w-6 text-sky-700" />
                 </div>
-                <h3 className="mt-4 text-lg font-bold text-slate-900">
+                <h3 className="mt-5 text-lg font-bold text-slate-900">
                   {item.title}
                 </h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
+                <p className="mt-2 min-h-12 text-sm leading-6 text-slate-600">
                   {item.description}
                 </p>
-                <div className="mt-4 rounded-xl bg-slate-50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Examples
+                <div className="mt-5 border-t border-slate-100 pt-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Example roles
                   </p>
-                  <p className="mt-1 text-sm text-slate-700">{item.examples}</p>
+                  <p className="mt-2 text-sm font-medium leading-6 text-slate-700">
+                    {item.examples}
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowAuthModal(true)}
-                  className="mt-5 inline-flex items-center text-sm font-bold text-sky-700 transition hover:text-sky-900"
-                >
-                  Post Now <AppIcon name="arrowRight" className="ml-1 h-4 w-4" />
-                </button>
               </article>
             ))}
           </div>
         </section>
 
         {/* Helpful posting tips */}
-        <section className="mt-12 overflow-hidden rounded-2xl bg-[#062B4F] p-6 text-white sm:mt-16 sm:p-8">
+        <section className="mt-12 overflow-hidden rounded-2xl bg-[#062B4F] p-6 text-white shadow-lg sm:mt-16 sm:p-8">
           <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-center">
             <div>
               <p className="text-sm font-bold uppercase tracking-wider text-yellow-300">
@@ -184,16 +181,17 @@ export default function Employers() {
                 Make your job announcement clear
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-                Include the position title, job responsibilities, qualifications,
-                work location, employment type, salary or benefits, and application
-                deadline. Clear details help job seekers understand if the position
-                is right for them.
+                A complete vacancy announcement should include the job title,
+                responsibilities, qualifications, work location, employment
+                type, compensation or benefits, and application deadline.
+                Providing these details helps applicants make informed decisions
+                and apply with confidence.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setShowAuthModal(true)}
-              className="inline-flex shrink-0 items-center justify-center rounded-full bg-yellow-400 px-6 py-3 text-sm font-bold text-slate-950 transition hover:bg-yellow-300"
+              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-yellow-400 px-6 py-3 text-sm font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-yellow-300"
             >
               Post Now <AppIcon name="arrowRight" className="ml-2 h-4 w-4" />
             </button>
@@ -230,11 +228,11 @@ export default function Employers() {
             </div>
 
             <h2 id="employer-auth-title" className="mt-5 text-xl font-black text-slate-900">
-              Ready to post a job?
+              Ready to connect with local talent?
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Please log in to your employer account or create one to continue
-              posting job opportunities through PESO Mabini.
+              Sign in to your employer account or create one to share your
+              vacancies with job seekers through PESO Mabini.
             </p>
 
             <div className="mt-6 grid gap-3">
@@ -250,11 +248,11 @@ export default function Employers() {
                 onClick={goToEmployerRegistration}
                 className="w-full rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-800 transition hover:bg-slate-50"
               >
-                Create Employer Account
+                Create an Employer Account
               </button>
             </div>
             <p className="mt-4 text-center text-xs text-slate-500">
-              Employers must have an account before posting a vacancy.
+              An employer account is required to submit vacancies.
             </p>
           </div>
         </div>
