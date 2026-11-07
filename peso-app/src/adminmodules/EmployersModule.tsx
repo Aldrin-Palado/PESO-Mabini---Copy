@@ -2,6 +2,11 @@ import React, { useEffect, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import AppIcon from "../components/AppIcon";
 import { downloadCsv } from "../services/csvExport";
+import { supabase } from "../services/supabase";
+import type {
+  EmployerDocumentStatus,
+  EmployerVerificationDocument,
+} from "../services/employerRegistration";
 
 type Employer = {
   id?: string;
@@ -18,6 +23,8 @@ type Employer = {
   is_active?: boolean;
   is_verified?: boolean;
   verification_status?: EmployerVerificationStatus;
+  verification_documents?: unknown;
+  registration_details?: unknown;
   created_at?: string;
   [key: string]: any;
 };
@@ -42,6 +49,10 @@ type Props = {
   onUpdateStatus: (
     employerId: string,
     status: EmployerVerificationStatus,
+  ) => Promise<void>;
+  onReviewDocuments: (
+    employerId: string,
+    documents: EmployerVerificationDocument[],
   ) => Promise<void>;
   onToggleActive: (employerId: string, isActive: boolean) => Promise<void>;
 
@@ -102,6 +113,22 @@ function formatDetailValue(value: unknown): string {
   return String(value);
 }
 
+function getVerificationDocuments(value: unknown): EmployerVerificationDocument[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((document): document is EmployerVerificationDocument => {
+    if (!document || typeof document !== "object") return false;
+    const item = document as Record<string, unknown>;
+    return (
+      typeof item.id === "string" &&
+      typeof item.document_type === "string" &&
+      typeof item.label === "string" &&
+      typeof item.file_name === "string" &&
+      typeof item.storage_path === "string" &&
+      typeof item.status === "string"
+    );
+  });
+}
+
 export default function EmployersModule({
   employers,
   loadError,
@@ -111,6 +138,7 @@ export default function EmployersModule({
   onRefresh,
   onUpdate,
   onUpdateStatus,
+  onReviewDocuments,
   onToggleActive,
   ModuleHeader,
   LoadingMessage,
@@ -125,6 +153,8 @@ export default function EmployersModule({
   const [updatingActiveId, setUpdatingActiveId] = useState<string | null>(null);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
+  const [documentActionError, setDocumentActionError] = useState("");
+  const [openingDocumentId, setOpeningDocumentId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
@@ -147,6 +177,11 @@ export default function EmployersModule({
     if (statusFilter === "all") return true;
     return getVerificationStatus(employer) === statusFilter;
   });
+  const registrationDetails =
+    detailsEmployer?.registration_details &&
+    typeof detailsEmployer.registration_details === "object"
+      ? detailsEmployer.registration_details as Record<string, unknown>
+      : null;
   const startEditing = (employer: Employer) => {
     setActionError("");
     setEditingEmployer(employer);
@@ -226,6 +261,56 @@ export default function EmployersModule({
       );
     } finally {
       setUpdatingActiveId(null);
+    }
+  };
+
+  const openVerificationDocument = async (
+    document: EmployerVerificationDocument,
+  ) => {
+    setDocumentActionError("");
+    setOpeningDocumentId(document.id);
+    const { data, error } = await supabase.storage
+      .from("employer-verification-documents")
+      .createSignedUrl(document.storage_path, 60);
+    setOpeningDocumentId(null);
+    if (error) {
+      console.error("Could not open employer verification document:", error);
+      setDocumentActionError(`Could not open ${document.file_name}: ${error.message}`);
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const reviewVerificationDocument = async (
+    employer: Employer,
+    documentId: string,
+    status: EmployerDocumentStatus,
+  ) => {
+    if (!employer.employer_id) return;
+    const currentDocuments = getVerificationDocuments(employer.verification_documents);
+    const documents = currentDocuments.map((document) =>
+      document.id === documentId
+        ? {
+            ...document,
+            status,
+            reviewed_at: new Date().toISOString(),
+          }
+        : document,
+    );
+    setDocumentActionError("");
+    try {
+      await onReviewDocuments(employer.employer_id, documents);
+      setDetailsEmployer((current) =>
+        current?.employer_id === employer.employer_id
+          ? { ...current, verification_documents: documents }
+          : current,
+      );
+    } catch (error) {
+      setDocumentActionError(
+        error instanceof Error
+          ? error.message
+          : "Unable to update document review status.",
+      );
     }
   };
 
@@ -637,7 +722,9 @@ export default function EmployersModule({
               </div>
             </header>
             <dl className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6">
-              {Object.entries(detailsEmployer).map(([key, value]) => {
+              {Object.entries(detailsEmployer)
+                .filter(([key]) => key !== "registration_details" && key !== "verification_documents")
+                .map(([key, value]) => {
                 const formattedValue = formatDetailValue(value);
                 const isExternalUrl =
                   typeof value === "string" &&
@@ -669,6 +756,103 @@ export default function EmployersModule({
                 );
               })}
             </dl>
+            {registrationDetails && (
+                <section className="border-t border-slate-200 px-5 py-5 sm:px-6">
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Registration information
+                  </h3>
+                  <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+                    {Object.entries(registrationDetails)
+                      .filter(([key]) => key !== "certification")
+                      .map(([key, value]) => (
+                        <div key={key} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                          <dt className="text-xs font-semibold text-slate-500">
+                            {formatDetailLabel(key)}
+                          </dt>
+                          <dd className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-800">
+                            {formatDetailValue(value)}
+                          </dd>
+                        </div>
+                      ))}
+                    {"certification" in registrationDetails && (
+                        <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 sm:col-span-2">
+                          <dt className="text-xs font-semibold text-slate-500">
+                            Certification
+                          </dt>
+                          <dd className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-800">
+                            {formatDetailValue(
+                              registrationDetails.certification,
+                            )}
+                          </dd>
+                        </div>
+                      )}
+                  </dl>
+                </section>
+              )}
+            <section className="border-t border-slate-200 px-5 py-5 sm:px-6">
+              <h3 className="text-sm font-bold text-slate-900">
+                Registration documents
+              </h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Review each private file and record its PESO verification status.
+              </p>
+              {documentActionError && (
+                <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                  {documentActionError}
+                </p>
+              )}
+              {getVerificationDocuments(detailsEmployer.verification_documents).length === 0 ? (
+                <p className="mt-3 rounded-lg bg-slate-50 p-4 text-sm text-slate-500">
+                  No registration documents have been uploaded.
+                </p>
+              ) : (
+                <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200">
+                  {getVerificationDocuments(detailsEmployer.verification_documents).map((document) => (
+                    <li key={document.id} className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-slate-500">{document.label}</p>
+                        <button
+                          type="button"
+                          onClick={() => void openVerificationDocument(document)}
+                          disabled={openingDocumentId === document.id}
+                          className="mt-1 block max-w-full truncate text-sm font-semibold text-blue-700 hover:underline disabled:opacity-60"
+                        >
+                          {openingDocumentId === document.id ? "Preparing secure link..." : document.file_name}
+                        </button>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Uploaded {new Date(document.uploaded_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <label className="shrink-0 text-xs font-semibold text-slate-600">
+                        Review status
+                        <select
+                          value={document.status}
+                          onChange={(event) => {
+                            const nextStatus = event.target.value;
+                            if (
+                              nextStatus === "pending" ||
+                              nextStatus === "approved" ||
+                              nextStatus === "rejected"
+                            ) {
+                              void reviewVerificationDocument(
+                                detailsEmployer,
+                                document.id,
+                                nextStatus,
+                              );
+                            }
+                          }}
+                          className="ml-2 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs"
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="approved">Approved</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
             <footer className="flex justify-end border-t border-slate-200 px-5 py-4 sm:px-6">
               <button
                 type="button"

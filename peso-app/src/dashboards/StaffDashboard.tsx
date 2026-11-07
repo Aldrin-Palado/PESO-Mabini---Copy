@@ -4,6 +4,10 @@ import AppIcon, { type AppIconName } from "../components/AppIcon";
 import ProfileAvatar from "../components/ProfileAvatar";
 import { supabase } from "../services/supabase";
 import { openStoredResume } from "../services/resumes";
+import type {
+  EmployerDocumentStatus,
+  EmployerVerificationDocument,
+} from "../services/employerRegistration";
 import MessagesModule from "../adminmodules/MessagesModule";
 import PESOPosts from "../adminmodules/PESOPosts";
 
@@ -96,6 +100,34 @@ export default function StaffDashboard() {
     if (error) throw error;
     if (!data) throw new Error("Your profile was not updated. Please sign in again and try once more.");
     setStaff({ ...staff, ...data });
+  };
+
+  const reviewStaffEmployerDocuments = async (
+    employerId: string,
+    documents: EmployerVerificationDocument[],
+  ) => {
+    const { data, error } = await supabase
+      .from("employer")
+      .update({ verification_documents: documents })
+      .eq("employer_id", employerId)
+      .select("employer_id, verification_documents")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Staff employer document review update failed:", error);
+      throw new Error(`Document review status could not be saved: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error("Document review status was not saved because the employer record no longer exists.");
+    }
+
+    setRecords((current) =>
+      current.map((record) =>
+        record.employer_id === employerId
+          ? { ...record, verification_documents: data.verification_documents }
+          : record,
+      ),
+    );
   };
 
   /* =====================================================
@@ -274,7 +306,7 @@ export default function StaffDashboard() {
           const { data, error } = await supabase
             .from("employer")
             .select(
-              "employer_id, name, contact_person, email, contact_no, address, is_verified, verification_status, created_at",
+            "employer_id, name, contact_person, email, contact_no, address, is_verified, verification_status, created_at, registration_details, verification_documents",
             )
             .order("created_at", { ascending: false });
 
@@ -496,6 +528,7 @@ export default function StaffDashboard() {
             loading={recordsLoading}
             error={recordsError}
             onRefresh={() => setRecordsRefresh((value) => value + 1)}
+            onReviewDocuments={reviewStaffEmployerDocuments}
           />
         );
 
@@ -918,16 +951,23 @@ function StaffRecordsModule({
   loading,
   error,
   onRefresh,
+  onReviewDocuments,
 }: {
   page: StaffRecordPage;
   records: StaffRecord[];
   loading: boolean;
   error: string;
   onRefresh: () => void;
+  onReviewDocuments?: (
+    employerId: string,
+    documents: EmployerVerificationDocument[],
+  ) => Promise<void>;
 }) {
   const [search, setSearch] = useState("");
   const [openingResumeId, setOpeningResumeId] = useState<string | null>(null);
   const [resumeError, setResumeError] = useState("");
+  const [documentError, setDocumentError] = useState("");
+  const [openingDocumentId, setOpeningDocumentId] = useState<string | null>(null);
 
   const columns: {
     label: string;
@@ -970,6 +1010,13 @@ function StaffRecordsModule({
             { label: "Email", value: (record) => textValue(record.email) },
             { label: "Contact Number", value: (record) => textValue(record.contact_no) },
             { label: "Address", value: (record) => textValue(record.address) },
+            {
+              label: "Documents",
+              value: (record) =>
+                Array.isArray(record.verification_documents)
+                  ? `${record.verification_documents.length} uploaded`
+                  : "None uploaded",
+            },
             {
               label: "Verification",
               value: (record) =>
@@ -1026,6 +1073,62 @@ function StaffRecordsModule({
     }
   };
 
+  const getRecordDocuments = (record: StaffRecord) => {
+    if (!Array.isArray(record.verification_documents)) return [];
+    return record.verification_documents.filter(
+      (document): document is EmployerVerificationDocument =>
+        Boolean(
+          document &&
+            typeof document === "object" &&
+            typeof document.id === "string" &&
+            typeof document.storage_path === "string" &&
+            typeof document.file_name === "string" &&
+            typeof document.status === "string",
+        ),
+    );
+  };
+
+  const handleOpenEmployerDocument = async (
+    document: EmployerVerificationDocument,
+  ) => {
+    setDocumentError("");
+    setOpeningDocumentId(document.id);
+    const { data, error: signedUrlError } = await supabase.storage
+      .from("employer-verification-documents")
+      .createSignedUrl(document.storage_path, 60);
+    setOpeningDocumentId(null);
+    if (signedUrlError) {
+      console.error("Could not open employer registration document:", signedUrlError);
+      setDocumentError(signedUrlError.message);
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handleReviewEmployerDocument = async (
+    record: StaffRecord,
+    documentId: string,
+    status: EmployerDocumentStatus,
+  ) => {
+    const employerId = textValue(record.employer_id, "");
+    if (!employerId || !onReviewDocuments) return;
+    const documents = getRecordDocuments(record).map((document) =>
+      document.id === documentId
+        ? { ...document, status, reviewed_at: new Date().toISOString() }
+        : document,
+    );
+    setDocumentError("");
+    try {
+      await onReviewDocuments(employerId, documents);
+    } catch (reviewError) {
+      setDocumentError(
+        reviewError instanceof Error
+          ? reviewError.message
+          : "Unable to update document review status.",
+      );
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1061,6 +1164,11 @@ function StaffRecordsModule({
       {resumeError && (
         <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
           {resumeError}
+        </p>
+      )}
+      {documentError && (
+        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          {documentError}
         </p>
       )}
 
@@ -1121,7 +1229,41 @@ function StaffRecordsModule({
                             "Not uploaded"
                           )
                         ) : (
-                          page === "Job Posts" && column.label === "Employer" ? (
+                          page === "Employers" && column.label === "Documents" ? (
+                            <div className="min-w-[16rem] space-y-2 whitespace-normal">
+                              {getRecordDocuments(record).length === 0 ? (
+                                <span className="text-xs text-slate-500">None uploaded</span>
+                              ) : (
+                                getRecordDocuments(record).map((document) => (
+                                  <div key={document.id} className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 p-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => void handleOpenEmployerDocument(document)}
+                                      disabled={openingDocumentId === document.id}
+                                      className="max-w-40 truncate text-left text-xs font-semibold text-blue-700 hover:underline"
+                                    >
+                                      {openingDocumentId === document.id ? "Preparing link..." : document.file_name}
+                                    </button>
+                                    <select
+                                      aria-label={`Review status for ${document.file_name}`}
+                                      value={document.status}
+                                      onChange={(event) => {
+                                        const status = event.target.value;
+                                        if (status === "pending" || status === "approved" || status === "rejected") {
+                                          void handleReviewEmployerDocument(record, document.id, status);
+                                        }
+                                      }}
+                                      className="rounded border border-slate-300 bg-white px-1.5 py-1 text-[11px]"
+                                    >
+                                      <option value="pending">Pending</option>
+                                      <option value="approved">Approved</option>
+                                      <option value="rejected">Rejected</option>
+                                    </select>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          ) : page === "Job Posts" && column.label === "Employer" ? (
                             <span className="inline-flex max-w-full items-center gap-2">
                               <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-50 text-xs font-bold text-blue-700">
                                 {typeof record.employer_logo_url === "string" &&

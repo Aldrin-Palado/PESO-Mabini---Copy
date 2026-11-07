@@ -12,6 +12,8 @@ import MyJobPostModule from "../employersmodules/MyJobPostModule";
 import ApplicationsModule from "../employersmodules/ApplicationsModule";
 import CompanyProfileModule from "../employersmodules/CompanyProfileModule";
 import MessagesModule from "../employersmodules/MessagesModule";
+import VerificationDocumentsModule from "../employersmodules/VerificationDocumentsModule";
+import type { EmployerVerificationDocument } from "../services/employerRegistration";
 
 import { supabase } from "../services/supabase";
 
@@ -29,7 +31,8 @@ type MenuName =
   | "My Job Posts"
   | "Applications"
   | "Messages"
-  | "Company Profile";
+  | "Company Profile"
+  | "Verification Documents";
 
 interface EmployerProfile {
   employer_id: string;
@@ -44,6 +47,8 @@ interface EmployerProfile {
   company_description: string | null;
   industry: string | null;
   website: string | null;
+  registration_details: unknown;
+  verification_documents: unknown;
 }
 
 interface JobPost {
@@ -381,7 +386,7 @@ export default function EmployerDashboard() {
       await supabase
         .from("employer")
         .select(
-          "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified, logo_url, company_description, industry, website"
+          "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified, logo_url, company_description, industry, website, registration_details, verification_documents"
         )
         .eq("user_id", user.id)
         .maybeSingle();
@@ -662,7 +667,7 @@ export default function EmployerDashboard() {
       .update(changes)
       .eq("user_id", user.id)
       .select(
-        "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified, logo_url, company_description, industry, website"
+        "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified, logo_url, company_description, industry, website, registration_details, verification_documents"
       )
       .maybeSingle();
 
@@ -867,6 +872,21 @@ export default function EmployerDashboard() {
           <CompanyProfileModule
             profile={companyProfile}
             onSave={handleSaveCompanyProfile}
+          />
+        );
+
+      case "Verification Documents":
+        return (
+          <VerificationDocumentsModule
+            employerId={profile.employer_id}
+            userId={profile.user_id || ""}
+            registrationDetails={profile.registration_details}
+            verificationDocuments={profile.verification_documents}
+            onDocumentsSaved={(documents: EmployerVerificationDocument[]) =>
+              setProfile((current) =>
+                current ? { ...current, verification_documents: documents } : current,
+              )
+            }
           />
         );
 
