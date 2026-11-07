@@ -752,20 +752,20 @@ export default function JobSeekersModule({
             </div>
 
             <div className="hidden overflow-x-auto 2xl:block">
-            <table className="w-full min-w-[1100px] table-fixed">
+            <table className="w-full min-w-[1200px] table-fixed">
               <thead className="bg-gradient-to-r from-[#1766B4] to-[#124A91] text-left">
                 <tr>
                   {[
-                    ["Name", "w-[15%]"],
-                    ["Email", "w-[15%]"],
-                    ["Phone", "w-[11%]"],
-                    ["Gender", "w-[9%]"],
-                    ["Education", "w-[13%]"],
-                    ["Location", "w-[13%]"],
-                    ["Status", "w-[8%]"],
-                    ["Applications", "w-[7%]"],
-                    ["Created", "w-[9%]"],
-                    ["Actions", "w-[20%]"],
+                    ["Name", "w-[13%]"],
+                    ["Email", "w-[14%]"],
+                    ["Phone", "w-[9%]"],
+                    ["Gender", "w-[7%]"],
+                    ["Education", "w-[11%]"],
+                    ["Location", "w-[12%]"],
+                    ["Status", "w-[12%]"],
+                    ["Applications", "w-[6%]"],
+                    ["Created", "w-[7%]"],
+                    ["Actions", "w-[9%]"],
                   ].map(([label, width]) => (
                     <th key={label} className={`${width} whitespace-nowrap px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white`}>
                       {label}
