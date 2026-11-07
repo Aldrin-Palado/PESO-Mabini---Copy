@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AuthSideImage from "./AuthSideImage";
 import PesoLogo from "./PesoLogo";
+import TermsAndConditionsModal from "./TermsAndConditionsModal";
 import { supabase } from "../services/supabase";
 
 const fieldClassName =
@@ -15,6 +16,8 @@ function Register() {
   );
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
@@ -70,6 +73,8 @@ function Register() {
           data: {
             full_name: fullName,
             role: isEmployer ? "employer" : "jobseeker",
+            terms_accepted: true,
+            terms_accepted_at: new Date().toISOString(),
             ...(isEmployer
               ? {
                   company_name: formData.companyName.trim(),
@@ -392,12 +397,22 @@ function Register() {
               <label className="flex items-start gap-3">
                 <input
                   type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(event) => setTermsAccepted(event.target.checked)}
                   required
                   className="mt-1 h-4 w-4 rounded border-slate-300 accent-[#315FEA] focus:ring-[#315FEA]"
                 />
                 <span className="text-sm text-slate-500">
-                  I agree to the PESO MABINI terms and conditions and understand
-                  that my information will be used for employment services.
+                  I have read and agree to the{" "}
+                  <button
+                    type="button"
+                    onClick={() => setShowTerms(true)}
+                    className="font-semibold text-[#315FEA] underline decoration-[#315FEA]/40 underline-offset-2 hover:text-[#123B70]"
+                  >
+                    Terms and Conditions
+                  </button>{" "}
+                  and understand how my personal information will be collected
+                  and processed through PESO-Hub.
                 </span>
               </label>
 
@@ -431,6 +446,9 @@ function Register() {
           </div>
         </section>
       </main>
+      {showTerms && (
+        <TermsAndConditionsModal onClose={() => setShowTerms(false)} />
+      )}
     </div>
   );
 }
