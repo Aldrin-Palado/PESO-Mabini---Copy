@@ -774,38 +774,9 @@ export default function AdminAccounts() {
   return (
     <div className="space-y-5">
 
-      {/* =================================================
-          HEADER
-      ================================================= */}
-
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
-        <div>
-          <h1 className="text-xl font-black text-[#123B70]">
-            Admin Accounts
-          </h1>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Manage PESO Staff accounts and their module access.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            if (showCreateModal) {
-              closeCreateModal();
-            } else {
-              setCreateError("");
-              setShowCreateModal(true);
-            }
-          }}
-          className="rounded-lg bg-[#0759AE] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#064A91]"
-        >
-          {showCreateModal ? "Cancel" : "+ Add Admin"}
-        </button>
-
-      </div>
+      <p className="text-sm text-slate-500">
+        Manage PESO Staff accounts and their module access.
+      </p>
 
       {loadError && (
         <div
@@ -1035,6 +1006,20 @@ export default function AdminAccounts() {
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-50"
             >
               {loading ? "Refreshing..." : "Refresh"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (showCreateModal) {
+                  closeCreateModal();
+                } else {
+                  setCreateError("");
+                  setShowCreateModal(true);
+                }
+              }}
+              className="rounded-lg bg-[#0759AE] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#064A91]"
+            >
+              {showCreateModal ? "Cancel" : "+ Add Admin"}
             </button>
           </div>
         </div>

@@ -408,22 +408,10 @@ export default function PESOPosts() {
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <p className="mb-1 text-sm font-medium text-blue-700">Content Management</p>
-          <h1 className="text-2xl font-bold text-[#123B70] md:text-3xl">PESO Posts</h1>
           <p className="mt-1 text-sm text-gray-500">
             Share official activities, achievements, events, and programs on the public home page.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            resetForm();
-            setShowForm(true);
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-          className="rounded-lg bg-blue-800 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-900"
-        >
-          Create post
-        </button>
       </header>
 
       {actionError && (
@@ -596,34 +584,47 @@ export default function PESOPosts() {
             <h2 className="text-lg font-bold text-[#123B70]">Manage posts</h2>
             <p className="mt-1 text-sm text-gray-500">Search and filter drafts or published content.</p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search posts"
-              aria-label="Search posts"
-              className="min-w-0 rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-blue-600"
-            />
-            <select
-              value={categoryFilter}
-              onChange={(event) => setCategoryFilter(event.target.value)}
-              aria-label="Filter by category"
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-600"
+          <div className="flex flex-col gap-3 xl:flex-row">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search posts"
+                aria-label="Search posts"
+                className="min-w-0 rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-blue-600"
+              />
+              <select
+                value={categoryFilter}
+                onChange={(event) => setCategoryFilter(event.target.value)}
+                aria-label="Filter by category"
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-600"
+              >
+                <option value="All">All categories</option>
+                {categories.map((category) => <option key={category}>{category}</option>)}
+              </select>
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+                aria-label="Filter by status"
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-600"
+              >
+                <option value="All">All statuses</option>
+                <option value="published">Published</option>
+                <option value="draft">Draft</option>
+              </select>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                resetForm();
+                setShowForm(true);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="shrink-0 rounded-lg bg-blue-800 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-900"
             >
-              <option value="All">All categories</option>
-              {categories.map((category) => <option key={category}>{category}</option>)}
-            </select>
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-              aria-label="Filter by status"
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-600"
-            >
-              <option value="All">All statuses</option>
-              <option value="published">Published</option>
-              <option value="draft">Draft</option>
-            </select>
+              Create post
+            </button>
           </div>
         </div>
 

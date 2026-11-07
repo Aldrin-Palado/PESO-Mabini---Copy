@@ -2296,7 +2296,6 @@ function AuditLogs({
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-[#123B70]">Admin Audit Logs</h1>
           <p className="mt-1 text-sm text-slate-500">
             Audit trail for admin and staff activities (who did what, where, and when).
           </p>
