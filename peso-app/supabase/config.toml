@@ -468,3 +468,7 @@ entrypoint = "./functions/gmail-watch-renewal/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/gmail-deliver-queued/index.ts"
+
+[functions.contact-message]
+enabled = true
+verify_jwt = false

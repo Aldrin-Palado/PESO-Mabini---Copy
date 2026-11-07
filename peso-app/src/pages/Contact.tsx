@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, type FormEvent } from "react";
 import Footer from "../components/Footer";
 import LocationMap, {
   MABINI_MUNICIPAL_HALL,
@@ -7,6 +7,7 @@ import LocationMap, {
 } from "../components/LocationMap";
 import Navbar from "../components/Navbar";
 import AppIcon from "../components/AppIcon";
+import { supabase } from "../services/supabase";
 
 interface ContactMethod {
   title: string;
@@ -16,6 +17,8 @@ interface ContactMethod {
   label: string;
   link?: string;
 }
+
+const pesoContactEmail = "pesomabini901@gmail.com";
 
 const contactMethods: ContactMethod[] = [
   {
@@ -29,7 +32,7 @@ const contactMethods: ContactMethod[] = [
   },
   {
     title: "Email Us",
-    detail: "peso.mabini@province.gov.ph",
+    detail: pesoContactEmail,
     accent: "bg-yellow-50 text-yellow-600",
     borderAccent: "bg-yellow-500",
     label: "Send Email",
@@ -57,6 +60,44 @@ const quickLinks = [
 ];
 
 const Contact: React.FC = () => {
+  const [contactStatus, setContactStatus] = useState("");
+  const [isSending, setIsSending] = useState(false);
+
+  const handleContactSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (isSending) return;
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const submission = {
+      name: String(formData.get("name") ?? "").trim(),
+      email: String(formData.get("email") ?? "").trim(),
+      subject: String(formData.get("subject") ?? "").trim(),
+      message: String(formData.get("message") ?? "").trim(),
+      website: String(formData.get("website") ?? "").trim(),
+    };
+
+    setIsSending(true);
+    setContactStatus("");
+    try {
+      const { data, error } = await supabase.functions.invoke<{
+        success: boolean;
+      }>("contact-message", { body: submission });
+      if (error) throw error;
+      if (!data?.success) throw new Error("The contact message was not accepted.");
+
+      form.reset();
+      setContactStatus("Your message was sent to PESO Mabini. Thank you for reaching out.");
+    } catch (error) {
+      console.error("Could not send the PESO contact message:", error);
+      setContactStatus(
+        `We couldn't send your message. Please try again or email ${pesoContactEmail} directly.`,
+      );
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   return (
     <div className="whirl-page-background min-h-screen text-slate-800">
 
@@ -204,30 +245,52 @@ const Contact: React.FC = () => {
 
               </div>
 
-              <form className="space-y-5">
+              <form className="space-y-5" onSubmit={(event) => void handleContactSubmit(event)}>
+
+                <div
+                  aria-hidden="true"
+                  className="absolute -left-[10000px] h-px w-px overflow-hidden"
+                >
+                  <label htmlFor="contact-website">Leave this field empty</label>
+                  <input
+                    id="contact-website"
+                    name="website"
+                    type="text"
+                    tabIndex={-1}
+                    autoComplete="off"
+                  />
+                </div>
 
                 <div className="grid gap-5 md:grid-cols-2">
 
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    <label htmlFor="contact-name" className="mb-2 block text-sm font-semibold text-slate-700">
                       Full Name
                     </label>
 
                     <input
+                      id="contact-name"
+                      name="name"
                       type="text"
+                      autoComplete="name"
                       placeholder="Your full name"
+                      required
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100"
                     />
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    <label htmlFor="contact-email" className="mb-2 block text-sm font-semibold text-slate-700">
                       Email Address
                     </label>
 
                     <input
+                      id="contact-email"
+                      name="email"
                       type="email"
+                      autoComplete="email"
                       placeholder="you@example.com"
+                      required
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100"
                     />
                   </div>
@@ -235,37 +298,50 @@ const Contact: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  <label htmlFor="contact-subject" className="mb-2 block text-sm font-semibold text-slate-700">
                     Subject
                   </label>
 
                   <input
+                    id="contact-subject"
+                    name="subject"
                     type="text"
                     placeholder="How can we help?"
+                    maxLength={160}
+                    required
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  <label htmlFor="contact-message" className="mb-2 block text-sm font-semibold text-slate-700">
                     Message
                   </label>
 
                   <textarea
+                    id="contact-message"
+                    name="message"
                     rows={6}
                     placeholder="Tell us more about your inquiry..."
+                    maxLength={5000}
+                    required
                     className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100"
                   />
                 </div>
 
                 <button
                   type="submit"
+                  disabled={isSending}
                   className="rounded-xl bg-sky-600 px-6 py-3.5 font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-sky-700 hover:shadow-md"
                 >
-                  Send Message
+                  {isSending ? "Sending..." : "Send Message"}
                 </button>
 
               </form>
+              <p className="mt-4 text-sm text-slate-500" aria-live="polite" role="status">
+                Messages are sent directly to {pesoContactEmail}.
+                {contactStatus && <span className="mt-2 block">{contactStatus}</span>}
+              </p>
 
             </div>
           </div>

@@ -49,7 +49,7 @@ const Footer: React.FC = () => {
               <p className="flex items-center gap-2"><AppIcon name="building" className="h-4 w-4" /> Public Employment Service Office</p>
               <p className="flex items-center gap-2"><AppIcon name="mapPin" className="h-4 w-4" /> 2/F R.P.Amurao Ave. Municipal Gov't. Bldg., Poblacion, Mabini, Batangas</p>
               <p className="flex items-center gap-2"><AppIcon name="phone" className="h-4 w-4 shrink-0" /> <span>043-2331298<br />0917-1201369</span></p>
-              <p className="flex items-center gap-2"><AppIcon name="mail" className="h-4 w-4" /> mabinibtg.peso@gmail.com</p>
+              <p className="flex items-center gap-2"><AppIcon name="mail" className="h-4 w-4" /> pesomabini901@gmail.com</p>
             </div>
           </div>
         </div>
