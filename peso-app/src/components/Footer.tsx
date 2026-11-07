@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import PesoLogo from "./PesoLogo";
 import AppIcon from "./AppIcon";
 
@@ -27,18 +28,18 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="font-bold text-white">Quick Links</h3>
             <div className="mt-4 space-y-2 text-sm">
-              <a href="#home" className="block transition hover:text-yellow-300">
+              <Link to="/" className="block transition hover:text-yellow-300">
                 Home
-              </a>
-              <a href="#about" className="block transition hover:text-yellow-300">
+              </Link>
+              <Link to="/about" className="block transition hover:text-yellow-300">
                 About Us
-              </a>
-              <a href="#jobs" className="block transition hover:text-yellow-300">
+              </Link>
+              <Link to="/jobs" className="block transition hover:text-yellow-300">
                 Job Vacancies
-              </a>
-              <a href="#employers" className="block transition hover:text-yellow-300">
+              </Link>
+              <Link to="/employers" className="block transition hover:text-yellow-300">
                 Employers
-              </a>
+              </Link>
             </div>
           </div>
 

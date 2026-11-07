@@ -1,6 +1,9 @@
 import { useState } from "react";
 import Navbar from "../components/Navbar";
 import AppIcon, { type AppIconName } from "../components/AppIcon";
+import jobseeker1 from "../assets/images/jobseeker1.jfif";
+import jobseeker2 from "../assets/images/jobseeker2.jfif";
+import jobseeker3 from "../assets/images/jobseeker3.jfif";
 
 const recommendations: {
   icon: AppIconName;
@@ -71,6 +74,20 @@ export default function Employers() {
 
       {/* Hero */}
       <section className="hero-shell-compact relative isolate overflow-hidden bg-slate-950">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 grid grid-cols-3">
+          {[jobseeker1, jobseeker2, jobseeker3].map((image) => (
+            <img
+              key={image}
+              src={image}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          ))}
+        </div>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/70 to-slate-950/65"
+        />
         <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-sky-600/20 blur-3xl" />
         <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-yellow-400/10 blur-3xl" />
 

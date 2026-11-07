@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import headerBanner from "../assets/images/peso-header-banner.png";
 import PesoLogo from "./PesoLogo";
 
 export default function Navbar() {
@@ -21,10 +22,18 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white">
+    <nav
+      className="sticky top-0 z-50 border-b border-[#e7b800]/70 bg-white"
+      style={{
+        backgroundImage: `url(${headerBanner})`,
+        backgroundPosition: "center top",
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "100% 15rem",
+      }}
+    >
       {/* pt/pb carry the notch inset so the bar clears the status bar on
           devices with a cutout, while keeping the original spacing. */}
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3 sm:px-6 sm:pt-[calc(env(safe-area-inset-top)+1rem)] sm:pb-4">
+      <div className="mx-auto flex min-h-[5.25rem] max-w-7xl items-center justify-between gap-3 px-4 pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-2 sm:min-h-24 sm:px-6 sm:pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:pb-3">
 
         {/* Logo */}
         <PesoLogo size="sm" showName className="min-w-0" />
