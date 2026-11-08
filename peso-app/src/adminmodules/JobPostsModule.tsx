@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import AppIcon from "../components/AppIcon";
+import ModuleScoreboard from "./ModuleScoreboard";
 
 type JobPost = {
   id?: string;
@@ -101,6 +102,15 @@ export default function JobPostsModule({
   return (
     <div className="space-y-5">
       <ModuleHeader onRefresh={onRefresh} />
+      <ModuleScoreboard
+        title="Job Posts"
+        metrics={[
+          { label: "Total job posts", value: jobs.length },
+          { label: "Open", value: jobs.filter((job) => job.status?.toLowerCase() === "open").length },
+          { label: "Draft", value: jobs.filter((job) => job.status?.toLowerCase() === "draft").length },
+          { label: "Closed", value: jobs.filter((job) => job.status?.toLowerCase() === "closed").length },
+        ]}
+      />
 
       {loadError && (
         <p

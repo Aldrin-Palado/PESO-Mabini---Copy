@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { openStoredResume } from "../services/resumes";
 import type { ApplicationDecisionResult } from "../services/applicationDecisions";
+import ModuleScoreboard from "./ModuleScoreboard";
 
 type Application = {
   id?: string;
@@ -310,6 +311,18 @@ export default function ApplicationsModule({
 
   return (
     <div className="space-y-4">
+      <ModuleScoreboard
+        title="Applications"
+        metrics={[
+          { label: "Total applications", value: applications.length },
+          ...STATUSES.map((status) => ({
+            label: status.label,
+            value: applications.filter(
+              (application) => getApplicationStatus(application) === status.value,
+            ).length,
+          })),
+        ]}
+      />
       {loadError && (
         <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800">
           {loadError}

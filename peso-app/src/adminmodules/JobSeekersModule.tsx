@@ -1,6 +1,7 @@
 import React, { useEffect, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import AppIcon from "../components/AppIcon";
+import ModuleScoreboard from "./ModuleScoreboard";
 import { downloadCsv } from "../services/csvExport";
 import { openStoredResume } from "../services/resumes";
 import {
@@ -551,6 +552,15 @@ export default function JobSeekersModule({
     <div className="space-y-5">
 
       <ModuleHeader />
+      <ModuleScoreboard
+        title="Job Seekers"
+        metrics={[
+          { label: "Total job seekers", value: jobSeekers.length },
+          { label: "Active", value: jobSeekers.filter((seeker) => seeker.is_active !== false).length },
+          { label: "Pending verification", value: jobSeekers.filter((seeker) => getVerificationStatus(seeker) === "pending").length },
+          { label: "Verified", value: jobSeekers.filter((seeker) => getVerificationStatus(seeker) === "verified").length },
+        ]}
+      />
 
       {loadError && (
         <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">

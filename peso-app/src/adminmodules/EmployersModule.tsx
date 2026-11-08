@@ -1,6 +1,7 @@
 import React, { useEffect, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import AppIcon from "../components/AppIcon";
+import ModuleScoreboard from "./ModuleScoreboard";
 import { downloadCsv } from "../services/csvExport";
 import { supabase } from "../services/supabase";
 import type {
@@ -445,6 +446,15 @@ export default function EmployersModule({
     <div className="space-y-5">
 
       <ModuleHeader onRefresh={onRefresh} />
+      <ModuleScoreboard
+        title="Employers"
+        metrics={[
+          { label: "Total employers", value: employers.length },
+          { label: "Verified", value: employers.filter((employer) => getVerificationStatus(employer) === "verified").length },
+          { label: "Pending", value: employers.filter((employer) => getVerificationStatus(employer) === "pending").length },
+          { label: "Not approved", value: employers.filter((employer) => getVerificationStatus(employer) === "not_approved").length },
+        ]}
+      />
 
       {loadError && (
         <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">

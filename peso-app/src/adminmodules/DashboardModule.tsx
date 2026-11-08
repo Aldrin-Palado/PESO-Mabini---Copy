@@ -1,5 +1,6 @@
 import type { AdminModule } from "../components/AdminSidebar";
 import AppIcon, { type AppIconName } from "../components/AppIcon";
+import ModuleScoreboard from "./ModuleScoreboard";
 
 type Account = {
   id: string;
@@ -17,46 +18,6 @@ type DashboardMetric = {
 };
 
 type DashboardStats = Partial<Record<AdminModule, DashboardMetric[]>>;
-type ScoreboardModule = Extract<
-  AdminModule,
-  "Job Post" | "Applications" | "Employers" | "Job Seekers" | "Announcement" | "PESO Posts"
->;
-
-const sectionDesign: Record<
-  ScoreboardModule,
-  { title: string; description: string; icon: AppIconName }
-> = {
-  "Job Post": {
-    title: "Job Posts",
-    description: "Vacancy status and availability",
-    icon: "briefcase",
-  },
-  Applications: {
-    title: "Applications",
-    description: "Applicant progress at a glance",
-    icon: "file",
-  },
-  Employers: {
-    title: "Employers",
-    description: "Employer registrations and verification",
-    icon: "building",
-  },
-  "Job Seekers": {
-    title: "Job Seekers",
-    description: "Job seeker registrations and activity",
-    icon: "users",
-  },
-  Announcement: {
-    title: "Announcements",
-    description: "Updates shared with the community",
-    icon: "bell",
-  },
-  "PESO Posts": {
-    title: "PESO Posts",
-    description: "Official programs, events, and updates",
-    icon: "megaphone",
-  },
-};
 
 type ActivityLog = {
   log_id: string;
@@ -91,14 +52,23 @@ export default function DashboardModule({
   onRefresh,
   onNavigate,
 }: Props) {
-  const sections: ScoreboardModule[] = [
-    "Job Post",
-    "Applications",
-    "Employers",
-    "Job Seekers",
-    "Announcement",
-    "PESO Posts",
-  ];
+  const isAdmin = account?.role === "superadmin";
+  const overallMetrics = [
+    { module: "Job Post", label: "Job Posts", icon: "briefcase" },
+    { module: "Applications", label: "Applications", icon: "file" },
+    { module: "Employers", label: "Employers", icon: "building" },
+    { module: "Job Seekers", label: "Job Seekers", icon: "users" },
+    { module: "Announcement", label: "Announcements", icon: "bell" },
+    { module: "PESO Posts", label: "PESO Posts", icon: "megaphone" },
+  ] as const;
+  const moduleScoreboards = [
+    { module: "Job Post", title: "Job Posts" },
+    { module: "Applications", title: "Applications" },
+    { module: "Employers", title: "Employers" },
+    { module: "Job Seekers", title: "Job Seekers" },
+    { module: "Announcement", title: "Announcements" },
+    { module: "PESO Posts", title: "PESO Posts" },
+  ] as const;
 
   return (
     <div className="space-y-7">
@@ -124,56 +94,55 @@ export default function DashboardModule({
         </p>
       )}
 
-      <div className="space-y-6">
-        {sections.map((section) => {
-          const sectionStats = stats[section];
-          if (!permissions.includes(section) || !sectionStats?.length) return null;
-
-          return (
-            <section
-              key={section}
-              aria-label={`${section} statistics`}
-              className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-            >
-              <header className="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-blue-50/80 to-white px-4 py-4 sm:px-5">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0759AE] text-white shadow-sm shadow-blue-900/10">
-                  <AppIcon name={sectionDesign[section].icon} className="h-5 w-5" />
+      <section aria-label="Overall platform details" className="space-y-4">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900">Overall platform details</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Summary totals across the PESO MABINI platform.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {overallMetrics.map(({ module, label, icon }) => {
+            if (!isAdmin && !permissions.includes(module)) return null;
+            const value = stats[module]?.[0]?.value;
+            if (value === undefined) return null;
+            return (
+              <article
+                key={module}
+                className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+              >
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0759AE]">
+                  <AppIcon name={icon as AppIconName} className="h-5 w-5" />
                 </span>
-                <div className="min-w-0">
-                  <h4 className="font-bold text-slate-900">
-                    {sectionDesign[section].title}
-                  </h4>
-                  <p className="mt-0.5 text-xs text-slate-500">
-                    {sectionDesign[section].description}
+                <div>
+                  <p className="text-sm font-medium text-slate-500">{label}</p>
+                  <p className="mt-1 text-2xl font-bold tracking-tight text-[#123B70]">
+                    {value}
                   </p>
                 </div>
-                <span className="ml-auto hidden rounded-full border border-blue-100 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#3156A2] sm:inline-flex">
-                  Overview
-                </span>
-              </header>
-              <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-4">
-                {sectionStats.map((metric) => (
-                  <article
-                    key={metric.label}
-                    className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50/70 p-4 transition hover:border-blue-200 hover:bg-blue-50/50"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="absolute inset-y-3 left-0 w-1 rounded-r-full bg-[#2D66B3]"
-                    />
-                    <p className="pl-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      {metric.label}
-                    </p>
-                    <p className="mt-2 pl-2 text-3xl font-bold tracking-tight text-[#123B70]">
-                      {metric.value}
-                    </p>
-                  </article>
-                ))}
-              </div>
-            </section>
-          );
-        })}
-      </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section aria-label="Dashboard scoreboards" className="space-y-4">
+        <h2 className="text-lg font-bold text-slate-900">Module scoreboards</h2>
+        <div className="grid gap-4 xl:grid-cols-2">
+          {moduleScoreboards.map(({ module, title }) => {
+            if (!isAdmin && !permissions.includes(module)) return null;
+            const metrics = stats[module];
+            if (!metrics?.length) return null;
+            return (
+              <ModuleScoreboard
+                key={module}
+                title={title}
+                metrics={metrics}
+              />
+            );
+          })}
+        </div>
+      </section>
 
       {account?.role === "superadmin" && (
         <section className="flex flex-col gap-5 rounded-xl border border-blue-100 bg-blue-50/70 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">

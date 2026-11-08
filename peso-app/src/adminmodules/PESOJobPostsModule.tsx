@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import MyJobPostModule from "../employersmodules/MyJobPostModule";
 import { supabase } from "../services/supabase";
+import ModuleScoreboard from "./ModuleScoreboard";
 
 type JobPost = {
   job_vacancy_id: string;
@@ -114,6 +115,15 @@ export default function PESOJobPostsModule() {
 
   return (
     <div className="space-y-4">
+      <ModuleScoreboard
+        title="PESO Job Posts"
+        metrics={[
+          { label: "Total job posts", value: jobs.length },
+          { label: "Open", value: jobs.filter((job) => job.status.toLowerCase() === "open").length },
+          { label: "Draft", value: jobs.filter((job) => job.status.toLowerCase() === "draft").length },
+          { label: "Closed", value: jobs.filter((job) => job.status.toLowerCase() === "closed").length },
+        ]}
+      />
       {loadError && (
         <p
           role="alert"
