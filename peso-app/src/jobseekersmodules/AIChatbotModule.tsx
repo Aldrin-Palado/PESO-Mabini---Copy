@@ -118,7 +118,7 @@ export default function AIChatbotModule({
       });
       setMessages((current) => [
         ...current,
-        { role: "model", content: result.reply, jobs: result.jobs },
+        { role: "model", content: result.reply.replace(/[#*]/g, ""), jobs: result.jobs },
       ]);
       setResumeFile(null);
       setResumeAuthorized(false);

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { invokePesoAI } from "../services/pesoAi";
 
 const maxResumeBytes = 500_000;
@@ -31,6 +32,7 @@ type JobMatch = {
 };
 
 export default function JobMatchesModule() {
+  const navigate = useNavigate();
   const [profileText, setProfileText] = useState("");
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeAuthorized, setResumeAuthorized] = useState(false);
@@ -263,6 +265,19 @@ export default function JobMatchesModule() {
                 </ul>
               </div>
             )}
+            <div className="mt-5 flex justify-end border-t border-slate-100 pt-4">
+              <button
+                type="button"
+                onClick={() =>
+                  navigate("/jobseeker", {
+                    state: { page: "Jobs", jobId: match.job.id },
+                  })
+                }
+                className="inline-flex items-center justify-center rounded-lg bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#064A91]"
+              >
+                Apply
+              </button>
+            </div>
           </article>
         ))}
       </div>

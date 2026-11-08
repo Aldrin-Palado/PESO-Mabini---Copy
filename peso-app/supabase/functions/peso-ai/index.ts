@@ -57,7 +57,7 @@ ANSWERING RULES
 - Do not claim an application was submitted or a job was verified unless the provided data proves it.
 - Do not request passwords, one-time codes, government ID numbers, or unnecessary sensitive personal data.
 - For official policy questions, complaints, or details not in the provided data, tell the user to confirm with PESO Mabini staff or email peso.mabini@province.gov.ph.
-- Be clear, courteous, and concise. Use plain language.`;
+- Be clear, courteous, and concise. Use plain language and plain text only. Do not use Markdown, heading markers (#), or asterisk markers (*).`;
 
 type ChatMessage = {
   role: "user" | "model";
