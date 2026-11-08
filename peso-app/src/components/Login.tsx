@@ -346,7 +346,7 @@ function Login() {
                 disabled={loading || oauthLoading}
                 className="inline-flex w-full items-center justify-center gap-3 rounded-2xl border border-[#D5DEEB] bg-white px-5 py-4 text-base font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
               >
-                <img src={googleLogo} alt="" aria-hidden="true" className="h-5 w-5 object-contain" />
+                <img src={googleLogo} alt="" aria-hidden="true" className="h-9 w-9 object-contain" />
                 {oauthLoading ? "Opening Google..." : "Continue with Google"}
               </button>
 
