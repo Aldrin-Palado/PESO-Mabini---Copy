@@ -29,6 +29,7 @@ export interface PublicJobVacancyPreviewRow {
   job_classification: "local" | "international";
   location: string | null;
   employment_type: string | null;
+  description: string | null;
 }
 
 export interface JobVacancy {

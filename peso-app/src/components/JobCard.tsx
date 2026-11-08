@@ -190,6 +190,11 @@ function JobCard({ job, index, isAuthenticated }: JobCardProps) {
                   )}
                 </div>
               )}
+              {job.description && (
+                <p className="mt-3 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                  {job.description}
+                </p>
+              )}
             </div>
           </div>
         </div>

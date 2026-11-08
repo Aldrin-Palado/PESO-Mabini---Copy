@@ -106,6 +106,7 @@ function JobVacancies() {
               job_classification: job.job_classification,
               location: job.location ?? undefined,
               employment_type: job.employment_type ?? undefined,
+              description: job.description ?? undefined,
               employer: {
                 name: job.employer_name ?? undefined,
                 logoUrl: job.employer_logo_url,
