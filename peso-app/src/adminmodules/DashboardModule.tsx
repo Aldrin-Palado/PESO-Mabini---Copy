@@ -1,6 +1,5 @@
 import type { AdminModule } from "../components/AdminSidebar";
 import AppIcon, { type AppIconName } from "../components/AppIcon";
-import ModuleScoreboard from "./ModuleScoreboard";
 
 type Account = {
   id: string;
@@ -61,13 +60,6 @@ export default function DashboardModule({
     { module: "Employers", label: "Employers", icon: "building" },
     { module: "Job Seekers", label: "Job Seekers", icon: "users" },
   ] as const;
-  const moduleScoreboards = [
-    { module: "Job Post", title: "Job Posts" },
-    { module: "Applications", title: "Applications" },
-    { module: "Employers", title: "Employers" },
-    { module: "Job Seekers", title: "Job Seekers" },
-  ] as const;
-
   return (
     <div className="space-y-7">
       <section className="flex justify-end">
@@ -93,62 +85,44 @@ export default function DashboardModule({
       )}
 
       <section aria-label="Dashboard scoreboard" className="space-y-4">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">Overall dashboard scoreboard</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Platform totals and module status at a glance.
-          </p>
+        <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#203F8B] text-[#FACC15] shadow-sm">
+            <AppIcon name="chart" className="h-5 w-5" />
+          </span>
+          <div>
+            <h2 className="text-lg font-bold text-[#203F8B]">Overall dashboard</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Platform totals at a glance.
+            </p>
+          </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
           {overallMetrics.map(({ module, label, icon }) => {
             if (!isAdmin && !permissions.includes(module)) return null;
             const value = stats[module]?.[0]?.value;
             return (
               <article
                 key={module}
-                className="group relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-white via-white to-blue-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                className="group relative min-h-36 overflow-hidden rounded-2xl border border-[#DCE5F2] bg-white p-5 shadow-[0_8px_24px_-18px_rgba(32,63,139,0.55)] transition hover:-translate-y-1 hover:border-[#9DB7E3] hover:shadow-md"
               >
-                <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#0759AE] via-blue-400 to-sky-200" />
+                <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#203F8B] via-[#0759AE] to-[#FACC15]" />
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{label}</p>
-                    <p className="mt-2 text-3xl font-black tracking-tight text-[#123B70]">
+                    <p className="text-xs font-bold uppercase tracking-[0.08em] text-slate-500">{label}</p>
+                    <p className="mt-3 text-4xl font-black leading-none tracking-tight text-[#203F8B]">
                       {value === undefined ? (statsLoading ? "..." : "—") : value}
                     </p>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-2 text-xs font-medium text-slate-500">
                       {value === undefined && !statsLoading ? "Unavailable" : "All records"}
                     </p>
                   </div>
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0759AE] text-white shadow-md shadow-blue-900/15 transition group-hover:scale-105">
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-[#203F8B] transition group-hover:border-[#FACC15] group-hover:bg-[#FFF9DB]">
                     <AppIcon name={icon as AppIconName} className="h-5 w-5" />
                   </span>
                 </div>
               </article>
             );
           })}
-        </div>
-      </section>
-
-      <section aria-label="Dashboard scoreboards" className="space-y-4">
-        <h2 className="text-lg font-bold text-slate-900">Module scoreboards</h2>
-        <div className="grid gap-4 xl:grid-cols-2">
-          {moduleScoreboards.map(({ module, title }) => {
-            if (!isAdmin && !permissions.includes(module)) return null;
-            const metrics = stats[module];
-            if (!metrics?.length) return null;
-            return (
-              <ModuleScoreboard
-                key={module}
-                title={title}
-                metrics={metrics}
-              />
-            );
-          })}
-          {statsLoading && (
-            <p role="status" className="text-sm text-slate-500">
-              Loading module scoreboards...
-            </p>
-          )}
         </div>
       </section>
 
