@@ -30,6 +30,7 @@ type Props = {
   stats: DashboardStats;
   permissions: AdminModule[];
   statsError?: string;
+  statsLoading: boolean;
   account: Account | null;
   logs: ActivityLog[];
   onRefresh: () => void;
@@ -47,6 +48,7 @@ export default function DashboardModule({
   stats,
   permissions,
   statsError,
+  statsLoading,
   account,
   logs,
   onRefresh,
@@ -58,16 +60,12 @@ export default function DashboardModule({
     { module: "Applications", label: "Applications", icon: "file" },
     { module: "Employers", label: "Employers", icon: "building" },
     { module: "Job Seekers", label: "Job Seekers", icon: "users" },
-    { module: "Announcement", label: "Announcements", icon: "bell" },
-    { module: "PESO Posts", label: "PESO Posts", icon: "megaphone" },
   ] as const;
   const moduleScoreboards = [
     { module: "Job Post", title: "Job Posts" },
     { module: "Applications", title: "Applications" },
     { module: "Employers", title: "Employers" },
     { module: "Job Seekers", title: "Job Seekers" },
-    { module: "Announcement", title: "Announcements" },
-    { module: "PESO Posts", title: "PESO Posts" },
   ] as const;
 
   return (
@@ -94,31 +92,36 @@ export default function DashboardModule({
         </p>
       )}
 
-      <section aria-label="Overall platform details" className="space-y-4">
+      <section aria-label="Dashboard scoreboard" className="space-y-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Overall platform details</h2>
+          <h2 className="text-lg font-bold text-slate-900">Overall dashboard scoreboard</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Summary totals across the PESO MABINI platform.
+            Platform totals and module status at a glance.
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {overallMetrics.map(({ module, label, icon }) => {
             if (!isAdmin && !permissions.includes(module)) return null;
             const value = stats[module]?.[0]?.value;
-            if (value === undefined) return null;
             return (
               <article
                 key={module}
-                className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                className="group relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-white via-white to-blue-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
               >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0759AE]">
-                  <AppIcon name={icon as AppIconName} className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="text-sm font-medium text-slate-500">{label}</p>
-                  <p className="mt-1 text-2xl font-bold tracking-tight text-[#123B70]">
-                    {value}
-                  </p>
+                <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#0759AE] via-blue-400 to-sky-200" />
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{label}</p>
+                    <p className="mt-2 text-3xl font-black tracking-tight text-[#123B70]">
+                      {value === undefined ? (statsLoading ? "..." : "—") : value}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {value === undefined && !statsLoading ? "Unavailable" : "All records"}
+                    </p>
+                  </div>
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0759AE] text-white shadow-md shadow-blue-900/15 transition group-hover:scale-105">
+                    <AppIcon name={icon as AppIconName} className="h-5 w-5" />
+                  </span>
                 </div>
               </article>
             );
@@ -141,6 +144,11 @@ export default function DashboardModule({
               />
             );
           })}
+          {statsLoading && (
+            <p role="status" className="text-sm text-slate-500">
+              Loading module scoreboards...
+            </p>
+          )}
         </div>
       </section>
 

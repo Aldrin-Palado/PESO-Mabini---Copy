@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { supabase } from "../services/supabase";
-import ModuleScoreboard from "./ModuleScoreboard";
 
 type PESOPost = {
   id: string;
@@ -406,14 +405,6 @@ export default function PESOPosts() {
   });
   return (
     <div className="space-y-6">
-      <ModuleScoreboard
-        title="PESO Posts"
-        metrics={[
-          { label: "Total posts", value: posts.length },
-          { label: "Published", value: posts.filter((post) => post.status === "published").length },
-          { label: "Drafts", value: posts.filter((post) => post.status === "draft").length },
-        ]}
-      />
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <p className="mb-1 text-sm font-medium text-blue-700">Content Management</p>

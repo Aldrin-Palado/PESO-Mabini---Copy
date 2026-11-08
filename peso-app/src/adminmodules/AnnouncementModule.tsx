@@ -1,5 +1,4 @@
 import React from "react";
-import ModuleScoreboard from "./ModuleScoreboard";
 
 type Announcement = {
   id: string;
@@ -47,10 +46,6 @@ export default function AnnouncementModule({
     <div className="space-y-6">
 
       <ModuleHeader />
-      <ModuleScoreboard
-        title="Announcements"
-        metrics={[{ label: "Total announcements", value: announcements.length }]}
-      />
 
       {/* CREATE ANNOUNCEMENT */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

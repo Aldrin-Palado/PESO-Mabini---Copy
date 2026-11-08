@@ -219,6 +219,7 @@ export default function AdminDashboard() {
   });
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>({});
   const [dashboardStatsError, setDashboardStatsError] = useState("");
+  const [dashboardStatsLoading, setDashboardStatsLoading] = useState(false);
 
   const [auditLogs, setAuditLogs] =
     useState<AuditLog[]>([]);
@@ -759,6 +760,8 @@ export default function AdminDashboard() {
   const loadDashboardCounts = async () => {
     if (!account) return;
 
+    setDashboardStatsLoading(true);
+    setDashboardStatsError("");
     try {
       const accessibleModules =
         account.role === "superadmin"
@@ -767,8 +770,6 @@ export default function AdminDashboard() {
               "Applications",
               "Employers",
               "Job Seekers",
-              "Announcement",
-              "PESO Posts",
             ]
           : permissions;
       const nextStats: DashboardStats = {};
@@ -853,7 +854,7 @@ export default function AdminDashboard() {
       if (accessibleModules.includes("Employers")) {
         statTasks.push(
           (async () => {
-            const [total, verified, pending, notApproved] = await Promise.all([
+            const [total, verified, notApproved] = await Promise.all([
               getDashboardCount(
                 supabase
                   .from("employer")
@@ -869,19 +870,13 @@ export default function AdminDashboard() {
                 supabase
                   .from("employer")
                   .select("*", { count: "exact", head: true })
-                  .eq("verification_status", "pending"),
-              ),
-              getDashboardCount(
-                supabase
-                  .from("employer")
-                  .select("*", { count: "exact", head: true })
                   .eq("verification_status", "not_approved"),
               ),
             ]);
             nextStats.Employers = [
               { label: "Total employers", value: total },
               { label: "Verified", value: verified },
-              { label: "Pending", value: pending },
+              { label: "Pending", value: Math.max(0, total - verified - notApproved) },
               { label: "Not approved", value: notApproved },
             ];
           })(),
@@ -891,11 +886,17 @@ export default function AdminDashboard() {
       if (accessibleModules.includes("Job Seekers")) {
         statTasks.push(
           (async () => {
-            const [total, applications] = await Promise.all([
+            const [total, inactive, applications] = await Promise.all([
               getDashboardCount(
                 supabase
                   .from("job_seeker")
                   .select("*", { count: "exact", head: true }),
+              ),
+              getDashboardCount(
+                supabase
+                  .from("job_seeker")
+                  .select("*", { count: "exact", head: true })
+                  .eq("is_active", false),
               ),
               getDashboardCount(
                 supabase
@@ -905,63 +906,31 @@ export default function AdminDashboard() {
             ]);
             nextStats["Job Seekers"] = [
               { label: "Registered job seekers", value: total },
-              { label: "Active", value: total },
-              { label: "Inactive", value: 0 },
+              { label: "Active", value: Math.max(0, total - inactive) },
+              { label: "Inactive", value: inactive },
               { label: "Applications submitted", value: applications },
             ];
           })(),
         );
       }
 
-      if (accessibleModules.includes("Announcement")) {
-        statTasks.push(
-          (async () => {
-            const total = await getDashboardCount(
-              supabase
-                .from("peso_announcements")
-                .select("*", { count: "exact", head: true }),
-            );
-            nextStats.Announcement = [
-              { label: "Total announcements", value: total },
-            ];
-          })(),
-        );
+      const results = await Promise.allSettled(statTasks);
+      const failures = results.flatMap((result) =>
+        result.status === "rejected" ? [result.reason] : [],
+      );
+      for (const error of failures) {
+        console.error("A dashboard scoreboard could not be loaded:", error);
       }
-
-      if (accessibleModules.includes("PESO Posts")) {
-        statTasks.push(
-          (async () => {
-            const [total, published, draft] = await Promise.all([
-              getDashboardCount(
-                supabase
-                  .from("peso_posts")
-                  .select("*", { count: "exact", head: true }),
-              ),
-              getDashboardCount(
-                supabase
-                  .from("peso_posts")
-                  .select("*", { count: "exact", head: true })
-                  .eq("status", "published"),
-              ),
-              getDashboardCount(
-                supabase
-                  .from("peso_posts")
-                  .select("*", { count: "exact", head: true })
-                  .eq("status", "draft"),
-              ),
-            ]);
-            nextStats["PESO Posts"] = [
-              { label: "Total posts", value: total },
-              { label: "Published", value: published },
-              { label: "Drafts", value: draft },
-            ];
-          })(),
-        );
-      }
-
-      await Promise.all(statTasks);
       setDashboardStats(nextStats);
-      setDashboardStatsError("");
+      setDashboardStatsError(
+        failures.length
+          ? failures
+              .map((error) =>
+                error instanceof Error ? error.message : String(error),
+              )
+              .join(" | ")
+          : "",
+      );
     } catch (error) {
       console.error(
         "Dashboard count error:",
@@ -972,6 +941,8 @@ export default function AdminDashboard() {
           ? error.message
           : "Unable to load dashboard statistics.",
       );
+    } finally {
+      setDashboardStatsLoading(false);
     }
   };
 
@@ -1830,7 +1801,8 @@ export default function AdminDashboard() {
             stats={dashboardStats}
             permissions={permissions}
             statsError={dashboardStatsError}
-            account={account}
+                statsLoading={dashboardStatsLoading}
+                account={account}
             logs={auditLogs}
             onRefresh={() => {
               loadDashboardCounts();
