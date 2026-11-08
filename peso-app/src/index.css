@@ -275,3 +275,116 @@
     color: #0f172a;
   }
 }
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  background: #0b1220;
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] body {
+  background-color: #0b1220;
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] nav[class~="bg-white"] {
+  background-color: #111c2f !important;
+  background-image: linear-gradient(rgba(17, 28, 47, 0.96), rgba(17, 28, 47, 0.96)) !important;
+}
+
+html[data-theme="dark"] [class~="pointer-events-none"][class~="fixed"][class~="inset-0"][class~="-z-10"] {
+  background-image: linear-gradient(rgba(11, 18, 32, 0.94), rgba(11, 18, 32, 0.94)) !important;
+}
+
+html[data-theme="dark"] :is(
+  [class~="bg-white"],
+  [class~="bg-white/95"],
+  [class~="bg-white/90"],
+  [class~="bg-gray-50"],
+  [class~="bg-gray-100"],
+  [class~="bg-slate-50"],
+  [class~="bg-slate-100"],
+  [class~="bg-blue-50"],
+  [class~="bg-sky-50"],
+  [class~="bg-indigo-50"],
+  [class~="bg-violet-50"],
+  [class~="bg-purple-50"]
+) {
+  background-color: #111c2f !important;
+}
+
+html[data-theme="dark"] :is(
+  [class~="bg-gray-200"],
+  [class~="bg-slate-200"],
+  [class~="bg-blue-100"],
+  [class~="bg-sky-100"],
+  [class~="bg-indigo-100"]
+) {
+  background-color: #1e293b !important;
+}
+
+html[data-theme="dark"] :is(
+  [class~="text-gray-900"],
+  [class~="text-gray-800"],
+  [class~="text-gray-700"],
+  [class~="text-slate-900"],
+  [class~="text-slate-800"],
+  [class~="text-slate-700"],
+  [class~="text-[#123B70]"],
+  [class~="text-[#0446A7]"]
+) {
+  color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] :is(
+  [class~="text-gray-600"],
+  [class~="text-gray-500"],
+  [class~="text-slate-600"],
+  [class~="text-slate-500"],
+  [class~="text-slate-400"],
+  [class~="text-gray-400"]
+) {
+  color: #a8b5c8 !important;
+}
+
+html[data-theme="dark"] :is(
+  [class~="border-gray-100"],
+  [class~="border-gray-200"],
+  [class~="border-gray-300"],
+  [class~="border-slate-100"],
+  [class~="border-slate-200"],
+  [class~="border-slate-300"],
+  [class~="border-blue-100"],
+  [class~="border-sky-100"]
+) {
+  border-color: #334155 !important;
+}
+
+html[data-theme="dark"] :is(
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select
+) {
+  background-color: #111c2f;
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+  color: #94a3b8;
+}
+
+html[data-theme="dark"] .whirl-page-background {
+  background-color: #0b1220;
+  background-image:
+    linear-gradient(rgba(11, 18, 32, 0.94), rgba(11, 18, 32, 0.94)),
+    url("./assets/images/bry-bg.png");
+}
+
+html[data-theme="dark"] .about-container {
+  --card-bg: #111c2f;
+  --muted: #a8b5c8;
+  --bg-elev: #172338;
+  --border: #334155;
+}

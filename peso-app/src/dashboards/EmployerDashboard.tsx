@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppIcon from "../components/AppIcon";
 import SidebarToggle from "../components/SidebarToggle";
+import EndUserThemeToggle from "../components/EndUserThemeToggle";
 import EmployersSidebar, {
   type EmployerMenuName,
 } from "../components/EmployerSidebar";
@@ -1012,6 +1013,7 @@ export default function EmployerDashboard() {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
+              <EndUserThemeToggle />
               <button
                 type="button"
                 onClick={() => void openNotifications()}

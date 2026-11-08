@@ -18,8 +18,16 @@ import AdminDashboard from "./dashboards/AdminDashboard";
 import EmployerDashboard from "./dashboards/EmployerDashboard";
 import JobSeekerDashboard from "./dashboards/JobSeekerDashboard";
 import StaffDashboard from "./dashboards/StaffDashboard";
+import EndUserThemeToggle from "./components/EndUserThemeToggle";
 
 const publicPagePaths = new Set(["/", "/about", "/jobs", "/employers", "/contact"]);
+const authPagePaths = new Set([
+  "/login",
+  "/register",
+  "/jobseekerregistration",
+  "/forgot-password",
+  "/reset-password",
+]);
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -37,11 +45,41 @@ function PublicAIChatbot() {
   return publicPagePaths.has(pathname) ? <AIChatbotModule floating /> : null;
 }
 
+function EndUserThemeManager() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const isStaffOrAdminRoute =
+      pathname === "/staff" || pathname === "/superadmin";
+    if (isStaffOrAdminRoute) {
+      delete document.documentElement.dataset.theme;
+      return;
+    }
+
+    try {
+      if (localStorage.getItem("peso-end-user-theme") === "dark") {
+        document.documentElement.dataset.theme = "dark";
+      } else {
+        delete document.documentElement.dataset.theme;
+      }
+    } catch (error) {
+      console.error("Could not apply the saved theme preference:", error);
+    }
+  }, [pathname]);
+
+  return authPagePaths.has(pathname) ? (
+    <div className="fixed right-4 top-4 z-[100]">
+      <EndUserThemeToggle />
+    </div>
+  ) : null;
+}
+
 function App() {
   return (
     <BrowserRouter>
       <SessionTimeout />
       <ScrollToTop />
+      <EndUserThemeManager />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
