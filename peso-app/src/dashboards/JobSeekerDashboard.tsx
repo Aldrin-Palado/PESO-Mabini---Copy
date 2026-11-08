@@ -1561,8 +1561,9 @@ export default function JobSeekerDashboard() {
                 ? location.state.jobId
                 : new URLSearchParams(location.search).get("job") ?? undefined
             }
-            profileComplete={areJobSeekerProfileSectionsComplete(
+            profileComplete={isJobSeekerProfileComplete(
               seeker.registration_details,
+              seeker.resume_url,
             )}
             isVerified={seeker.verification_status === "verified"}
             onNavigate={(page) =>

@@ -27,7 +27,10 @@ import {
   decideApplication as submitApplicationDecision,
   type ApplicationDecisionResult,
 } from "../services/applicationDecisions";
-import type { EmployerVerificationDocument } from "../services/employerRegistration";
+import {
+  getEmployerRegistrationChecklist,
+  type EmployerVerificationDocument,
+} from "../services/employerRegistration";
 import { isJobSeekerProfileComplete } from "../services/jobSeekerProfile";
 
 /* ============================================================
@@ -1193,6 +1196,24 @@ export default function AdminDashboard() {
     employerId: string,
     status: EmployerVerificationStatus,
   ) => {
+    if (status === "verified") {
+      const employer = employers.find(
+        (candidate) => candidate.employer_id === employerId,
+      );
+      if (
+        !employer ||
+        !getEmployerRegistrationChecklist(
+          employer.registration_details,
+          employer.verification_documents,
+          employer,
+        ).every((item) => item.complete)
+      ) {
+        throw new Error(
+          "Complete all company profile, registration form, certification, and paperwork steps before verifying this employer.",
+        );
+      }
+    }
+
     const { data, error } = await supabase
       .from("employer")
       .update({
@@ -1571,6 +1592,44 @@ export default function AdminDashboard() {
       void supabase.removeChannel(channel);
     };
   }, [account, activePage, loadApplications]);
+
+  useEffect(() => {
+    if (!account || (activePage !== "Employers" && activePage !== "Job Seekers")) {
+      return;
+    }
+
+    const table = activePage === "Employers" ? "employer" : "job_seeker";
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const channel = supabase
+      .channel(`admin-${table}-profile-updates-${account.user_id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table },
+        () => {
+          if (refreshTimer) clearTimeout(refreshTimer);
+          refreshTimer = setTimeout(() => {
+            if (activePage === "Employers") {
+              void loadEmployers();
+            } else {
+              void loadJobSeekers();
+            }
+          }, 150);
+        },
+      )
+      .subscribe((status, subscriptionError) => {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          console.error(`Admin ${table} realtime subscription failed:`, subscriptionError);
+          setModuleError(
+            `Live ${activePage.toLowerCase()} updates are temporarily unavailable.`,
+          );
+        }
+      });
+
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      void supabase.removeChannel(channel);
+    };
+  }, [account, activePage]);
 
   const updateApplicationStatus = async (
     applicationId: string,

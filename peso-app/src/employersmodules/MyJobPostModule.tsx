@@ -1,6 +1,12 @@
 
 import { useRef, useState } from "react";
 import { supabase } from "../services/supabase";
+import { getEmployerRegistrationChecklist } from "../services/employerRegistration";
+
+const PROFILE_SETUP_REQUIRED_MESSAGE =
+  "Please complete your Profile Setup and have your account verified before posting jobs.";
+const VERIFICATION_PENDING_MESSAGE =
+  "Your profile is complete, but your account is not verified yet. Please wait for your account to be verified before posting jobs.";
 
 type JobPost = {
   job_vacancy_id: string;
@@ -25,6 +31,7 @@ type Props = {
   employerId: string;
   employerName: string;
   employerLogoUrl?: string | null;
+  profileComplete?: boolean;
   isVerified: boolean;
   onRefresh: () => Promise<void> | void;
   publisherTitle?: string;
@@ -64,6 +71,7 @@ export default function MyJobPostModule({
   employerId,
   employerName,
   employerLogoUrl,
+  profileComplete = true,
   isVerified,
   onRefresh,
   publisherTitle = "My Job Posts",
@@ -105,10 +113,13 @@ export default function MyJobPostModule({
   };
 
   const openCreateForm = () => {
+    if (!profileComplete) {
+      window.alert(PROFILE_SETUP_REQUIRED_MESSAGE);
+      return;
+    }
+
     if (!isVerified) {
-      window.alert(
-        "Your account is not verified yet. Please wait for your account to be verified before posting jobs.",
-      );
+      window.alert(VERIFICATION_PENDING_MESSAGE);
       return;
     }
 
@@ -279,11 +290,43 @@ export default function MyJobPostModule({
       return;
     }
 
-    if (!editingId && !isVerified) {
-      window.alert(
-        "Your account is not verified yet. Please wait for your account to be verified before posting jobs.",
-      );
-      return;
+    if (!editingId) {
+      const { data: currentEmployer, error: employerStatusError } =
+        await supabase
+          .from("employer")
+          .select(
+            "name, email, contact_person, contact_no, address, registration_details, verification_documents, is_verified",
+          )
+          .eq("employer_id", employerId)
+          .maybeSingle();
+
+      if (employerStatusError) {
+        setMessage(
+          `Unable to verify your account status: ${employerStatusError.message}`,
+        );
+        return;
+      }
+
+      if (!currentEmployer) {
+        setMessage("Employer account not found.");
+        return;
+      }
+
+      const registrationComplete = getEmployerRegistrationChecklist(
+        currentEmployer.registration_details,
+        currentEmployer.verification_documents,
+        currentEmployer,
+      ).every((item) => item.complete);
+
+      if (!registrationComplete) {
+        window.alert(PROFILE_SETUP_REQUIRED_MESSAGE);
+        return;
+      }
+
+      if (!currentEmployer.is_verified) {
+        window.alert(VERIFICATION_PENDING_MESSAGE);
+        return;
+      }
     }
 
     if (

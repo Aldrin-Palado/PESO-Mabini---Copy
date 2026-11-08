@@ -13,7 +13,10 @@ import ApplicationsModule from "../employersmodules/ApplicationsModule";
 import CompanyProfileModule from "../employersmodules/CompanyProfileModule";
 import MessagesModule from "../employersmodules/MessagesModule";
 import EmployerRegistrationProfileModule from "../employersmodules/EmployerRegistrationProfileModule";
-import type { EmployerVerificationDocument } from "../services/employerRegistration";
+import {
+  getEmployerRegistrationChecklist,
+  type EmployerVerificationDocument,
+} from "../services/employerRegistration";
 
 import { supabase } from "../services/supabase";
 
@@ -898,6 +901,11 @@ export default function EmployerDashboard() {
             employerId={profile.employer_id}
             employerName={profile.name}
             employerLogoUrl={profile.logo_url}
+            profileComplete={getEmployerRegistrationChecklist(
+              profile.registration_details,
+              profile.verification_documents,
+              profile,
+            ).every((item) => item.complete)}
             isVerified={profile.is_verified}
             onRefresh={handleRefresh}
           />

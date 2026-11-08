@@ -8,7 +8,13 @@ import {
   RESUME_MIME_TYPES,
   getResumeExtension,
 } from "../services/resumes";
+import { isJobSeekerProfileComplete } from "../services/jobSeekerProfile";
 import type { OpenJobVacancyRow } from "../types/JobVacancy";
+
+const PROFILE_SETUP_REQUIRED_MESSAGE =
+  "Please complete your Profile Setup and have your account verified before applying for jobs.";
+const VERIFICATION_PENDING_MESSAGE =
+  "Your profile is complete, but your account is not verified yet. Please wait for your account to be verified before applying for jobs.";
 
 type Seeker = {
   job_seeker_id: string;
@@ -299,15 +305,13 @@ export default function JobsModule({
   };
 
   const openApplicationForm = (job: Job) => {
-    if (!isVerified) {
-      window.alert(
-        "Your account is not verified yet. Please wait for your account to be verified before applying for jobs.",
-      );
+    if (!profileComplete) {
+      window.alert(PROFILE_SETUP_REQUIRED_MESSAGE);
       return;
     }
 
-    if (!profileComplete) {
-      onNavigate("Profile");
+    if (!isVerified) {
+      window.alert(VERIFICATION_PENDING_MESSAGE);
       return;
     }
 
@@ -328,13 +332,6 @@ export default function JobsModule({
   ) => {
     event.preventDefault();
     if (!applicationJob || applicationSubmitting) return;
-
-    if (!isVerified) {
-      setApplicationError(
-        "Your account is not verified yet. Please wait for your account to be verified before applying for jobs.",
-      );
-      return;
-    }
 
     if (
       !applicationDetails.fullName.trim() ||
@@ -385,7 +382,7 @@ export default function JobsModule({
 
       const { data: currentSeeker, error: seekerStatusError } = await supabase
         .from("job_seeker")
-        .select("verification_status")
+        .select("verification_status, registration_details, resume_url")
         .eq("job_seeker_id", seeker.job_seeker_id)
         .maybeSingle();
 
@@ -394,10 +391,19 @@ export default function JobsModule({
           `Unable to verify your account status: ${seekerStatusError.message}`,
         );
       }
+      if (!currentSeeker) {
+        throw new Error("Unable to find your job-seeker profile.");
+      }
+      if (
+        !isJobSeekerProfileComplete(
+          currentSeeker.registration_details,
+          currentSeeker.resume_url,
+        )
+      ) {
+        throw new Error(PROFILE_SETUP_REQUIRED_MESSAGE);
+      }
       if (currentSeeker?.verification_status !== "verified") {
-        throw new Error(
-          "Your account is not verified yet. Please wait for your account to be verified before applying for jobs.",
-        );
+        throw new Error(VERIFICATION_PENDING_MESSAGE);
       }
 
       const { data: existingApplication, error: existingError } = await supabase

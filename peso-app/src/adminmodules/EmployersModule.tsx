@@ -547,6 +547,7 @@ export default function EmployersModule({
                 );
                 const completedSteps = checklist.filter((item) => item.complete).length;
                 const isReady = completedSteps === checklist.length;
+                const isVerified = status === "verified";
 
                 return (
                   <article
@@ -622,13 +623,15 @@ export default function EmployersModule({
                             <span className="line-clamp-2">{employer.address || "Location not provided"}</span>
                           </p>
                         </div>
-                        <p className={`mt-3 inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                          isReady
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-amber-50 text-amber-800"
-                        }`}>
-                          {isReady ? "Ready for verification" : "Registration incomplete"} · {completedSteps}/{checklist.length} steps
-                        </p>
+                        {!isVerified && (
+                          <p className={`mt-3 inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            isReady
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-amber-50 text-amber-800"
+                          }`}>
+                            {isReady ? "Ready for verification" : "Registration incomplete"} · {completedSteps}/{checklist.length} steps
+                          </p>
+                        )}
                         <div className="mt-4 border-t border-slate-100 pt-3">
                           {renderActions(employer)}
                         </div>
@@ -678,6 +681,7 @@ export default function EmployersModule({
                     );
                     const completedSteps = checklist.filter((item) => item.complete).length;
                     const isReady = completedSteps === checklist.length;
+                    const isVerified = status === "verified";
 
                     return (
                       <tr
@@ -699,11 +703,13 @@ export default function EmployersModule({
                               {name}
                             </span>
                           </div>
-                          <span className={`mt-1 ml-[3.25rem] block text-[10px] font-semibold ${
-                            isReady ? "text-emerald-700" : "text-amber-700"
-                          }`}>
-                            {isReady ? "Ready for verification" : "Registration incomplete"} · {completedSteps}/{checklist.length}
-                          </span>
+                          {!isVerified && (
+                            <span className={`mt-1 ml-[3.25rem] block text-[10px] font-semibold ${
+                              isReady ? "text-emerald-700" : "text-amber-700"
+                            }`}>
+                              {isReady ? "Ready for verification" : "Registration incomplete"} · {completedSteps}/{checklist.length}
+                            </span>
+                          )}
                         </td>
                         <td className="truncate px-3 py-3 text-xs text-slate-700" title={employer.email || ""}>
                           {employer.email || "-"}
@@ -851,6 +857,7 @@ export default function EmployersModule({
               })}
             </dl>
             {(() => {
+              if (getVerificationStatus(detailsEmployer) === "verified") return null;
               const checklist = getEmployerRegistrationChecklist(
                 detailsEmployer.registration_details,
                 detailsEmployer.verification_documents,

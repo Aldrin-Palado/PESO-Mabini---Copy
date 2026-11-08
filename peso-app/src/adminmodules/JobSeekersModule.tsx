@@ -691,11 +691,13 @@ export default function JobSeekersModule({
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="min-w-0">
                             <h3 className="truncate text-sm font-bold text-slate-900">{name}</h3>
-                            <p className={`mt-1 text-[10px] font-semibold ${
-                              profileComplete ? "text-emerald-700" : "text-amber-700"
-                            }`}>
-                              {profileComplete ? "Ready for verification" : "Profile incomplete"} · {completedSteps}/{checklist.length} steps
-                            </p>
+                            {verificationStatus !== "verified" && (
+                              <p className={`mt-1 text-[10px] font-semibold ${
+                                profileComplete ? "text-emerald-700" : "text-amber-700"
+                              }`}>
+                                {profileComplete ? "Ready for verification" : "Profile incomplete"} · {completedSteps}/{checklist.length} steps
+                              </p>
+                            )}
                           </div>
                         </div>
                         <div className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
@@ -811,11 +813,13 @@ export default function JobSeekersModule({
                             </span>
                             <div className="min-w-0">
                               <p className="truncate text-xs font-bold text-slate-900" title={name}>{name}</p>
-                              <p className={`mt-1 text-[10px] font-semibold ${
-                                profileComplete ? "text-emerald-700" : "text-amber-700"
-                              }`}>
-                                {profileComplete ? "Ready for verification" : "Profile incomplete"} · {completedSteps}/{checklist.length}
-                              </p>
+                              {verificationStatus !== "verified" && (
+                                <p className={`mt-1 text-[10px] font-semibold ${
+                                  profileComplete ? "text-emerald-700" : "text-amber-700"
+                                }`}>
+                                  {profileComplete ? "Ready for verification" : "Profile incomplete"} · {completedSteps}/{checklist.length}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -1000,6 +1004,7 @@ function ScreeningModal({
   const checklist = getJobSeekerChecklist(jobSeeker);
   const completedSteps = checklist.filter((item) => item.complete).length;
   const profileComplete = completedSteps === checklist.length;
+  const verificationStatus = getVerificationStatus(jobSeeker);
 
   return (
     <div
@@ -1052,6 +1057,7 @@ function ScreeningModal({
         </div>
 
         <div className="space-y-6 px-5 py-5 sm:px-6">
+          {verificationStatus !== "verified" && (
           <section className="rounded-xl border border-slate-200 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h4 className="text-sm font-bold text-slate-900">
@@ -1081,6 +1087,7 @@ function ScreeningModal({
               ))}
             </ul>
           </section>
+          )}
           <div className="grid gap-4 rounded-xl bg-slate-50 p-4 sm:grid-cols-2 lg:grid-cols-3">
             <ScreeningField label="Contact Number" value={jobSeeker.contact_no || jobSeeker.phone} />
             <ScreeningField label="Present Address" value={jobSeeker.address || details.presentAddress} />
