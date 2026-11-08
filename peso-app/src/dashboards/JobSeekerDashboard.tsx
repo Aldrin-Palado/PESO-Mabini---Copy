@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type FormEvent, type PointerEvent } from "
 import { useLocation, useNavigate } from "react-router-dom";
 import AppIcon from "../components/AppIcon";
 import ProfileAvatar from "../components/ProfileAvatar";
-import EndUserThemeToggle from "../components/EndUserThemeToggle";
 
 import { supabase } from "../services/supabase";
 import {
@@ -1833,8 +1832,6 @@ export default function JobSeekerDashboard() {
                 ================================================= */}
 
             <div className="flex shrink-0 items-center gap-3">
-              <EndUserThemeToggle />
-
               {/* MESSAGE NOTIFICATIONS */}
 
               <button

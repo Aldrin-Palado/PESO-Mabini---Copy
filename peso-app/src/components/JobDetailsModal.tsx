@@ -167,33 +167,6 @@ export default function JobDetailsModal({
                   </span>
                 )}
               </p>
-              <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-600">
-                {job.classification && (
-                  <span className="capitalize">{job.classification}</span>
-                )}
-                {job.classification && job.employmentType && (
-                  <span aria-hidden="true">·</span>
-                )}
-                {job.employmentType && <span>{job.employmentType}</span>}
-                {(job.classification || job.employmentType) && job.location && (
-                  <span aria-hidden="true">·</span>
-                )}
-                {job.location && <span>{job.location}</span>}
-              </div>
-              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-slate-700">
-                {job.salary && (
-                  <span className="inline-flex items-center gap-2">
-                    <AppIcon name="dollar" className="h-4 w-4 text-amber-500" />
-                    {job.salary}
-                  </span>
-                )}
-                {job.location && (
-                  <span className="inline-flex items-center gap-2">
-                    <AppIcon name="mapPin" className="h-4 w-4 text-slate-500" />
-                    {job.location}
-                  </span>
-                )}
-              </div>
             </div>
 
             {job.imageUrl && (

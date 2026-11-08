@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import headerBanner from "../assets/images/peso-header-banner.png";
 import PesoLogo from "./PesoLogo";
-import EndUserThemeToggle from "./EndUserThemeToggle";
 
 export default function Navbar() {
   const location = useLocation();
@@ -116,8 +115,6 @@ export default function Navbar() {
 
         {/* Authentication Buttons */}
         <div className="hidden shrink-0 flex-nowrap items-center gap-3 md:flex">
-
-          <EndUserThemeToggle />
 
           {/* Login */}
           <Link
@@ -251,7 +248,6 @@ export default function Navbar() {
           </div>
 
           <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
-            <EndUserThemeToggle />
             <Link
               to="/login"
               onClick={() => setIsMenuOpen(false)}
