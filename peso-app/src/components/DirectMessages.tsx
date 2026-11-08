@@ -197,10 +197,15 @@ export default function DirectMessages({
               : message.sender_user_id,
           ),
         );
+        const roleFilteredContacts = allContacts.filter((contact) => {
+          if (mode === "job_seeker") return contact.role !== "Job Seeker";
+          if (mode === "employer") return contact.role !== "Employer";
+          return true;
+        });
         const availableContacts =
-          mode === "staff"
-            ? allContacts
-            : allContacts.filter((contact) =>
+          mode === "staff" || mode === "job_seeker" || mode === "employer"
+            ? roleFilteredContacts
+            : roleFilteredContacts.filter((contact) =>
                 conversationUserIds.has(contact.user_id),
               );
         setContacts(availableContacts);
@@ -521,7 +526,7 @@ export default function DirectMessages({
             <h2 className="border-b border-slate-100 px-4 py-4 font-bold text-slate-800">
               Contacts
             </h2>
-            {(mode === "admin" || mode === "employer") && (
+            {(mode === "admin" || mode === "employer" || mode === "job_seeker") && (
               <form
                 onSubmit={(event) => void startConversationByEmail(event)}
                 className="space-y-2 border-b border-slate-100 p-3"
@@ -530,7 +535,7 @@ export default function DirectMessages({
                   htmlFor="new-message-recipient-email"
                   className="block text-xs font-semibold text-slate-600"
                 >
-                  Start a conversation by email
+                  Message a registered PESO account
                 </label>
                 <input
                   id="new-message-recipient-email"
@@ -554,10 +559,12 @@ export default function DirectMessages({
               {contacts.length === 0 && !loading && !error ? (
                 <p className="p-4 text-sm text-slate-500">
                   {mode === "job_seeker"
-                    ? "No conversations yet. A PESO admin or employer must message you first."
+                    ? "No registered employers or PESO accounts are available to message."
                     : mode === "staff"
                       ? "No other PESO users found."
-                      : "No conversations yet. Enter an email above to start one."}
+                      : mode === "employer"
+                        ? "No registered job seekers or PESO accounts are available to message."
+                        : "No conversations yet. Enter an email above to start one."}
                 </p>
               ) : contacts.length === 0 && loading ? (
                 <p className="p-4 text-sm text-slate-500">Loading contacts...</p>
