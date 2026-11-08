@@ -13,6 +13,7 @@ import Login from "./components/Login";
 import ResetPassword from "./components/ResetPassword";
 import SessionTimeout from "./components/SessionTimeout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import OAuthCallback from "./components/OAuthCallback";
 import AdminDashboard from "./dashboards/AdminDashboard";
 import EmployerDashboard from "./dashboards/EmployerDashboard";
 import JobSeekerDashboard from "./dashboards/JobSeekerDashboard";
@@ -48,6 +49,7 @@ function App() {
         <Route path="/employers" element={<Employers />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/auth/callback" element={<OAuthCallback />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/register" element={<JobSeekerRegistration />} />

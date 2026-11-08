@@ -5,6 +5,8 @@ import PesoLogo from "./PesoLogo";
 import { supabase } from "../services/supabase";
 import AppIcon from "./AppIcon";
 
+const googleLogo = new URL("../assets/images/google.png", import.meta.url).href;
+
 function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -17,6 +19,21 @@ function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
+  const [oauthError, setOauthError] = useState("");
+
+  const signInWithGoogle = async () => {
+    setOauthError("");
+    setOauthLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (error) {
+      setOauthError(error.message);
+      setOauthLoading(false);
+    }
+  };
 
   const routeAuthenticatedUser = async (user: { id: string }) => {
     const { data: admin, error: adminError } = await supabase
@@ -309,10 +326,28 @@ function Login() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || oauthLoading}
                 className="w-full rounded-2xl bg-[#315FEA] px-5 py-4 text-base font-semibold text-white shadow-[0_12px_24px_-12px_rgba(49,95,234,0.75)] transition hover:bg-[#244FD4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#315FEA] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? "Signing In..." : "Sign In"}
+              </button>
+
+              {oauthError && (
+                <p role="alert" className="text-sm text-red-700">{oauthError}</p>
+              )}
+              <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                <span className="h-px flex-1 bg-slate-200" />
+                Or
+                <span className="h-px flex-1 bg-slate-200" />
+              </div>
+              <button
+                type="button"
+                onClick={() => void signInWithGoogle()}
+                disabled={loading || oauthLoading}
+                className="inline-flex w-full items-center justify-center gap-3 rounded-2xl border border-[#D5DEEB] bg-white px-5 py-4 text-base font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+              >
+                <img src={googleLogo} alt="" aria-hidden="true" className="h-5 w-5 object-contain" />
+                {oauthLoading ? "Opening Google..." : "Continue with Google"}
               </button>
 
             </form>
