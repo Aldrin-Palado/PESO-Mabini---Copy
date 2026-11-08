@@ -60,7 +60,6 @@ export default function StaffDashboard() {
   const [records, setRecords] = useState<StaffRecord[]>([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [recordsError, setRecordsError] = useState("");
-  const [recordsRefresh, setRecordsRefresh] = useState(0);
 
   // Off-canvas below `lg`: a permanent 288px column leaves no room for
   // content on a 320px phone.
@@ -344,7 +343,7 @@ export default function StaffDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [activePage, recordsRefresh]);
+  }, [activePage]);
 
   /* =====================================================
      CHECK WHETHER MODULE IS ASSIGNED
@@ -513,7 +512,6 @@ export default function StaffDashboard() {
             records={records}
             loading={recordsLoading}
             error={recordsError}
-            onRefresh={() => setRecordsRefresh((value) => value + 1)}
           />
         );
 
@@ -527,7 +525,6 @@ export default function StaffDashboard() {
             records={records}
             loading={recordsLoading}
             error={recordsError}
-            onRefresh={() => setRecordsRefresh((value) => value + 1)}
             onReviewDocuments={reviewStaffEmployerDocuments}
           />
         );
@@ -539,7 +536,6 @@ export default function StaffDashboard() {
             records={records}
             loading={recordsLoading}
             error={recordsError}
-            onRefresh={() => setRecordsRefresh((value) => value + 1)}
           />
         );
 
@@ -950,14 +946,12 @@ function StaffRecordsModule({
   records,
   loading,
   error,
-  onRefresh,
   onReviewDocuments,
 }: {
   page: StaffRecordPage;
   records: StaffRecord[];
   loading: boolean;
   error: string;
-  onRefresh: () => void;
   onReviewDocuments?: (
     employerId: string,
     documents: EmployerVerificationDocument[],
@@ -1131,21 +1125,13 @@ function StaffRecordsModule({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div>
         <div>
           <h2 className="text-2xl font-black text-[#123B70]">{page}</h2>
           <p className="mt-2 text-slate-500">
             View complete {page.toLowerCase()} information.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={loading}
-          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-        >
-          {loading ? "Loading..." : "Refresh"}
-        </button>
       </div>
 
       <input

@@ -41,11 +41,6 @@ type Props = {
     approved: boolean,
   ) => Promise<ApplicationDecisionResult>;
   onDelete: (applicationId: string) => Promise<void>;
-  ModuleHeader: React.ComponentType<{
-    title: string;
-    description: string;
-    onRefresh?: () => void;
-  }>;
   LoadingMessage: React.ComponentType;
   EmptyMessage: React.ComponentType<{ message: string }>;
   formatDate: (date?: string) => string;
@@ -101,7 +96,6 @@ export default function ApplicationsModule({
   onUpdateStatus,
   onDecideApplication,
   onDelete,
-  ModuleHeader,
   LoadingMessage,
   EmptyMessage,
   formatDate,

@@ -1803,14 +1803,8 @@ export default function AdminDashboard() {
             statsError={dashboardStatsError}
                 statsLoading={dashboardStatsLoading}
                 account={account}
-            logs={auditLogs}
-            onRefresh={() => {
-              loadDashboardCounts();
-              if (account?.role === "superadmin") {
-                loadAuditLogs();
-              }
-            }}
-            onNavigate={setActivePage}
+                logs={auditLogs}
+                onNavigate={setActivePage}
           />
         );
 
@@ -1828,8 +1822,6 @@ export default function AdminDashboard() {
             statusFilter={jobStatusFilter}
             setStatusFilter={setJobStatusFilter}
             loading={moduleLoading}
-            onRefresh={loadJobPosts}
-            ModuleHeader={ModuleHeader}
             StatusBadge={StatusBadge}
             LoadingMessage={LoadingMessage}
             EmptyMessage={EmptyMessage}
@@ -1849,12 +1841,10 @@ export default function AdminDashboard() {
             search={employerSearch}
             setSearch={setEmployerSearch}
             loading={moduleLoading}
-            onRefresh={loadEmployers}
             onUpdate={updateEmployer}
             onUpdateStatus={updateEmployerStatus}
             onReviewDocuments={reviewEmployerDocuments}
             onToggleActive={updateEmployerActiveStatus}
-            ModuleHeader={ModuleHeader}
             LoadingMessage={LoadingMessage}
             EmptyMessage={EmptyMessage}
           />
@@ -1875,7 +1865,6 @@ export default function AdminDashboard() {
             onUpdate={updateJobSeeker}
             onUpdateVerificationStatus={updateJobSeekerVerificationStatus}
             onToggleActive={updateJobSeekerActiveStatus}
-            ModuleHeader={ModuleHeader}
             LoadingMessage={LoadingMessage}
             EmptyMessage={EmptyMessage}
           />
@@ -1899,7 +1888,6 @@ export default function AdminDashboard() {
             onUpdateStatus={updateApplicationStatus}
             onDecideApplication={decideApplication}
             onDelete={deleteApplication}
-            ModuleHeader={ModuleHeader}
             LoadingMessage={LoadingMessage}
             EmptyMessage={EmptyMessage}
             formatDate={formatDate}
@@ -1919,7 +1907,6 @@ export default function AdminDashboard() {
             announcements={announcements}
             onCreate={() => void createAnnouncement()}
             onDelete={(id) => void deleteAnnouncement(id)}
-            ModuleHeader={ModuleHeader}
             EmptyMessage={EmptyMessage}
             formatDate={formatDate}
           />
@@ -1946,8 +1933,6 @@ export default function AdminDashboard() {
             jobSeekers={jobSeekers}
             loading={analyticsLoading}
             loadError={analyticsError}
-            onRefresh={loadAnalyticsData}
-            ModuleHeader={ModuleHeader}
             StatCard={StatCard}
             AnalyticsCard={AnalyticsCard}
             SummaryRow={SummaryRow}
@@ -2592,25 +2577,6 @@ function MyProfile({
 /* ================================================================
    REUSABLE COMPONENTS
 ================================================================ */
-
-function ModuleHeader({
-  onRefresh,
-}: {
-  onRefresh?: () => void;
-}) {
-  if (!onRefresh) return null;
-
-  return (
-    <div className="flex justify-end">
-      <button
-        onClick={onRefresh}
-        className="rounded-md bg-[#203F8B] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#193474]"
-      >
-        Refresh
-      </button>
-    </div>
-  );
-}
 
 function StatCard({
   title,

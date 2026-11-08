@@ -32,7 +32,6 @@ type Props = {
   statsLoading: boolean;
   account: Account | null;
   logs: ActivityLog[];
-  onRefresh: () => void;
   onNavigate: (page: AdminModule) => void;
 };
 
@@ -50,7 +49,6 @@ export default function DashboardModule({
   statsLoading,
   account,
   logs,
-  onRefresh,
   onNavigate,
 }: Props) {
   const isAdmin = account?.role === "superadmin";
@@ -62,19 +60,6 @@ export default function DashboardModule({
   ] as const;
   return (
     <div className="space-y-7">
-      <section className="flex justify-end">
-        <button
-          type="button"
-          onClick={onRefresh}
-          className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#203F8B]"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M20 7v5h-5M4 17v-5h5m10.1-2A7 7 0 0 0 6 6L4 8m16 8-2 2a7 7 0 0 1-13.1-4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
-          </svg>
-          Refresh
-        </button>
-      </section>
-
       {statsError && (
         <p
           role="alert"

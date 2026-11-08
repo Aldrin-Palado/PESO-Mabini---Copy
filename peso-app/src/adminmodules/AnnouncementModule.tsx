@@ -19,10 +19,6 @@ type Props = {
   onCreate: () => void;
   onDelete: (id: string) => void;
 
-  ModuleHeader: React.ComponentType<{
-    onRefresh?: () => void;
-  }>;
-
   EmptyMessage: React.ComponentType<{
     message: string;
   }>;
@@ -38,14 +34,11 @@ export default function AnnouncementModule({
   announcements,
   onCreate,
   onDelete,
-  ModuleHeader,
   EmptyMessage,
   formatDate,
 }: Props) {
   return (
     <div className="space-y-6">
-
-      <ModuleHeader />
 
       {/* CREATE ANNOUNCEMENT */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

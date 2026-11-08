@@ -43,10 +43,6 @@ type Props = {
   ) => Promise<void>;
   onToggleActive: (jobSeekerId: string, isActive: boolean) => Promise<void>;
 
-  ModuleHeader: React.ComponentType<{
-    onRefresh?: () => void;
-  }>;
-
   LoadingMessage: React.ComponentType;
 
   EmptyMessage: React.ComponentType<{
@@ -266,7 +262,6 @@ export default function JobSeekersModule({
   onUpdate,
   onUpdateVerificationStatus,
   onToggleActive,
-  ModuleHeader,
   LoadingMessage,
   EmptyMessage,
 }: Props) {
@@ -550,8 +545,6 @@ export default function JobSeekersModule({
 
   return (
     <div className="space-y-5">
-
-      <ModuleHeader />
       <ModuleScoreboard
         title="Job Seekers"
         metrics={[

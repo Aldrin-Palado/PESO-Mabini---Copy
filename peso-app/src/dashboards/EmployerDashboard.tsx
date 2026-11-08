@@ -1060,7 +1060,7 @@ export default function EmployerDashboard() {
                 disabled={refreshing}
                 className="shrink-0 rounded-lg border border-amber-300 px-3 py-2 font-bold hover:bg-amber-100 disabled:opacity-50"
               >
-                {refreshing ? "Refreshing..." : "Refresh"}
+                {refreshing ? "Retrying..." : "Try Again"}
               </button>
             </div>
           )}

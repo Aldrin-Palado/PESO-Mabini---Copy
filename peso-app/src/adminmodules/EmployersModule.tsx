@@ -43,7 +43,6 @@ type Props = {
   setSearch: (value: string) => void;
 
   loading: boolean;
-  onRefresh: () => void;
   onUpdate: (
     employerId: string,
     values: EmployerFormValues,
@@ -57,10 +56,6 @@ type Props = {
     documents: EmployerVerificationDocument[],
   ) => Promise<void>;
   onToggleActive: (employerId: string, isActive: boolean) => Promise<void>;
-
-  ModuleHeader: React.ComponentType<{
-    onRefresh?: () => void;
-  }>;
 
   LoadingMessage: React.ComponentType;
 
@@ -135,12 +130,10 @@ export default function EmployersModule({
   search,
   setSearch,
   loading,
-  onRefresh,
   onUpdate,
   onUpdateStatus,
   onReviewDocuments,
   onToggleActive,
-  ModuleHeader,
   LoadingMessage,
   EmptyMessage,
 }: Props) {
@@ -445,7 +438,6 @@ export default function EmployersModule({
   return (
     <div className="space-y-5">
 
-      <ModuleHeader onRefresh={onRefresh} />
       <ModuleScoreboard
         title="Employers"
         metrics={[

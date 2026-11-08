@@ -66,11 +66,6 @@ type Props = {
   jobSeekers: JobSeeker[];
   loading: boolean;
   loadError: string;
-  onRefresh: () => void;
-
-  ModuleHeader: React.ComponentType<{
-    onRefresh?: () => void;
-  }>;
 
   StatCard: React.ComponentType<{
     title: string;
@@ -107,8 +102,6 @@ export default function AnalyticsModule({
   jobSeekers,
   loading,
   loadError,
-  onRefresh,
-  ModuleHeader,
   StatCard,
   AnalyticsCard,
   SummaryRow,
@@ -407,11 +400,6 @@ export default function AnalyticsModule({
 
   return (
     <div className="space-y-6">
-
-      {/* HEADER */}
-
-      <ModuleHeader onRefresh={onRefresh} />
-
       {/* LOADING */}
 
       {loading && (

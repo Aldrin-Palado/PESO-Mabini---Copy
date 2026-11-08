@@ -33,10 +33,6 @@ type Props = {
   statusFilter: string;
   setStatusFilter: (value: string) => void;
   loading: boolean;
-  onRefresh: () => void;
-  ModuleHeader: ComponentType<{
-    onRefresh?: () => void;
-  }>;
   StatusBadge: ComponentType<{
     status: string;
   }>;
@@ -82,8 +78,6 @@ export default function JobPostsModule({
   statusFilter,
   setStatusFilter,
   loading,
-  onRefresh,
-  ModuleHeader,
   StatusBadge,
   LoadingMessage,
   EmptyMessage,
@@ -101,7 +95,6 @@ export default function JobPostsModule({
 
   return (
     <div className="space-y-5">
-      <ModuleHeader onRefresh={onRefresh} />
       <ModuleScoreboard
         title="Job Posts"
         metrics={[
