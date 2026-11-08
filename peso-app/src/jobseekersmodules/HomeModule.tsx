@@ -386,7 +386,7 @@ export default function HomeModule({
                       onClick={() => setSelectedPESOPost(post)}
                       className="mt-3 text-sm font-semibold text-blue-700 hover:text-blue-900"
                     >
-                      Read announcement
+                      See more
                     </button>
                   </div>
                 </article>
@@ -496,7 +496,7 @@ export default function HomeModule({
             role="dialog"
             aria-modal="true"
             aria-labelledby="job-seeker-peso-announcement-title"
-            className="my-auto max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
+            className="my-auto max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
           >
             <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur sm:px-7">
               <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
@@ -528,7 +528,7 @@ export default function HomeModule({
                       <img
                         src={imageUrl}
                         alt={`${selectedPESOPost.title}, image ${index + 1}`}
-                        className="h-32 w-full object-cover transition group-hover:scale-105 sm:h-40"
+                        className="h-48 w-full bg-white object-contain transition sm:h-64"
                       />
                       <span className="absolute inset-0 flex items-center justify-center bg-slate-950/0 text-sm font-bold text-white transition group-hover:bg-slate-950/35">
                         View

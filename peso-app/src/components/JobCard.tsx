@@ -173,14 +173,6 @@ function JobCard({ job, index, isAuthenticated }: JobCardProps) {
                     <span>{job.employment_type}</span>
                   </>
                 )}
-                {job.location && (
-                  <>
-                    {(job.job_classification || job.employment_type) && (
-                      <span aria-hidden="true">·</span>
-                    )}
-                    <span>{job.location}</span>
-                  </>
-                )}
               </div>
               {(job.salary || job.location) && (
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs font-medium text-slate-600">

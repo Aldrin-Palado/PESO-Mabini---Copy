@@ -23,6 +23,7 @@ type PESOPost = {
   content: string;
   category: string;
   image_url: string | null;
+  image_urls: string[] | null;
   created_at: string;
 };
 
@@ -43,12 +44,17 @@ function Home() {
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState("");
   const [selectedPESOPost, setSelectedPESOPost] = useState<PESOPost | null>(null);
+  const [viewingImages, setViewingImages] = useState<string[] | null>(null);
+  const [viewingImageIndex, setViewingImageIndex] = useState(0);
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
   const [announcements, setAnnouncements] = useState<PESOAnnouncement[]>([]);
   const [announcementsLoading, setAnnouncementsLoading] = useState(true);
   const [announcementsError, setAnnouncementsError] = useState("");
   const [selectedAnnouncement, setSelectedAnnouncement] =
     useState<PESOAnnouncement | null>(null);
+
+  const getPostImages = (post: PESOPost) =>
+    [...new Set([...(post.image_urls ?? []), ...(post.image_url ? [post.image_url] : [])])];
 
   useEffect(() => {
     let cancelled = false;
@@ -78,16 +84,26 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    if (!selectedPESOPost && !selectedAnnouncement) return;
+    if (!selectedPESOPost && !selectedAnnouncement && !viewingImages) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setSelectedPESOPost(null);
-        setSelectedAnnouncement(null);
+        if (viewingImages) {
+          setViewingImages(null);
+        } else {
+          setSelectedPESOPost(null);
+          setSelectedAnnouncement(null);
+        }
+      } else if (viewingImages?.length && event.key === "ArrowRight") {
+        setViewingImageIndex((index) => (index + 1) % viewingImages.length);
+      } else if (viewingImages?.length && event.key === "ArrowLeft") {
+        setViewingImageIndex(
+          (index) => (index - 1 + viewingImages.length) % viewingImages.length,
+        );
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedPESOPost, selectedAnnouncement]);
+  }, [selectedPESOPost, selectedAnnouncement, viewingImages]);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,7 +111,7 @@ function Home() {
     const loadPESOPosts = async () => {
       const { data, error } = await supabase
         .from("peso_posts")
-        .select("id, title, content, category, image_url, created_at")
+        .select("id, title, content, category, image_url, image_urls, created_at")
         .eq("status", "published")
         .order("created_at", { ascending: false })
         .limit(4);
@@ -330,13 +346,37 @@ function Home() {
                     key={post.id}
                     className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition before:absolute before:inset-y-0 before:left-0 before:z-10 before:w-1 before:bg-gradient-to-b before:from-yellow-400 before:to-red-500 before:content-[''] hover:shadow-md"
                   >
-                    {post.image_url && (
-                      <img
-                        src={post.image_url}
-                        alt=""
-                        loading="lazy"
-                        className="h-52 w-full bg-slate-50 object-cover"
-                      />
+                    {getPostImages(post).length > 0 && (
+                      <div className={`grid gap-1 ${getPostImages(post).length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
+                        {getPostImages(post).slice(0, 4).map((imageUrl, index) => (
+                          <button
+                            key={imageUrl}
+                            type="button"
+                            onClick={() => {
+                              setViewingImageIndex(index);
+                              setViewingImages(getPostImages(post));
+                            }}
+                            aria-label={`View image ${index + 1} of ${getPostImages(post).length} for ${post.title}`}
+                            className="group relative overflow-hidden bg-slate-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-600"
+                          >
+                            <img
+                              src={imageUrl}
+                              alt=""
+                              loading="lazy"
+                              className={`h-52 w-full object-contain transition group-hover:bg-slate-100 ${
+                                index === 3 && getPostImages(post).length > 4
+                                  ? "brightness-50"
+                                  : ""
+                              }`}
+                            />
+                            {index === 3 && getPostImages(post).length > 4 && (
+                              <span className="absolute inset-0 flex items-center justify-center text-lg font-bold text-white">
+                                +{getPostImages(post).length - 4}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     )}
                     <div className="p-5">
                       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -362,7 +402,7 @@ function Home() {
                         onClick={() => setSelectedPESOPost(post)}
                         className="mt-4 text-sm font-semibold text-sky-700 hover:text-sky-900"
                       >
-                        Read announcement
+                        See more
                         <AppIcon name="arrowRight" className="ml-1 inline h-4 w-4" />
                       </button>
                     </div>
@@ -559,6 +599,17 @@ function Home() {
                           <span className="mt-3 inline-flex rounded-full bg-sky-50 px-3 py-1.5 text-xs font-semibold capitalize text-sky-700">
                             {job.job_classification}
                           </span>
+                          {(job.location || job.employment_type) && (
+                            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs font-medium text-slate-600">
+                              {job.location && (
+                                <span className="inline-flex items-center gap-1.5">
+                                  <AppIcon name="mapPin" className="h-3.5 w-3.5 text-slate-500" />
+                                  {job.location}
+                                </span>
+                              )}
+                              {job.employment_type && <span>{job.employment_type}</span>}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </article>
@@ -699,7 +750,7 @@ function Home() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="peso-announcement-title"
-            className="my-auto max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
+            className="my-auto max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
           >
             <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur sm:px-7">
               <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
@@ -714,12 +765,30 @@ function Home() {
                 ×
               </button>
             </div>
-            {selectedPESOPost.image_url && (
-              <img
-                src={selectedPESOPost.image_url}
-                alt=""
-                className="max-h-[45vh] w-full bg-slate-50 object-contain"
-              />
+            {getPostImages(selectedPESOPost).length > 0 && (
+              <div className="grid gap-2 bg-slate-50 p-3 sm:grid-cols-2 sm:p-5">
+                {getPostImages(selectedPESOPost).map((imageUrl, index) => (
+                  <button
+                    key={imageUrl}
+                    type="button"
+                    onClick={() => {
+                      setViewingImageIndex(index);
+                      setViewingImages(getPostImages(selectedPESOPost));
+                    }}
+                    aria-label={`View image ${index + 1} of ${getPostImages(selectedPESOPost).length}`}
+                    className="group relative overflow-hidden rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-sky-600"
+                  >
+                    <img
+                      src={imageUrl}
+                      alt={`${selectedPESOPost.title}, image ${index + 1}`}
+                      className="h-56 w-full object-contain sm:h-72"
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center bg-slate-950/0 text-sm font-bold text-white transition group-hover:bg-slate-950/30">
+                      View image
+                    </span>
+                  </button>
+                ))}
+              </div>
             )}
             <div className="p-5 sm:p-7">
               <time className="text-sm text-slate-500" dateTime={selectedPESOPost.created_at}>
@@ -737,6 +806,63 @@ function Home() {
               </p>
             </div>
           </section>
+        </div>
+      )}
+
+      {viewingImages && viewingImages.length > 0 && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/95 p-3 sm:p-6"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setViewingImages(null);
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Image ${viewingImageIndex + 1} of ${viewingImages.length}`}
+        >
+          <button
+            type="button"
+            onClick={() => setViewingImages(null)}
+            aria-label="Close image viewer"
+            className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-3xl text-white hover:bg-white/20"
+          >
+            ×
+          </button>
+          {viewingImages.length > 1 && (
+            <button
+              type="button"
+              onClick={() =>
+                setViewingImageIndex(
+                  (index) => (index - 1 + viewingImages.length) % viewingImages.length,
+                )
+              }
+              aria-label="Previous image"
+              className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-3xl text-white hover:bg-white/20 sm:left-6"
+            >
+              ‹
+            </button>
+          )}
+          <figure className="flex max-h-full max-w-full flex-col items-center gap-3">
+            <img
+              src={viewingImages[viewingImageIndex]}
+              alt={`PESO post image ${viewingImageIndex + 1}`}
+              className="max-h-[88vh] max-w-[92vw] object-contain"
+            />
+            <figcaption className="text-sm text-white/80">
+              {viewingImageIndex + 1} / {viewingImages.length}
+            </figcaption>
+          </figure>
+          {viewingImages.length > 1 && (
+            <button
+              type="button"
+              onClick={() =>
+                setViewingImageIndex((index) => (index + 1) % viewingImages.length)
+              }
+              aria-label="Next image"
+              className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-3xl text-white hover:bg-white/20 sm:right-6"
+            >
+              ›
+            </button>
+          )}
         </div>
       )}
 

@@ -257,20 +257,12 @@ function Login() {
               </div>
 
               <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <label
-                    htmlFor="login-password"
-                    className="block text-sm font-medium text-slate-800"
-                  >
-                    Password
-                  </label>
-                  <Link
-                    to="/forgot-password"
-                    className="text-sm font-medium text-[#315FEA] transition hover:text-[#123B70]"
-                  >
-                    Forgot Password?
-                  </Link>
-                </div>
+                <label
+                  htmlFor="login-password"
+                  className="mb-2 block text-sm font-medium text-slate-800"
+                >
+                  Password
+                </label>
 
                 <div className="relative">
                   <input
@@ -292,6 +284,15 @@ function Login() {
                   >
                     {showPassword ? "Hide" : "Show"}
                   </button>
+                </div>
+
+                <div className="mt-2 text-right">
+                  <Link
+                    to="/forgot-password"
+                    className="text-sm font-medium text-[#315FEA] transition hover:text-[#123B70]"
+                  >
+                    Forgot Password?
+                  </Link>
                 </div>
               </div>
 
