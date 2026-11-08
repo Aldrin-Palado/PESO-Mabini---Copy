@@ -8,6 +8,7 @@ type PESOPost = {
   category: string;
   image_url: string | null;
   image_urls: string[] | null;
+  video_urls: string[] | null;
   status: "published" | "draft";
   created_at: string;
   created_by: string | null;
@@ -18,10 +19,18 @@ type SelectedImage = {
   previewUrl: string;
 };
 
+type SelectedVideo = {
+  file: File;
+  previewUrl: string;
+};
+
 const categories = ["Activities", "Achievements", "Events", "Programs"];
 const imageTypes = ["image/jpeg", "image/png", "image/webp"];
 const imageTypeLabels = "JPG, PNG, or WEBP";
+const videoTypes = ["video/mp4", "video/webm", "video/quicktime"];
+const videoTypeLabels = "MP4, WEBM, or MOV";
 const bucketName = "peso-post-images";
+const maxVideoSize = 100 * 1024 * 1024;
 const emptyForm = {
   title: "",
   content: "",
@@ -77,8 +86,16 @@ function getStoredImagePath(imageUrl: string | null): string | null {
   return decodeURIComponent(imageUrl.slice(pathStart + marker.length).split("?")[0]);
 }
 
+function getStoredVideoPath(videoUrl: string | null): string | null {
+  return getStoredImagePath(videoUrl);
+}
+
 function getPostImages(post: PESOPost): string[] {
   return [...new Set([...(post.image_urls ?? []), ...(post.image_url ? [post.image_url] : [])])];
+}
+
+function getPostVideos(post: PESOPost): string[] {
+  return [...new Set(post.video_urls ?? [])];
 }
 
 export default function PESOPosts() {
@@ -86,7 +103,10 @@ export default function PESOPosts() {
   const [form, setForm] = useState(emptyForm);
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
   const selectedImagesRef = useRef<SelectedImage[]>([]);
+  const [selectedVideos, setSelectedVideos] = useState<SelectedVideo[]>([]);
+  const selectedVideosRef = useRef<SelectedVideo[]>([]);
   const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
+  const [existingVideoUrls, setExistingVideoUrls] = useState<string[]>([]);
   const [editingPost, setEditingPost] = useState<PESOPost | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -99,13 +119,17 @@ export default function PESOPosts() {
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     void fetchPosts();
   }, []);
 
   useEffect(
-    () => () => selectedImagesRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl)),
+    () => () => {
+      selectedImagesRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+      selectedVideosRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+    },
     [],
   );
 
@@ -116,7 +140,7 @@ export default function PESOPosts() {
     try {
       const { data, error } = await supabase
         .from("peso_posts")
-        .select("id, title, content, category, image_url, image_urls, status, created_at, created_by")
+        .select("id, title, content, category, image_url, image_urls, video_urls, status, created_at, created_by")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -135,7 +159,11 @@ export default function PESOPosts() {
     selectedImagesRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
     selectedImagesRef.current = [];
     setSelectedImages([]);
+    selectedVideosRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+    selectedVideosRef.current = [];
+    setSelectedVideos([]);
     setExistingImageUrls([]);
+    setExistingVideoUrls([]);
     setEditingPost(null);
     setShowForm(false);
     setActionError("");
@@ -169,6 +197,33 @@ export default function PESOPosts() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handleVideoChange = (files: FileList | null) => {
+    const newFiles = Array.from(files ?? []);
+    if (newFiles.length === 0) return;
+    const invalidType = newFiles.find((file) => !videoTypes.includes(file.type));
+    if (invalidType) {
+      setActionError(`Choose videos in ${videoTypeLabels} format.`);
+      if (videoInputRef.current) videoInputRef.current.value = "";
+      return;
+    }
+    const oversizedVideo = newFiles.find((file) => file.size > maxVideoSize);
+    if (oversizedVideo) {
+      setActionError(`Each video must not exceed 100 MB (${oversizedVideo.name}).`);
+      if (videoInputRef.current) videoInputRef.current.value = "";
+      return;
+    }
+
+    setActionError("");
+    const additions = newFiles.map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+    const next = [...selectedVideosRef.current, ...additions];
+    selectedVideosRef.current = next;
+    setSelectedVideos(next);
+    if (videoInputRef.current) videoInputRef.current.value = "";
+  };
+
   const handleEdit = (post: PESOPost) => {
     setEditingPost(post);
     setForm({
@@ -180,11 +235,16 @@ export default function PESOPosts() {
     selectedImagesRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
     selectedImagesRef.current = [];
     setSelectedImages([]);
+    selectedVideosRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+    selectedVideosRef.current = [];
+    setSelectedVideos([]);
     setExistingImageUrls(getPostImages(post));
+    setExistingVideoUrls(getPostVideos(post));
     setActionError("");
     setNotice("");
     setShowForm(true);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (videoInputRef.current) videoInputRef.current.value = "";
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -211,6 +271,29 @@ export default function PESOPosts() {
     return { url: data.publicUrl, path };
   };
 
+  const uploadVideo = async (
+    postId: string,
+    selectedVideo: File,
+  ): Promise<{ url: string; path: string }> => {
+    const extension = selectedVideo.type === "video/mp4"
+      ? "mp4"
+      : selectedVideo.type === "video/webm"
+        ? "webm"
+        : "mov";
+    const path = `${postId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
+    const { error } = await supabase.storage
+      .from(bucketName)
+      .upload(path, selectedVideo, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: selectedVideo.type,
+      });
+
+    if (error) throw error;
+    const { data } = supabase.storage.from(bucketName).getPublicUrl(path);
+    return { url: data.publicUrl, path };
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (saving) return;
@@ -225,8 +308,10 @@ export default function PESOPosts() {
     setActionError("");
     setNotice("");
     const uploadedImagePaths: string[] = [];
+    const uploadedVideoPaths: string[] = [];
     let newlyCreatedPostId: string | null = null;
     let imageCleanupWarning = false;
+    let videoCleanupWarning = false;
 
     try {
       let postId = editingPost?.id;
@@ -260,6 +345,16 @@ export default function PESOPosts() {
         ...existingImageUrls,
         ...uploadedImages.map(({ url }) => url),
       ];
+      const uploadedVideos: { url: string; path: string }[] = [];
+      for (const selectedVideo of selectedVideos) {
+        const uploadedVideo = await uploadVideo(postId, selectedVideo.file);
+        uploadedVideos.push(uploadedVideo);
+        uploadedVideoPaths.push(uploadedVideo.path);
+      }
+      const videoUrls = [
+        ...existingVideoUrls,
+        ...uploadedVideos.map(({ url }) => url),
+      ];
 
       const update = await supabase
         .from("peso_posts")
@@ -270,6 +365,7 @@ export default function PESOPosts() {
           status: form.status,
           image_url: imageUrls[0] ?? null,
           image_urls: imageUrls,
+          video_urls: videoUrls,
         })
         .eq("id", postId);
       if (update.error) throw update.error;
@@ -289,11 +385,24 @@ export default function PESOPosts() {
             imageCleanupWarning = true;
           }
         }
+        const oldVideoPaths = getPostVideos(editingPost)
+          .filter((url) => !videoUrls.includes(url))
+          .map(getStoredVideoPath)
+          .filter((path): path is string => path !== null);
+        if (oldVideoPaths.length > 0) {
+          const { error } = await supabase.storage
+            .from(bucketName)
+            .remove(oldVideoPaths);
+          if (error) {
+            console.error("Could not remove deleted PESO post videos:", error);
+            videoCleanupWarning = true;
+          }
+        }
       }
 
       setNotice(
-        imageCleanupWarning
-          ? "Post saved, but the previous image could not be removed from storage."
+        imageCleanupWarning || videoCleanupWarning
+          ? "Post saved, but some previous media could not be removed from storage."
           : form.status === "published"
             ? "Post published. It is now visible on the public home page."
             : "Draft saved. Publish it when it is ready for the public home page.",
@@ -317,6 +426,14 @@ export default function PESOPosts() {
           .remove(uploadedImagePaths);
         if (cleanupError) {
           console.error("Could not clean up an unused PESO post image:", cleanupError);
+        }
+      }
+      if (uploadedVideoPaths.length > 0) {
+        const { error: cleanupError } = await supabase.storage
+          .from(bucketName)
+          .remove(uploadedVideoPaths);
+        if (cleanupError) {
+          console.error("Could not clean up an unused PESO post video:", cleanupError);
         }
       }
       setActionError(
@@ -363,16 +480,16 @@ export default function PESOPosts() {
       const { error } = await supabase.from("peso_posts").delete().eq("id", post.id);
       if (error) throw error;
 
-      const imagePaths = getPostImages(post)
+      const mediaPaths = [...getPostImages(post), ...getPostVideos(post)]
         .map(getStoredImagePath)
         .filter((path): path is string => path !== null);
-      if (imagePaths.length > 0) {
+      if (mediaPaths.length > 0) {
         const { error: imageError } = await supabase.storage
           .from(bucketName)
-          .remove(imagePaths);
+          .remove(mediaPaths);
         if (imageError) {
-          console.error("Could not remove deleted PESO post image:", imageError);
-          setNotice("Post deleted, but its image could not be removed from storage.");
+          console.error("Could not remove deleted PESO post media:", imageError);
+          setNotice("Post deleted, but some media could not be removed from storage.");
         } else {
           setNotice("Post deleted.");
         }
@@ -566,6 +683,74 @@ export default function PESOPosts() {
               )}
             </div>
 
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-700">
+                Post videos (optional)
+              </label>
+              <button
+                type="button"
+                onClick={() => videoInputRef.current?.click()}
+                className="flex min-h-28 w-full items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-4 text-center transition hover:border-blue-500 hover:bg-blue-50"
+              >
+                <span>
+                  <span className="block text-sm font-semibold text-gray-700">
+                    Add one or more videos
+                  </span>
+                  <span className="mt-1 block text-xs text-gray-500">
+                    {videoTypeLabels} · up to 100 MB each
+                  </span>
+                </span>
+              </button>
+              <input
+                ref={videoInputRef}
+                type="file"
+                accept="video/mp4,video/webm,video/quicktime"
+                multiple
+                className="sr-only"
+                onChange={(event) => handleVideoChange(event.target.files)}
+              />
+              {(existingVideoUrls.length > 0 || selectedVideos.length > 0) && (
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {existingVideoUrls.map((videoUrl) => (
+                    <div key={videoUrl} className="relative overflow-hidden rounded-lg border border-gray-200">
+                      <video src={videoUrl} controls preload="metadata" className="h-40 w-full bg-black object-contain" />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExistingVideoUrls((current) =>
+                            current.filter((url) => url !== videoUrl),
+                          )
+                        }
+                        aria-label="Remove existing video"
+                        className="absolute right-1 top-1 rounded-full bg-slate-950/75 px-2 py-1 text-xs font-bold text-white hover:bg-red-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  {selectedVideos.map((video, index) => (
+                    <div key={`${video.file.name}-${video.previewUrl}`} className="relative overflow-hidden rounded-lg border border-gray-200">
+                      <video src={video.previewUrl} controls preload="metadata" className="h-40 w-full bg-black object-contain" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          URL.revokeObjectURL(video.previewUrl);
+                          const next = selectedVideosRef.current.filter((_, currentIndex) => currentIndex !== index);
+                          selectedVideosRef.current = next;
+                          setSelectedVideos(next);
+                        }}
+                        aria-label={`Remove ${video.file.name}`}
+                        className="absolute right-1 top-1 rounded-full bg-slate-950/75 px-2 py-1 text-xs font-bold text-white hover:bg-red-700"
+                      >
+                        Remove
+                      </button>
+                      <p className="truncate px-2 py-1 text-xs text-gray-600">{video.file.name}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="flex flex-col-reverse justify-end gap-3 border-t border-gray-100 pt-5 sm:flex-row">
               <button type="button" onClick={resetForm} disabled={saving} className="rounded-lg border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-60">
                 Cancel
@@ -674,9 +859,28 @@ export default function PESOPosts() {
                       </span>
                     )}
                   </div>
-                ) : (
+                ) : getPostVideos(post).length === 0 ? (
                   <div className="flex h-48 items-center justify-center bg-blue-50 text-4xl text-blue-300" aria-hidden="true">
                     PESO
+                  </div>
+                ) : null}
+                {getPostVideos(post).length > 0 && (
+                  <div className="grid gap-1 bg-slate-950">
+                    {getPostVideos(post).slice(0, 2).map((videoUrl, index) => (
+                      <video
+                        key={videoUrl}
+                        src={videoUrl}
+                        controls
+                        preload="metadata"
+                        aria-label={`PESO post video ${index + 1}`}
+                        className="max-h-48 w-full bg-black object-contain"
+                      />
+                    ))}
+                    {getPostVideos(post).length > 2 && (
+                      <p className="px-3 py-2 text-xs text-white/80">
+                        +{getPostVideos(post).length - 2} more video{getPostVideos(post).length === 3 ? "" : "s"}
+                      </p>
+                    )}
                   </div>
                 )}
                 <div className="p-5">

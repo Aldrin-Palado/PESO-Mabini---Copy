@@ -14,6 +14,7 @@ type PESOPost = {
   category: string;
   image_url: string | null;
   image_urls: string[] | null;
+  video_urls: string[] | null;
   created_at: string;
 };
 
@@ -82,6 +83,8 @@ export default function HomeModule({
 
   const getPostImages = (post: PESOPost) =>
     [...new Set([...(post.image_urls ?? []), ...(post.image_url ? [post.image_url] : [])])];
+  const getPostVideos = (post: PESOPost) =>
+    [...new Set(post.video_urls ?? [])];
 
   const firstName =
     seeker.full_name?.trim().split(" ")[0] || "Job Seeker";
@@ -98,7 +101,7 @@ export default function HomeModule({
     const loadPESOPosts = async () => {
       const { data, error } = await supabase
         .from("peso_posts")
-        .select("id, title, content, category, image_url, image_urls, created_at")
+        .select("id, title, content, category, image_url, image_urls, video_urls, created_at")
         .eq("status", "published")
         .order("created_at", { ascending: false })
         .limit(4);
@@ -361,6 +364,25 @@ export default function HomeModule({
                       ))}
                     </div>
                   )}
+                  {getPostVideos(post).length > 0 && (
+                    <div className="grid gap-1 bg-slate-950 sm:grid-cols-2">
+                      {getPostVideos(post).slice(0, 2).map((videoUrl, index) => (
+                        <video
+                          key={videoUrl}
+                          src={videoUrl}
+                          controls
+                          preload="metadata"
+                          aria-label={`PESO post video ${index + 1} for ${post.title}`}
+                          className="max-h-64 w-full bg-black object-contain"
+                        />
+                      ))}
+                      {getPostVideos(post).length > 2 && (
+                        <p className="px-3 py-2 text-xs text-white/80 sm:col-span-2">
+                          +{getPostVideos(post).length - 2} more video{getPostVideos(post).length === 3 ? "" : "s"} in post
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <div className="p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
@@ -539,6 +561,20 @@ export default function HomeModule({
                 <p className="text-center text-xs text-slate-500">
                   Select an image to view it larger.
                 </p>
+              </div>
+            )}
+            {getPostVideos(selectedPESOPost).length > 0 && (
+              <div className="grid gap-3 bg-slate-950 p-4 sm:grid-cols-2 sm:p-5">
+                {getPostVideos(selectedPESOPost).map((videoUrl, index) => (
+                  <video
+                    key={videoUrl}
+                    src={videoUrl}
+                    controls
+                    preload="metadata"
+                    aria-label={`PESO post video ${index + 1}`}
+                    className="max-h-[60vh] w-full rounded-xl bg-black object-contain"
+                  />
+                ))}
               </div>
             )}
             <div className="p-5 sm:p-7">
