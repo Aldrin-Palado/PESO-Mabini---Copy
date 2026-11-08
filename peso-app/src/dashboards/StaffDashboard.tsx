@@ -439,7 +439,7 @@ export default function StaffDashboard() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
 
-    window.location.href = "/login";
+    window.location.replace("/login");
   };
 
   /* =====================================================

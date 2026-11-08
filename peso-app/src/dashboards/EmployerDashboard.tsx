@@ -577,7 +577,7 @@ export default function EmployerDashboard() {
       return;
     }
 
-    window.location.assign("/");
+    window.location.replace("/");
   };
 
   const signInAgain = async () => {

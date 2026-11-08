@@ -12,6 +12,7 @@ import JobSeekerRegistration from "./components/JobSeekerRegistration";
 import Login from "./components/Login";
 import ResetPassword from "./components/ResetPassword";
 import SessionTimeout from "./components/SessionTimeout";
+import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./dashboards/AdminDashboard";
 import EmployerDashboard from "./dashboards/EmployerDashboard";
 import JobSeekerDashboard from "./dashboards/JobSeekerDashboard";
@@ -54,10 +55,22 @@ function App() {
           path="/jobseekerregistration"
           element={<JobSeekerRegistration />}
         />
-        <Route path="/superadmin" element={<AdminDashboard />} />
-        <Route path="/staff" element={<StaffDashboard />} />
-        <Route path="/employer" element={<EmployerDashboard />} />
-        <Route path="/jobseeker" element={<JobSeekerDashboard />} />
+        <Route
+          path="/superadmin"
+          element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>}
+        />
+        <Route
+          path="/staff"
+          element={<ProtectedRoute><StaffDashboard /></ProtectedRoute>}
+        />
+        <Route
+          path="/employer"
+          element={<ProtectedRoute><EmployerDashboard /></ProtectedRoute>}
+        />
+        <Route
+          path="/jobseeker"
+          element={<ProtectedRoute><JobSeekerDashboard /></ProtectedRoute>}
+        />
         <Route path="*" element={<Home />} />
       </Routes>
       <PublicAIChatbot />
