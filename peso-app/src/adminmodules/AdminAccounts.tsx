@@ -29,6 +29,7 @@ type Permissions = {
   job_application: boolean;
   employers: boolean;
   job_seekers: boolean;
+  messages: boolean;
   notifications: boolean;
   peso_posts: boolean;
 };
@@ -59,6 +60,10 @@ const permissionList = [
     label: "Job Seekers",
   },
   {
+    key: "messages",
+    label: "Messages",
+  },
+  {
     key: "notifications",
     label: "Announcements",
   },
@@ -79,6 +84,7 @@ const defaultStaffPermissions: StaffPermissionValues = {
   job_application: false,
   employers: false,
   job_seekers: false,
+  messages: false,
   notifications: false,
   peso_posts: false,
 };
@@ -461,6 +467,7 @@ export default function AdminAccounts() {
         job_application: false,
         employers: false,
         job_seekers: false,
+        messages: false,
         notifications: false,
         peso_posts: false,
       });
@@ -517,6 +524,9 @@ export default function AdminAccounts() {
 
           job_seekers:
             permissions.job_seekers,
+
+          messages:
+            permissions.messages,
 
           notifications:
             permissions.notifications,

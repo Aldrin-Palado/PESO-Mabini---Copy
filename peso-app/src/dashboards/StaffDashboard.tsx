@@ -18,7 +18,9 @@ type StaffPermission = {
   job_application: boolean;
   employers: boolean;
   job_seekers: boolean;
+  messages: boolean;
   notifications: boolean;
+  peso_posts: boolean;
 };
 
 type StaffAccount = {
@@ -212,7 +214,9 @@ export default function StaffDashboard() {
           job_application,
           employers,
           job_seekers,
-          notifications
+          messages,
+          notifications,
+          peso_posts
           `
         )
         .eq(
@@ -236,7 +240,9 @@ export default function StaffDashboard() {
           job_application: false,
           employers: false,
           job_seekers: false,
+          messages: false,
           notifications: false,
+          peso_posts: false,
         }
       );
 
@@ -353,10 +359,6 @@ export default function StaffDashboard() {
     module: ModuleName
   ): boolean => {
 
-    if (module === "Messages") {
-      return true;
-    }
-
     if (!permissions) {
       return false;
     }
@@ -381,8 +383,11 @@ export default function StaffDashboard() {
       case "Job Seekers":
         return permissions.job_seekers;
 
+      case "Messages":
+        return permissions.messages;
+
       case "PESO Posts":
-        return permissions.notifications;
+        return permissions.peso_posts;
 
       default:
         return false;

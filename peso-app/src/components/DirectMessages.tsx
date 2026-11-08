@@ -57,6 +57,7 @@ export default function DirectMessages({
   initialContactId,
 }: Props) {
   const [userId, setUserId] = useState("");
+  const [mailboxUserId, setMailboxUserId] = useState("");
   const [contacts, setContacts] = useState<MessageContact[]>([]);
   const [selectedUserId, setSelectedUserId] = useState("");
   const [messages, setMessages] = useState<PesoMessage[]>([]);
@@ -80,6 +81,7 @@ export default function DirectMessages({
   const selectedContact =
     contacts.find((contact) => contact.user_id === selectedUserId) ?? null;
   const recipientUserId = selectedContact?.user_id;
+  const conversationOwnerId = mode === "staff" ? mailboxUserId : userId;
 
   useEffect(() => {
     let cancelled = false;
@@ -168,8 +170,30 @@ export default function DirectMessages({
 
       if (!cancelled) setUserId(user.id);
 
+      let inboxOwnerId = user.id;
+      if (mode === "staff") {
+        const { data: adminInboxUserId, error: inboxError } = await supabase.rpc(
+          "get_peso_admin_inbox_user",
+        );
+        if (inboxError || !adminInboxUserId) {
+          if (!cancelled) {
+            setError(
+              inboxError
+                ? `Could not access the shared Admin inbox: ${inboxError.message}`
+                : "You do not have permission to access the shared Admin inbox.",
+            );
+            setLoading(false);
+          }
+          return;
+        }
+        inboxOwnerId = adminInboxUserId as string;
+        if (!cancelled) setMailboxUserId(inboxOwnerId);
+      }
+
       const { data, error: contactsError } = await supabase.rpc(
-        "get_peso_message_contacts",
+        mode === "staff"
+          ? "get_peso_admin_inbox_contacts"
+          : "get_peso_message_contacts",
       );
 
       if (cancelled) return;
@@ -181,7 +205,9 @@ export default function DirectMessages({
           await supabase
             .from("peso_messages")
             .select("sender_user_id, recipient_user_id")
-            .or(`sender_user_id.eq.${user.id},recipient_user_id.eq.${user.id}`);
+            .or(
+              `sender_user_id.eq.${inboxOwnerId},recipient_user_id.eq.${inboxOwnerId}`,
+            );
 
         if (participantsError) {
           setError(`Could not load conversations: ${participantsError.message}`);
@@ -192,7 +218,7 @@ export default function DirectMessages({
 
         const conversationUserIds = new Set(
           ((participantRows ?? []) as MessageParticipant[]).map((message) =>
-            message.sender_user_id === user.id
+            message.sender_user_id === inboxOwnerId
               ? message.recipient_user_id
               : message.sender_user_id,
           ),
@@ -203,7 +229,7 @@ export default function DirectMessages({
           return true;
         });
         const availableContacts =
-          mode === "staff" || mode === "job_seeker" || mode === "employer"
+          mode === "job_seeker" || mode === "employer"
             ? roleFilteredContacts
             : roleFilteredContacts.filter((contact) =>
                 conversationUserIds.has(contact.user_id),
@@ -270,7 +296,7 @@ export default function DirectMessages({
 
   const loadMessages = useCallback(
     async (showLoading: boolean) => {
-      if (!selectedUserId || !userId) {
+      if (!selectedUserId || !conversationOwnerId) {
         setMessages([]);
         return;
       }
@@ -282,7 +308,7 @@ export default function DirectMessages({
           "message_id, employer_id, sender_user_id, recipient_user_id, body, created_at, read_at",
         )
         .or(
-          `and(sender_user_id.eq.${userId},recipient_user_id.eq.${selectedUserId}),and(sender_user_id.eq.${selectedUserId},recipient_user_id.eq.${userId})`,
+          `and(sender_user_id.eq.${conversationOwnerId},recipient_user_id.eq.${selectedUserId}),and(sender_user_id.eq.${selectedUserId},recipient_user_id.eq.${conversationOwnerId})`,
         )
         .order("created_at", { ascending: true });
 
@@ -297,7 +323,9 @@ export default function DirectMessages({
       setError("");
 
       const unreadIds = thread
-        .filter((message) => message.recipient_user_id === userId && !message.read_at)
+        .filter((message) =>
+          message.recipient_user_id === conversationOwnerId && !message.read_at,
+        )
         .map((message) => message.message_id);
 
       if (unreadIds.length > 0) {
@@ -322,27 +350,27 @@ export default function DirectMessages({
 
       if (showLoading) setLoading(false);
     },
-    [selectedUserId, userId],
+    [conversationOwnerId, selectedUserId],
   );
 
   useEffect(() => {
-    if (!selectedUserId || !userId || !recipientUserId) {
+    if (!selectedUserId || !conversationOwnerId || !recipientUserId) {
       setMessages([]);
       return;
     }
 
     const channel = supabase
-      .channel(`peso-messages-${userId}-${selectedUserId}`)
+      .channel(`peso-messages-${conversationOwnerId}-${selectedUserId}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "peso_messages" },
         (payload) => {
           const message = payload.new as PesoMessage;
           if (
-            (message.sender_user_id === userId &&
+            (message.sender_user_id === conversationOwnerId &&
               message.recipient_user_id === selectedUserId) ||
             (message.sender_user_id === selectedUserId &&
-              message.recipient_user_id === userId)
+              message.recipient_user_id === conversationOwnerId)
           ) {
             void loadMessages(false);
           }
@@ -359,7 +387,7 @@ export default function DirectMessages({
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [loadMessages, recipientUserId, selectedUserId, userId]);
+  }, [conversationOwnerId, loadMessages, recipientUserId, selectedUserId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -374,11 +402,16 @@ export default function DirectMessages({
     setSending(true);
     setError("");
 
-    const { error: sendError } = await supabase.from("peso_messages").insert({
-      sender_user_id: userId,
-      recipient_user_id: recipientUserId,
-      body,
-    });
+    const { error: sendError } = mode === "staff"
+      ? await supabase.rpc("send_peso_admin_inbox_reply", {
+          candidate_recipient_id: recipientUserId,
+          candidate_body: body,
+        })
+      : await supabase.from("peso_messages").insert({
+          sender_user_id: userId,
+          recipient_user_id: recipientUserId,
+          body,
+        });
 
     if (sendError) {
       setError(`Message could not be sent: ${sendError.message}`);
@@ -561,7 +594,7 @@ export default function DirectMessages({
                   {mode === "job_seeker"
                     ? "No registered employers or PESO accounts are available to message."
                     : mode === "staff"
-                      ? "No other PESO users found."
+                      ? "There are no conversations in the Admin inbox yet."
                       : mode === "employer"
                         ? "No registered job seekers or PESO accounts are available to message."
                         : "No conversations yet. Enter an email above to start one."}
@@ -595,10 +628,16 @@ export default function DirectMessages({
         <div className="flex min-h-[32rem] min-w-0 flex-col md:h-full md:min-h-0">
           <header className="border-b border-slate-100 px-5 py-4">
             <h2 className="font-bold text-slate-900">
-              {selectedContact?.display_name || "Select a contact"}
+              {mode === "staff"
+                ? selectedContact?.display_name || "Admin shared inbox"
+                : selectedContact?.display_name || "Select a contact"}
             </h2>
             <p className="text-xs text-slate-500">
-              {selectedContact?.role || roleLabels[mode]}
+              {mode === "staff"
+                ? selectedContact
+                  ? `${selectedContact.role} · Replying as PESO Admin`
+                  : "Replying as PESO Admin"
+                : selectedContact?.role || roleLabels[mode]}
             </p>
           </header>
 
@@ -749,7 +788,8 @@ export default function DirectMessages({
                 </p>
               ) : (
                 messages.map((message) => {
-                  const ownMessage = message.sender_user_id === userId;
+                  const ownMessage =
+                    message.sender_user_id === conversationOwnerId;
                   return (
                     <div
                       key={message.message_id}
