@@ -88,12 +88,15 @@ export default function DirectMessages({
 
   const refreshConversationContacts = useCallback(
     async (ownerId: string): Promise<MessageContact[]> => {
+      const isAdminInbox = mode === "admin" || mode === "staff";
       const { data: contactData, error: contactsError } = await supabase.rpc(
-        mode === "admin" || mode === "staff"
+        isAdminInbox
           ? "get_peso_admin_inbox_contacts"
           : "get_peso_message_contacts",
       );
       if (contactsError) throw contactsError;
+
+      if (isAdminInbox) return (contactData ?? []) as MessageContact[];
 
       const { data: participantRows, error: participantsError } =
         await supabase
@@ -275,6 +278,13 @@ export default function DirectMessages({
         })
         .catch((refreshError: unknown) => {
           console.error("Could not refresh message conversations:", refreshError);
+          if (active) {
+            setError(
+              refreshError instanceof Error
+                ? `Could not refresh conversations: ${refreshError.message}`
+                : "Could not refresh conversations.",
+            );
+          }
         });
     };
     const channel = supabase
@@ -313,9 +323,11 @@ export default function DirectMessages({
           }
         }
       });
+    const consistencyPoll = setInterval(refreshContacts, 10000);
 
     return () => {
       active = false;
+      clearInterval(consistencyPoll);
       if (fallbackPoll) clearInterval(fallbackPoll);
       void supabase.removeChannel(channel);
     };
@@ -364,15 +376,20 @@ export default function DirectMessages({
       }
 
       if (showLoading) setLoading(true);
-      const { data, error: messageError } = await supabase
-        .from("peso_messages")
-        .select(
-          "message_id, employer_id, sender_user_id, recipient_user_id, body, created_at, read_at",
-        )
-        .or(
-          `and(sender_user_id.eq.${conversationOwnerId},recipient_user_id.eq.${selectedUserId}),and(sender_user_id.eq.${selectedUserId},recipient_user_id.eq.${conversationOwnerId})`,
-        )
-        .order("created_at", { ascending: true });
+      const isAdminInbox = mode === "admin" || mode === "staff";
+      const { data, error: messageError } = isAdminInbox
+        ? await supabase.rpc("get_peso_admin_inbox_messages", {
+            candidate_contact_id: selectedUserId,
+          })
+        : await supabase
+            .from("peso_messages")
+            .select(
+              "message_id, employer_id, sender_user_id, recipient_user_id, body, created_at, read_at",
+            )
+            .or(
+              `and(sender_user_id.eq.${conversationOwnerId},recipient_user_id.eq.${selectedUserId}),and(sender_user_id.eq.${selectedUserId},recipient_user_id.eq.${conversationOwnerId})`,
+            )
+            .order("created_at", { ascending: true });
 
       if (messageError) {
         setError(`Could not load messages: ${messageError.message}`);
@@ -412,7 +429,7 @@ export default function DirectMessages({
 
       if (showLoading) setLoading(false);
     },
-    [conversationOwnerId, selectedUserId],
+    [conversationOwnerId, mode, selectedUserId],
   );
 
   useEffect(() => {
@@ -461,13 +478,20 @@ export default function DirectMessages({
         }
       });
 
+    const consistencyPoll =
+      mode === "admin" || mode === "staff"
+        ? setInterval(() => {
+            void loadMessages(false);
+          }, 5000)
+        : null;
     void loadMessages(true);
 
     return () => {
+      if (consistencyPoll) clearInterval(consistencyPoll);
       if (fallbackPoll) clearInterval(fallbackPoll);
       void supabase.removeChannel(channel);
     };
-  }, [conversationOwnerId, loadMessages, recipientUserId, selectedUserId]);
+  }, [conversationOwnerId, loadMessages, mode, recipientUserId, selectedUserId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
