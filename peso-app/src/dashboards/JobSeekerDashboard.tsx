@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AppIcon from "../components/AppIcon";
 import ProfileAvatar from "../components/ProfileAvatar";
@@ -33,6 +33,8 @@ const portalBackground = new URL(
   "../assets/images/bry-bg.png",
   import.meta.url,
 ).href;
+const SIGNATURE_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_SIGNATURE_FILE_SIZE = 2 * 1024 * 1024;
 
 // =====================================================
 // TYPES
@@ -409,9 +411,11 @@ export default function JobSeekerDashboard() {
   const [loading, setLoading] = useState(true);
 
   const [error, setError] = useState<string | null>(null);
+  const [editingProfilePhoto, setEditingProfilePhoto] = useState(false);
   const [screeningDetailsOpen, setScreeningDetailsOpen] = useState(false);
   const [editingScreening, setEditingScreening] = useState(false);
   const [savingScreening, setSavingScreening] = useState(false);
+  const [signatureInputMode, setSignatureInputMode] = useState<"draw" | "upload">("draw");
   const [screeningForm, setScreeningForm] = useState<ScreeningDetails>({});
   const [profileError, setProfileError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState("");
@@ -620,10 +624,47 @@ export default function JobSeekerDashboard() {
     details.contactNumber = seeker.contact_no || String(details.contactNumber || "");
     details.presentAddress = seeker.address || String(details.presentAddress || "");
     setScreeningForm(details);
+    setSignatureInputMode("draw");
     setProfileError("");
     setProfileSuccess("");
     setScreeningDetailsOpen(true);
     setEditingScreening(true);
+  };
+
+  const handleSignatureFileChange = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!SIGNATURE_IMAGE_TYPES.includes(file.type)) {
+      setProfileError("Choose a PNG, JPG, or WebP image for your signature.");
+      return;
+    }
+    if (file.size > MAX_SIGNATURE_FILE_SIZE) {
+      setProfileError("The signature image must be 2 MB or smaller.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const signatureImage = reader.result;
+      if (typeof signatureImage !== "string") {
+        setProfileError("Unable to read the signature image. Please try again.");
+        return;
+      }
+      setScreeningForm((current) => ({
+        ...current,
+        signature: signatureImage,
+      }));
+      setProfileError("");
+    };
+    reader.onerror = () => {
+      console.error("Signature image read error:", reader.error);
+      setProfileError("Unable to read the signature image. Please try again.");
+    };
+    reader.readAsDataURL(file);
   };
 
   const saveScreening = async (event: FormEvent<HTMLFormElement>) => {
@@ -635,8 +676,13 @@ export default function JobSeekerDashboard() {
     const presentAddress = String(screeningForm.presentAddress || "").trim();
     const firstName = String(screeningForm.firstName || "").trim();
     const lastName = String(screeningForm.lastName || "").trim();
+    const signature = String(screeningForm.signature || "").trim();
     if (!firstName || !lastName) {
       setProfileError("First name and last name are required.");
+      return;
+    }
+    if (!signature) {
+      setProfileError("Draw or upload your e-signature before saving.");
       return;
     }
     const previousDetails = parseScreeningDetails(seeker.registration_details);
@@ -898,6 +944,7 @@ export default function JobSeekerDashboard() {
               userId={seeker.user_id}
               fullName={seeker.full_name}
               size="large"
+              showControls={editingProfilePhoto}
               onPhotoStatusChange={setHasProfilePhoto}
             />
             <div className="min-w-0">
@@ -909,6 +956,14 @@ export default function JobSeekerDashboard() {
                 {seeker.email || "Not provided"}
               </p>
             </div>
+            <button
+              type="button"
+              onClick={() => setEditingProfilePhoto((editing) => !editing)}
+              aria-expanded={editingProfilePhoto}
+              className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#123B70] sm:ml-auto"
+            >
+              {editingProfilePhoto ? "Done" : "Edit Profile"}
+            </button>
           </div>
 
           <div className="p-6">
@@ -1098,19 +1153,86 @@ export default function JobSeekerDashboard() {
                                 rawValue.length > 0 &&
                                 !rawValue.startsWith("data:image/") && (
                                   <span className="mt-2 block rounded-lg bg-white p-3 text-sm font-normal normal-case tracking-normal text-slate-600">
-                                    Previously saved typed signature: {rawValue}. Draw below to replace it.
+                                    Previously saved signature: {rawValue}
                                   </span>
                                 )}
-                              <SignaturePad
-                                value={String(rawValue ?? "")}
-                                disabled={savingScreening}
-                                onChange={(signature) =>
-                                  setScreeningForm({
-                                    ...screeningForm,
-                                    [field.key]: signature,
-                                  })
-                                }
-                              />
+                              <div className="mt-3 flex flex-wrap gap-2 normal-case tracking-normal">
+                                <button
+                                  type="button"
+                                  onClick={() => setSignatureInputMode("draw")}
+                                  disabled={savingScreening}
+                                  aria-pressed={signatureInputMode === "draw"}
+                                  className={`rounded-lg px-4 py-2 text-sm font-semibold ${
+                                    signatureInputMode === "draw"
+                                      ? "bg-[#0759AE] text-white"
+                                      : "border border-slate-300 bg-white text-slate-700"
+                                  }`}
+                                >
+                                  Draw signature
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setSignatureInputMode("upload")}
+                                  disabled={savingScreening}
+                                  aria-pressed={signatureInputMode === "upload"}
+                                  className={`rounded-lg px-4 py-2 text-sm font-semibold ${
+                                    signatureInputMode === "upload"
+                                      ? "bg-[#0759AE] text-white"
+                                      : "border border-slate-300 bg-white text-slate-700"
+                                  }`}
+                                >
+                                  Upload signature
+                                </button>
+                              </div>
+                              {signatureInputMode === "draw" ? (
+                                <SignaturePad
+                                  value={String(rawValue ?? "")}
+                                  disabled={savingScreening}
+                                  onChange={(signature) =>
+                                    setScreeningForm({
+                                      ...screeningForm,
+                                      [field.key]: signature,
+                                    })
+                                  }
+                                />
+                              ) : (
+                                <div className="mt-3 rounded-lg border border-slate-300 bg-white p-3 normal-case tracking-normal">
+                                  <input
+                                    type="file"
+                                    accept={SIGNATURE_IMAGE_TYPES.join(",")}
+                                    onChange={(event) => void handleSignatureFileChange(event)}
+                                    disabled={savingScreening}
+                                    aria-label="Upload an e-signature image"
+                                    className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:font-semibold file:text-blue-700"
+                                  />
+                                  <p className="mt-2 text-xs text-slate-500">
+                                    PNG, JPG, or WebP; maximum 2 MB.
+                                  </p>
+                                  {typeof rawValue === "string" &&
+                                    rawValue.startsWith("data:image/") && (
+                                      <div className="mt-3">
+                                        <img
+                                          src={rawValue}
+                                          alt="E-signature preview"
+                                          className="max-h-32 max-w-full rounded-lg border border-slate-200 object-contain p-2"
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setScreeningForm({
+                                              ...screeningForm,
+                                              signature: "",
+                                            })
+                                          }
+                                          disabled={savingScreening}
+                                          className="mt-2 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                                        >
+                                          Remove signature
+                                        </button>
+                                      </div>
+                                    )}
+                                </div>
+                              )}
                             </div>
                           ) : field.type === "checkbox" ? (
                             <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
