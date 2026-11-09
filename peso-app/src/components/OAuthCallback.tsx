@@ -28,14 +28,23 @@ export default function OAuthCallback() {
         supabase.from("employer").select("user_id").eq("user_id", userId).maybeSingle(),
       ]);
       const profileError = admin.error ?? staff.error ?? jobSeeker.error ?? employer.error;
-      if (profileError) throw profileError;
+      if (profileError) {
+        await supabase.auth.signOut();
+        throw new Error(
+          "Google sign-in succeeded, but PESO could not verify your existing account. Please try again or contact the Admin.",
+        );
+      }
       if (!active) return;
 
       if (admin.data || staff.data || jobSeeker.data || employer.data) {
-        sessionStorage.removeItem("peso.oauth.registration");
         navigate("/login", { replace: true });
       } else {
-        navigate("/register?oauth=1", { replace: true });
+        await supabase.auth.signOut();
+        if (active) {
+          setError(
+            "Google sign-in is available only for accounts already registered with PESO. Please register first or use an existing account.",
+          );
+        }
       }
     };
 
@@ -62,10 +71,10 @@ export default function OAuthCallback() {
           <>
             <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>
             <Link
-              to="/register?oauth=1"
+              to="/login"
               className="mt-5 inline-flex rounded-lg bg-[#315FEA] px-5 py-3 text-sm font-semibold text-white"
             >
-              Return to registration
+              Return to sign in
             </Link>
           </>
         ) : (

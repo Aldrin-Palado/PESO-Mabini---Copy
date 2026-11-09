@@ -1,21 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AuthSideImage from "./AuthSideImage";
 import PesoLogo from "./PesoLogo";
 import TermsAndConditionsModal from "./TermsAndConditionsModal";
 import { supabase } from "../services/supabase";
 
-const googleLogo = new URL("../assets/images/google.png", import.meta.url).href;
-
 const fieldClassName =
   "w-full rounded-2xl border border-[#D5DEEB] bg-white px-5 py-3.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#315FEA] focus:ring-4 focus:ring-[#315FEA]/10";
-const pendingOAuthRegistrationKey = "peso.oauth.registration";
-
-type OAuthUser = {
-  id: string;
-  email?: string;
-  user_metadata?: Record<string, unknown>;
-};
 
 function Register() {
   const navigate = useNavigate();
@@ -28,8 +19,6 @@ function Register() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [oauthUser, setOauthUser] = useState<OAuthUser | null>(null);
-  const [oauthError, setOauthError] = useState("");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -44,49 +33,6 @@ function Register() {
     password: "",
     confirmPassword: "",
   });
-
-  const isOAuthReturn = searchParams.get("oauth") === "1";
-
-  useEffect(() => {
-    if (!isOAuthReturn) return;
-    let active = true;
-
-    try {
-      const savedRegistration = sessionStorage.getItem(pendingOAuthRegistrationKey);
-      if (savedRegistration) {
-        const draft = JSON.parse(savedRegistration) as {
-          accountType?: string;
-          formData?: typeof formData;
-        };
-        if (draft.accountType === "employer" || draft.accountType === "jobseeker") {
-          setAccountType(draft.accountType);
-        }
-        if (draft.formData) setFormData((current) => ({ ...current, ...draft.formData }));
-      }
-    } catch (error) {
-      console.error("Could not restore OAuth registration details:", error);
-      sessionStorage.removeItem(pendingOAuthRegistrationKey);
-    }
-
-    void supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!active || !session?.user) return;
-      const user = session.user as OAuthUser;
-      const fullName = String(user.user_metadata?.full_name ?? user.user_metadata?.name ?? "");
-      const [firstName = "", ...lastNameParts] = fullName.trim().split(/\s+/);
-      setOauthUser(user);
-      setFormData((current) => ({
-        ...current,
-        email: user.email ?? current.email,
-        firstName: current.firstName || firstName,
-        lastName: current.lastName || lastNameParts.join(" "),
-        contactPerson: current.contactPerson || fullName,
-      }));
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [isOAuthReturn]);
 
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -105,12 +51,12 @@ function Register() {
       return;
     }
 
-    if (!oauthUser && formData.password !== formData.confirmPassword) {
+    if (formData.password !== formData.confirmPassword) {
       alert("Passwords do not match.");
       return;
     }
 
-    if (!oauthUser && formData.password.length < 8) {
+    if (formData.password.length < 8) {
       alert("Password must contain at least 8 characters.");
       return;
     }
@@ -124,55 +70,6 @@ function Register() {
       const fullName = isEmployer
         ? formData.contactPerson.trim()
         : `${firstName} ${lastName}`.replace(/\s+/g, " ").trim();
-
-      if (oauthUser) {
-        const email = oauthUser.email?.trim().toLowerCase();
-        if (!email) throw new Error("Google did not provide an email address.");
-
-        const { error: metadataError } = await supabase.auth.updateUser({
-          data: {
-            role: isEmployer ? "employer" : "jobseeker",
-            full_name: fullName,
-            terms_accepted: true,
-            terms_accepted_at: new Date().toISOString(),
-          },
-        });
-        if (metadataError) throw metadataError;
-
-        if (isEmployer) {
-          const employerDetails = {
-            industries: formData.industry.trim() ? [formData.industry.trim()] : [],
-            industry: formData.industry.trim(),
-            website: formData.website.trim(),
-            company_description: formData.description.trim(),
-          };
-          const { error: profileError } = await supabase.from("employer").insert({
-            user_id: oauthUser.id,
-            name: formData.companyName.trim(),
-            address: formData.companyAddress.trim(),
-            contact_person: fullName,
-            contact_no: formData.contactNumber.trim(),
-            email,
-            registration_details: employerDetails,
-            industry: formData.industry.trim() || null,
-            website: formData.website.trim() || null,
-            company_description: formData.description.trim() || null,
-          });
-          if (profileError) throw profileError;
-        } else {
-          const { error: profileError } = await supabase.from("job_seeker").insert({
-            user_id: oauthUser.id,
-            full_name: fullName,
-            email,
-            registration_details: {},
-          });
-          if (profileError) throw profileError;
-        }
-
-        sessionStorage.removeItem(pendingOAuthRegistrationKey);
-        navigate(isEmployer ? "/employer" : "/jobseeker", { replace: true });
-        return;
-      }
 
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -230,24 +127,6 @@ function Register() {
         error instanceof Error ? error.message : "Unknown error occurred.";
       alert(`Something went wrong while creating your account.\n\nReason: ${message}`);
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const registerWithGoogle = async () => {
-    setOauthError("");
-    sessionStorage.setItem(
-      pendingOAuthRegistrationKey,
-      JSON.stringify({ accountType }),
-    );
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
-    if (error) {
-      sessionStorage.removeItem(pendingOAuthRegistrationKey);
-      setOauthError(error.message);
       setLoading(false);
     }
   };
@@ -362,7 +241,6 @@ function Register() {
                       autoComplete="email"
                       maxLength={254}
                       required
-                      readOnly={Boolean(oauthUser)}
                       className={`${fieldClassName} mt-2`}
                     />
                   </label>
@@ -469,14 +347,13 @@ function Register() {
                       onChange={handleChange}
                       placeholder="Enter your email"
                       required
-                      readOnly={Boolean(oauthUser)}
                       className={`${fieldClassName} mt-2`}
                     />
                   </label>
                 </>
               )}
 
-              {!oauthUser && <label className="block text-sm font-medium text-slate-800">
+              <label className="block text-sm font-medium text-slate-800">
                 Password
                 <span className="relative mt-2 block">
                   <input
@@ -496,9 +373,9 @@ function Register() {
                     {showPassword ? "Hide" : "Show"}
                   </button>
                 </span>
-              </label>}
+              </label>
 
-              {!oauthUser && <label className="block text-sm font-medium text-slate-800">
+              <label className="block text-sm font-medium text-slate-800">
                 Confirm Password
                 <span className="relative mt-2 block">
                   <input
@@ -520,7 +397,7 @@ function Register() {
                     {showConfirmPassword ? "Hide" : "Show"}
                   </button>
                 </span>
-              </label>}
+              </label>
 
               <label className="flex items-start gap-3">
                 <input
@@ -549,31 +426,8 @@ function Register() {
                 disabled={loading}
                 className="w-full rounded-2xl bg-[#315FEA] px-5 py-4 text-base font-semibold text-white shadow-[0_12px_24px_-12px_rgba(49,95,234,0.75)] transition hover:bg-[#244FD4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#315FEA] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loading
-                  ? oauthUser ? "Completing Registration..." : "Creating Account..."
-                  : oauthUser ? "Complete Registration" : "Create Account"}
+                {loading ? "Creating Account..." : "Create Account"}
               </button>
-              {!oauthUser && (
-                <>
-                  {oauthError && (
-                    <p role="alert" className="text-sm text-red-700">{oauthError}</p>
-                  )}
-                  <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    <span className="h-px flex-1 bg-slate-200" />
-                    Or
-                    <span className="h-px flex-1 bg-slate-200" />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void registerWithGoogle()}
-                    disabled={loading}
-                    className="inline-flex w-full items-center justify-center gap-3 rounded-2xl border border-[#D5DEEB] bg-white px-5 py-4 text-base font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
-                  >
-                    <img src={googleLogo} alt="" aria-hidden="true" className="h-9 w-9 object-contain" />
-                    Continue with Google
-                  </button>
-                </>
-              )}
             </form>
 
             <div className="mt-7 pt-2 text-center">
