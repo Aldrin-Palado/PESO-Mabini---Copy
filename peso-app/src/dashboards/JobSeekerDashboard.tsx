@@ -970,12 +970,23 @@ export default function JobSeekerDashboard() {
             <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
               Resume / CV
             </p>
-            <p className="mt-2 text-sm text-slate-600">
-              {seeker.resume_url ? "Resume uploaded" : "No resume uploaded"}
-            </p>
-            <p className="mt-1 text-xs text-slate-400">
-              Use the resume controls below to upload or replace your resume.
-            </p>
+            {seeker.resume_url ? (
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <p className="text-sm font-semibold text-slate-700">Resume uploaded</p>
+                {!editingProfilePhoto && (
+                  <button
+                    type="button"
+                    onClick={() => void openResume()}
+                    disabled={openingResume}
+                    className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    {openingResume ? "Preparing..." : "View Resume"}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-slate-600">No resume uploaded</p>
+            )}
           </div>
         </div>
 
@@ -1387,8 +1398,8 @@ export default function JobSeekerDashboard() {
           )}
         </form>}
 
-        {/* RESUME */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        {/* RESUME UPLOAD */}
+        {editingProfilePhoto && <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-black text-[#123B70]">Resume / CV</h2>
           <p className="mt-1 text-sm text-slate-500">
             Upload a {RESUME_FORMATS_LABEL} file up to 5 MB. Your resume is stored privately.
@@ -1441,7 +1452,7 @@ export default function JobSeekerDashboard() {
               Selected: {resumeFile.name}
             </p>
           )}
-        </div>
+        </div>}
 
         {/* ACCOUNT INFORMATION */}
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
