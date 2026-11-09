@@ -111,6 +111,11 @@ async function loadUnreadJobSeekerMessages(
 type ScreeningValue = string | number | boolean | string[] | null;
 type ScreeningDetails = Record<string, ScreeningValue>;
 
+function splitFullName(fullName: string): [string, string] {
+  const [firstName = "", ...lastNameParts] = fullName.trim().split(/\s+/);
+  return [firstName, lastNameParts.join(" ")];
+}
+
 type ScreeningField = {
   key: string;
   label: string;
@@ -126,6 +131,8 @@ const screeningSections: {
   {
     title: "I. Personal Information",
     fields: [
+      { key: "firstName", label: "First Name", required: true },
+      { key: "lastName", label: "Last Name", required: true },
       { key: "middleName", label: "Middle Name", required: true },
       { key: "dateOfBirth", label: "Date of Birth", type: "date", required: true },
       { key: "sex", label: "Sex", type: "select", options: ["Female", "Male", "Prefer not to say"], required: true },
@@ -402,8 +409,6 @@ export default function JobSeekerDashboard() {
   const [loading, setLoading] = useState(true);
 
   const [error, setError] = useState<string | null>(null);
-  const [editingProfile, setEditingProfile] = useState(false);
-  const [savingProfile, setSavingProfile] = useState(false);
   const [screeningDetailsOpen, setScreeningDetailsOpen] = useState(false);
   const [editingScreening, setEditingScreening] = useState(false);
   const [savingScreening, setSavingScreening] = useState(false);
@@ -415,12 +420,6 @@ export default function JobSeekerDashboard() {
   const [openingResume, setOpeningResume] = useState(false);
   const [resumeError, setResumeError] = useState("");
   const [resumeSuccess, setResumeSuccess] = useState("");
-  const [profileForm, setProfileForm] = useState({
-    full_name: "",
-    contact_no: "",
-    address: "",
-  });
-
   // =====================================================
   // LOAD CURRENT JOB SEEKER
   // =====================================================
@@ -611,58 +610,12 @@ export default function JobSeekerDashboard() {
     setIsSidebarOpen(false);
   };
 
-  const startProfileEdit = () => {
-    if (!seeker) return;
-    setProfileForm({
-      full_name: seeker.full_name,
-      contact_no: seeker.contact_no ?? "",
-      address: seeker.address ?? "",
-    });
-    setProfileError("");
-    setProfileSuccess("");
-    setEditingProfile(true);
-  };
-
-  const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!seeker || savingProfile) return;
-
-    setSavingProfile(true);
-    setProfileError("");
-    setProfileSuccess("");
-    try {
-      const { data, error: updateError } = await supabase
-        .from("job_seeker")
-        .update({
-          full_name: profileForm.full_name.trim(),
-          contact_no: profileForm.contact_no.trim() || null,
-          address: profileForm.address.trim() || null,
-        })
-        .eq("job_seeker_id", seeker.job_seeker_id)
-        .select("full_name, contact_no, address")
-        .maybeSingle();
-
-      if (updateError) throw updateError;
-      if (!data) throw new Error("Your profile was not updated. Please sign in again and try once more.");
-
-      setSeeker({ ...seeker, ...data });
-      setEditingProfile(false);
-      setProfileSuccess("Your profile has been updated.");
-    } catch (saveError) {
-      console.error("Job seeker profile update error:", saveError);
-      setProfileError(
-        saveError instanceof Error
-          ? saveError.message
-          : "Unable to update your profile. Please try again.",
-      );
-    } finally {
-      setSavingProfile(false);
-    }
-  };
-
   const startScreeningEdit = () => {
     if (!seeker) return;
     const details = parseScreeningDetails(seeker.registration_details);
+    const [firstName, lastName] = splitFullName(seeker.full_name);
+    details.firstName = String(details.firstName || firstName);
+    details.lastName = String(details.lastName || lastName);
     details.dateOfBirth = seeker.birth_date || String(details.dateOfBirth || "");
     details.contactNumber = seeker.contact_no || String(details.contactNumber || "");
     details.presentAddress = seeker.address || String(details.presentAddress || "");
@@ -680,6 +633,12 @@ export default function JobSeekerDashboard() {
     const birthDate = String(screeningForm.dateOfBirth || "").trim();
     const contactNumber = String(screeningForm.contactNumber || "").trim();
     const presentAddress = String(screeningForm.presentAddress || "").trim();
+    const firstName = String(screeningForm.firstName || "").trim();
+    const lastName = String(screeningForm.lastName || "").trim();
+    if (!firstName || !lastName) {
+      setProfileError("First name and last name are required.");
+      return;
+    }
     const previousDetails = parseScreeningDetails(seeker.registration_details);
     const screeningDetails = {
       ...screeningForm,
@@ -697,12 +656,13 @@ export default function JobSeekerDashboard() {
         .from("job_seeker")
         .update({
           registration_details: screeningDetails,
+          full_name: `${firstName} ${lastName}`,
           birth_date: birthDate || null,
           contact_no: contactNumber || null,
           address: presentAddress || null,
         })
         .eq("job_seeker_id", seeker.job_seeker_id)
-        .select("registration_details, birth_date, contact_no, address")
+        .select("registration_details, full_name, birth_date, contact_no, address")
         .maybeSingle();
 
       if (updateError) throw updateError;
@@ -897,6 +857,9 @@ export default function JobSeekerDashboard() {
     );
     savedScreeningDetails.dateOfBirth =
       seeker.birth_date || String(savedScreeningDetails.dateOfBirth || "");
+    const [firstName, lastName] = splitFullName(seeker.full_name);
+    savedScreeningDetails.firstName = String(savedScreeningDetails.firstName || firstName);
+    savedScreeningDetails.lastName = String(savedScreeningDetails.lastName || lastName);
     savedScreeningDetails.contactNumber =
       seeker.contact_no || String(savedScreeningDetails.contactNumber || "");
     savedScreeningDetails.presentAddress =
@@ -927,6 +890,39 @@ export default function JobSeekerDashboard() {
             {profileError}
           </p>
         )}
+
+        {/* PROFILE CARD */}
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-5 border-b border-slate-100 bg-slate-50 px-6 py-6 sm:flex-row sm:items-center">
+            <ProfileAvatar
+              userId={seeker.user_id}
+              fullName={seeker.full_name}
+              size="large"
+              onPhotoStatusChange={setHasProfilePhoto}
+            />
+            <div className="min-w-0">
+              <h2 className="text-lg font-black text-[#123B70]">
+                {seeker.full_name || "Job Seeker"}
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">Job Seeker</p>
+              <p className="mt-1 break-words text-sm text-slate-500">
+                {seeker.email || "Not provided"}
+              </p>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+              Resume / CV
+            </p>
+            <p className="mt-2 text-sm text-slate-600">
+              {seeker.resume_url ? "Resume uploaded" : "No resume uploaded"}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              Use the resume controls below to upload or replace your resume.
+            </p>
+          </div>
+        </div>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -991,125 +987,6 @@ export default function JobSeekerDashboard() {
             </p>
           )}
         </section>
-
-        {/* PROFILE CARD */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <form onSubmit={saveProfile}>
-            <div className="flex flex-col gap-5 border-b border-slate-100 bg-slate-50 px-6 py-6 sm:flex-row sm:items-center">
-              <ProfileAvatar
-                userId={seeker.user_id}
-                fullName={seeker.full_name}
-                size="large"
-                showControls={editingProfile}
-                onPhotoStatusChange={setHasProfilePhoto}
-              />
-              <div className="min-w-0">
-                <h2 className="text-lg font-black text-[#123B70]">
-                  {seeker.full_name || "Job Seeker"}
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">Job Seeker</p>
-                <p className="mt-1 break-words text-sm text-slate-500">
-                  {seeker.email || "Not provided"}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-5 p-6 sm:grid-cols-2">
-              <label className="block text-sm font-bold text-slate-700">
-                Full Name
-                <input
-                  value={editingProfile ? profileForm.full_name : seeker.full_name}
-                  onChange={(event) => setProfileForm({ ...profileForm, full_name: event.target.value })}
-                  required
-                  maxLength={120}
-                  disabled={!editingProfile || savingProfile}
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-700 outline-none transition focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-500"
-                />
-              </label>
-
-              <label className="block text-sm font-bold text-slate-700">
-                Email Address
-                <input
-                  type="email"
-                  value={seeker.email || ""}
-                  readOnly
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-500"
-                />
-                <span className="mt-1 block text-xs font-normal text-slate-400">
-                  Contact support to change your sign-in email.
-                </span>
-              </label>
-
-              <label className="block text-sm font-bold text-slate-700">
-                Contact Number
-                <input
-                  type="tel"
-                  value={editingProfile ? profileForm.contact_no : seeker.contact_no || ""}
-                  onChange={(event) => setProfileForm({ ...profileForm, contact_no: event.target.value })}
-                  maxLength={30}
-                  disabled={!editingProfile || savingProfile}
-                  placeholder="Not provided"
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-700 outline-none transition focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-500"
-                />
-              </label>
-
-              <label className="block text-sm font-bold text-slate-700">
-                Address
-                <textarea
-                  value={editingProfile ? profileForm.address : seeker.address || ""}
-                  onChange={(event) => setProfileForm({ ...profileForm, address: event.target.value })}
-                  maxLength={300}
-                  rows={2}
-                  disabled={!editingProfile || savingProfile}
-                  placeholder="Not provided"
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-700 outline-none transition focus:border-[#0446A7] focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-500"
-                />
-              </label>
-
-              <label className="block text-sm font-bold text-slate-700 sm:col-span-2">
-                Resume / CV
-                <input
-                  value={seeker.resume_url ? "Resume uploaded" : "No resume uploaded"}
-                  readOnly
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-normal text-slate-500"
-                />
-                <span className="mt-1 block text-xs font-normal text-slate-400">
-                  Use the resume controls below to upload or replace your resume.
-                </span>
-              </label>
-
-              {editingProfile ? (
-                <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-5 sm:col-span-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditingProfile(false)}
-                    disabled={savingProfile}
-                    className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={savingProfile}
-                    className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#123B70] disabled:cursor-wait disabled:opacity-60"
-                  >
-                    {savingProfile ? "Saving..." : "Save Changes"}
-                  </button>
-                </div>
-              ) : (
-                <div className="flex justify-end border-t border-slate-100 pt-5 sm:col-span-2">
-                  <button
-                    type="button"
-                    onClick={startProfileEdit}
-                    className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#123B70]"
-                  >
-                    Edit Profile
-                  </button>
-                </div>
-              )}
-            </div>
-          </form>
-        </div>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
