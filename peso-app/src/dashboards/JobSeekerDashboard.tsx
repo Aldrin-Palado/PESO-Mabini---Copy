@@ -794,7 +794,11 @@ export default function JobSeekerDashboard() {
       const previousResumePath = seeker.resume_url;
       setSeeker({ ...seeker, resume_url: data.resume_url });
       setResumeFile(null);
-      setResumeSuccess("Your resume has been uploaded.");
+      setResumeSuccess(
+        previousResumePath
+          ? "Your resume has been replaced."
+          : "Your resume has been uploaded.",
+      );
 
       if (previousResumePath && previousResumePath !== resumePath) {
         const { error: removeError } = await supabase.storage
@@ -1402,7 +1406,9 @@ export default function JobSeekerDashboard() {
         {editingProfilePhoto && <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-black text-[#123B70]">Resume / CV</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Upload a {RESUME_FORMATS_LABEL} file up to 5 MB. Your resume is stored privately.
+            {seeker.resume_url
+              ? "Select a replacement resume. Your current resume will stay available until the new file is uploaded."
+              : `Upload a ${RESUME_FORMATS_LABEL} file up to 5 MB. Your resume is stored privately.`}
           </p>
 
           {resumeError && (
@@ -1422,6 +1428,7 @@ export default function JobSeekerDashboard() {
               accept={RESUME_ACCEPT}
               onChange={(event) => {
                 setResumeFile(event.target.files?.[0] ?? null);
+                event.currentTarget.value = "";
                 setResumeError("");
                 setResumeSuccess("");
               }}
