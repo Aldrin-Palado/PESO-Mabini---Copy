@@ -59,6 +59,7 @@ export default function DirectMessages({
   const [userId, setUserId] = useState("");
   const [mailboxUserId, setMailboxUserId] = useState("");
   const [contacts, setContacts] = useState<MessageContact[]>([]);
+  const [pendingContact, setPendingContact] = useState<MessageContact | null>(null);
   const [selectedUserId, setSelectedUserId] = useState("");
   const [messages, setMessages] = useState<PesoMessage[]>([]);
   const [applicantApplications, setApplicantApplications] = useState<
@@ -80,9 +81,45 @@ export default function DirectMessages({
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const selectedContact =
-    contacts.find((contact) => contact.user_id === selectedUserId) ?? null;
+    contacts.find((contact) => contact.user_id === selectedUserId) ??
+    (pendingContact?.user_id === selectedUserId ? pendingContact : null);
   const recipientUserId = selectedContact?.user_id;
   const conversationOwnerId = mode === "staff" ? mailboxUserId : userId;
+
+  const refreshConversationContacts = useCallback(
+    async (ownerId: string): Promise<MessageContact[]> => {
+      const { data: contactData, error: contactsError } = await supabase.rpc(
+        mode === "staff"
+          ? "get_peso_admin_inbox_contacts"
+          : "get_peso_message_contacts",
+      );
+      if (contactsError) throw contactsError;
+
+      const { data: participantRows, error: participantsError } =
+        await supabase
+          .from("peso_messages")
+          .select("sender_user_id, recipient_user_id")
+          .or(
+            `sender_user_id.eq.${ownerId},recipient_user_id.eq.${ownerId}`,
+          );
+      if (participantsError) throw participantsError;
+
+      const conversationUserIds = new Set(
+        ((participantRows ?? []) as MessageParticipant[]).map((message) =>
+          message.sender_user_id === ownerId
+            ? message.recipient_user_id
+            : message.sender_user_id,
+        ),
+      );
+      return ((contactData ?? []) as MessageContact[]).filter((contact) => {
+        if (contact.user_id === ownerId) return false;
+        if (mode === "job_seeker" && contact.role === "Job Seeker") return false;
+        if (mode === "employer" && contact.role === "Employer") return false;
+        return conversationUserIds.has(contact.user_id);
+      });
+    },
+    [mode],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -191,71 +228,98 @@ export default function DirectMessages({
         if (!cancelled) setMailboxUserId(inboxOwnerId);
       }
 
-      const { data, error: contactsError } = await supabase.rpc(
-        mode === "staff"
-          ? "get_peso_admin_inbox_contacts"
-          : "get_peso_message_contacts",
-      );
-
       if (cancelled) return;
-      if (contactsError) {
-        setError(`Could not load contacts: ${contactsError.message}`);
-      } else {
-        const allContacts = (data ?? []) as MessageContact[];
-        const { data: participantRows, error: participantsError } =
-          await supabase
-            .from("peso_messages")
-            .select("sender_user_id, recipient_user_id")
-            .or(
-              `sender_user_id.eq.${inboxOwnerId},recipient_user_id.eq.${inboxOwnerId}`,
-            );
-
-        if (participantsError) {
-          setError(`Could not load conversations: ${participantsError.message}`);
-          setLoading(false);
-          return;
-        }
-        if (cancelled) return;
-
-        const conversationUserIds = new Set(
-          ((participantRows ?? []) as MessageParticipant[]).map((message) =>
-            message.sender_user_id === inboxOwnerId
-              ? message.recipient_user_id
-              : message.sender_user_id,
-          ),
-        );
-        const roleFilteredContacts = allContacts.filter((contact) => {
-          if (mode === "job_seeker") return contact.role !== "Job Seeker";
-          if (mode === "employer") return contact.role !== "Employer";
-          return true;
-        });
-        const availableContacts =
-          mode === "job_seeker" || mode === "employer"
-            ? roleFilteredContacts
-            : roleFilteredContacts.filter((contact) =>
-                conversationUserIds.has(contact.user_id),
-              );
-        setContacts(availableContacts);
-        setSelectedUserId((current) =>
-          availableContacts.some(
-            (contact) => contact.user_id === initialContactId,
-          )
-            ? initialContactId ?? ""
-            : availableContacts.some((contact) => contact.user_id === current)
-              ? current
-              : availableContacts[0]?.user_id ?? "",
-        );
-      }
+      const availableContacts =
+        await refreshConversationContacts(inboxOwnerId);
+      if (cancelled) return;
+      setContacts(availableContacts);
+      setSelectedUserId((current) =>
+        availableContacts.some(
+          (contact) => contact.user_id === initialContactId,
+        )
+          ? initialContactId ?? ""
+          : availableContacts.some((contact) => contact.user_id === current)
+            ? current
+            : availableContacts[0]?.user_id ?? "",
+      );
 
       if (!cancelled) setLoading(false);
     };
 
-    void initialize();
+    void initialize().catch((initializeError: unknown) => {
+      console.error("Could not load message conversations:", initializeError);
+      if (!cancelled) {
+        setError(
+          initializeError instanceof Error
+            ? `Could not load conversations: ${initializeError.message}`
+            : "Could not load conversations.",
+        );
+        setLoading(false);
+      }
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [initialContactId, mode]);
+  }, [initialContactId, mode, refreshConversationContacts]);
+
+  useEffect(() => {
+    if (!conversationOwnerId) return;
+
+    let active = true;
+    let fallbackPoll: ReturnType<typeof setInterval> | null = null;
+    const refreshContacts = () => {
+      void refreshConversationContacts(conversationOwnerId)
+        .then((nextContacts) => {
+          if (active) setContacts(nextContacts);
+        })
+        .catch((refreshError: unknown) => {
+          console.error("Could not refresh message conversations:", refreshError);
+        });
+    };
+    const channel = supabase
+      .channel(`peso-conversations-${conversationOwnerId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "peso_messages" },
+        (payload) => {
+          const message = payload.new as PesoMessage;
+          if (
+            message.sender_user_id === conversationOwnerId ||
+            message.recipient_user_id === conversationOwnerId
+          ) {
+            refreshContacts();
+          }
+        },
+      )
+      .subscribe((status, subscriptionError) => {
+        if (status === "SUBSCRIBED") {
+          if (fallbackPoll) {
+            clearInterval(fallbackPoll);
+            fallbackPoll = null;
+          }
+          refreshContacts();
+        } else if (
+          status === "CHANNEL_ERROR" ||
+          status === "TIMED_OUT" ||
+          status === "CLOSED"
+        ) {
+          console.error("Message conversation subscription failed:", {
+            status,
+            error: subscriptionError,
+          });
+          if (!fallbackPoll) {
+            fallbackPoll = setInterval(refreshContacts, 5000);
+          }
+        }
+      });
+
+    return () => {
+      active = false;
+      if (fallbackPoll) clearInterval(fallbackPoll);
+      void supabase.removeChannel(channel);
+    };
+  }, [conversationOwnerId, refreshConversationContacts]);
 
   const startConversationByEmail = async (
     event: FormEvent<HTMLFormElement>,
@@ -279,10 +343,7 @@ export default function DirectMessages({
         if (!contact) {
           setError("No registered PESO account was found for that email.");
         } else {
-          setContacts((current) => [
-            contact,
-            ...current.filter((item) => item.user_id !== contact.user_id),
-          ]);
+          setPendingContact(contact);
           setSelectedUserId(contact.user_id);
           setRecipientEmail("");
         }
@@ -436,7 +497,28 @@ export default function DirectMessages({
       setError(`Message could not be sent: ${sendError.message}`);
     } else {
       setDraft("");
+      if (selectedContact) {
+        setContacts((current) =>
+          current.some((contact) => contact.user_id === selectedContact.user_id)
+            ? current
+            : [...current, selectedContact],
+        );
+        setPendingContact(null);
+      }
       await loadMessages(false);
+      if (conversationOwnerId) {
+        try {
+          const nextContacts =
+            await refreshConversationContacts(conversationOwnerId);
+          setContacts(nextContacts);
+        } catch (refreshError) {
+          console.error(
+            "Message sent, but the conversation list could not be refreshed:",
+            refreshError,
+          );
+          setError("Message sent, but the conversation list could not be refreshed.");
+        }
+      }
     }
 
     setSending(false);
@@ -618,13 +700,9 @@ export default function DirectMessages({
             <div className="max-h-72 overflow-y-auto md:max-h-[32rem]">
               {contacts.length === 0 && !loading && !error ? (
                 <p className="p-4 text-sm text-slate-500">
-                  {mode === "job_seeker"
-                    ? "No registered employers or PESO accounts are available to message."
-                    : mode === "staff"
-                      ? "There are no conversations in the Admin inbox yet."
-                      : mode === "employer"
-                        ? "No registered job seekers or PESO accounts are available to message."
-                        : "No conversations yet. Enter an email above to start one."}
+                  {pendingContact
+                    ? "No conversations yet. Send a message to start this one."
+                    : "No conversations yet."}
                 </p>
               ) : contacts.length === 0 && loading ? (
                 <p className="p-4 text-sm text-slate-500">Loading contacts...</p>
@@ -633,7 +711,10 @@ export default function DirectMessages({
                   <button
                     key={contact.user_id}
                     type="button"
-                    onClick={() => setSelectedUserId(contact.user_id)}
+                    onClick={() => {
+                      setPendingContact(null);
+                      setSelectedUserId(contact.user_id);
+                    }}
                     className={`block w-full border-b border-slate-100 px-4 py-3 text-left transition ${
                       selectedUserId === contact.user_id
                         ? "bg-blue-50"
