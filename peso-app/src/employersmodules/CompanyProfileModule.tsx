@@ -98,46 +98,9 @@ export default function CompanyProfileModule({
     setError("");
     setSuccess("");
 
-    const companyName = formData.company_name.trim();
-    const companyEmail = formData.company_email.trim();
-    const companyPhone = formData.company_phone.trim();
-    const companyAddress = formData.company_address.trim();
-
-    if (!companyName) {
-      setError("Company name is required.");
-      return;
-    }
-
-    if (!companyEmail) {
-      setError("Company email is required.");
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(companyEmail)) {
-      setError("Please enter a valid company email address.");
-      return;
-    }
-
-    if (!companyPhone) {
-      setError("Company phone number is required.");
-      return;
-    }
-
-    if (!companyAddress) {
-      setError("Company address is required.");
-      return;
-    }
-
     const updatedProfile: CompanyProfile = {
       ...formData,
-      company_name: companyName,
-      company_email: companyEmail,
-      company_phone: companyPhone,
-      company_address: companyAddress,
       company_description: formData.company_description.trim(),
-      industry: formData.industry?.trim() || null,
-      website: formData.website?.trim() || null,
-      contact_person: formData.contact_person?.trim() || null,
     };
 
     try {
@@ -181,7 +144,7 @@ export default function CompanyProfileModule({
           </h1>
 
           <p className="mt-2 text-sm text-slate-500">
-            Manage your company's information and contact details.
+            Manage your company description and profile image.
           </p>
         </div>
 
@@ -273,171 +236,31 @@ export default function CompanyProfileModule({
           </div>
         </div>
 
-        {/* Fields */}
-        <div className="grid gap-6 p-6 md:grid-cols-2">
-          {/* Company Name */}
-          <div>
-            <label htmlFor="company_name" className={labelClass}>
-              Company Name *
-            </label>
+        {/* Company Description */}
+        <div className="p-6">
+          <label
+            htmlFor="company_description"
+            className={labelClass}
+          >
+            Company Description
+          </label>
 
-            <input
-              id="company_name"
-              name="company_name"
-              type="text"
-              required
-              maxLength={150}
-              value={formData.company_name ?? ""}
-              onChange={handleChange}
-              disabled={!isEditing || isSaving}
-              placeholder="Enter company name"
-              className={inputClass}
-            />
-          </div>
+          <textarea
+            id="company_description"
+            name="company_description"
+            rows={5}
+            maxLength={3000}
+            value={formData.company_description ?? ""}
+            onChange={handleChange}
+            disabled={!isEditing || isSaving}
+            placeholder="Describe your company, services, and workplace..."
+            className={`${inputClass} resize-y`}
+          />
 
-          {/* Industry */}
-          <div>
-            <label htmlFor="industry" className={labelClass}>
-              Industry
-            </label>
-
-            <input
-              id="industry"
-              name="industry"
-              type="text"
-              maxLength={100}
-              value={formData.industry ?? ""}
-              onChange={handleChange}
-              disabled={!isEditing || isSaving}
-              placeholder="Enter company industry"
-              className={inputClass}
-            />
-          </div>
-
-          {/* Email */}
-          <div>
-            <label htmlFor="company_email" className={labelClass}>
-              Company Email *
-            </label>
-
-            <input
-              id="company_email"
-              name="company_email"
-              type="email"
-              required
-              maxLength={254}
-              value={formData.company_email ?? ""}
-              onChange={handleChange}
-              disabled={!isEditing || isSaving}
-              placeholder="company@example.com"
-              className={inputClass}
-            />
-          </div>
-
-          {/* Phone */}
-          <div>
-            <label htmlFor="company_phone" className={labelClass}>
-              Contact Number *
-            </label>
-
-            <input
-              id="company_phone"
-              name="company_phone"
-              type="tel"
-              required
-              maxLength={30}
-              value={formData.company_phone ?? ""}
-              onChange={handleChange}
-              disabled={!isEditing || isSaving}
-              placeholder="Enter company contact number"
-              className={inputClass}
-            />
-          </div>
-
-          {/* Contact Person */}
-          <div>
-            <label htmlFor="contact_person" className={labelClass}>
-              Contact Person
-            </label>
-
-            <input
-              id="contact_person"
-              name="contact_person"
-              type="text"
-              maxLength={150}
-              value={formData.contact_person ?? ""}
-              onChange={handleChange}
-              disabled={!isEditing || isSaving}
-              placeholder="Enter contact person"
-              className={inputClass}
-            />
-          </div>
-
-          {/* Website */}
-          <div>
-            <label htmlFor="website" className={labelClass}>
-              Company Website
-            </label>
-
-            <input
-              id="website"
-              name="website"
-              type="url"
-              maxLength={2048}
-              value={formData.website ?? ""}
-              onChange={handleChange}
-              disabled={!isEditing || isSaving}
-              placeholder="https://example.com"
-              className={inputClass}
-            />
-          </div>
-
-          {/* Address */}
-          <div className="md:col-span-2">
-            <label htmlFor="company_address" className={labelClass}>
-              Company Address *
-            </label>
-
-            <textarea
-              id="company_address"
-              name="company_address"
-              required
-              rows={3}
-              maxLength={500}
-              value={formData.company_address ?? ""}
-              onChange={handleChange}
-              disabled={!isEditing || isSaving}
-              placeholder="Enter complete company address"
-              className={`${inputClass} resize-y`}
-            />
-          </div>
-
-          {/* Description */}
-          <div className="md:col-span-2">
-            <label
-              htmlFor="company_description"
-              className={labelClass}
-            >
-              Company Description
-            </label>
-
-            <textarea
-              id="company_description"
-              name="company_description"
-              rows={5}
-              maxLength={3000}
-              value={formData.company_description ?? ""}
-              onChange={handleChange}
-              disabled={!isEditing || isSaving}
-              placeholder="Describe your company, services, and workplace..."
-              className={`${inputClass} resize-y`}
-            />
-
-            <p className="mt-2 text-right text-xs text-slate-400">
-              {(formData.company_description ?? "").length}/3000
-              characters
-            </p>
-          </div>
+          <p className="mt-2 text-right text-xs text-slate-400">
+            {(formData.company_description ?? "").length}/3000
+            characters
+          </p>
         </div>
 
         {/* Actions */}
@@ -470,8 +293,8 @@ export default function CompanyProfileModule({
         </h3>
 
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Accurate company information helps job seekers understand your
-          organization and contact you when necessary.
+          A clear description helps job seekers understand your organization
+          and workplace.
         </p>
       </div>
     </div>

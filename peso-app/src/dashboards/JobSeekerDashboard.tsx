@@ -902,9 +902,6 @@ export default function JobSeekerDashboard() {
       JOB_SEEKER_PROFILE_SECTION_TITLES.length +
       1 -
       incompleteTasks.length;
-    const setupProgress = Math.round(
-      (completedTaskCount / (JOB_SEEKER_PROFILE_SECTION_TITLES.length + 1)) * 100,
-    );
     savedScreeningDetails.dateOfBirth =
       seeker.birth_date || String(savedScreeningDetails.dateOfBirth || "");
     const [firstName, lastName] = splitFullName(seeker.full_name);
@@ -1040,121 +1037,101 @@ export default function JobSeekerDashboard() {
           </div>
         </div>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <header>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-xl font-black text-[#123B70]">
-                Job Seeker Profile Setup
-              </h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Complete each task and upload your resume before applying for a job.
+              <p className="text-xs font-bold uppercase tracking-wider text-[#0759AE]">
+                PESO registration
               </p>
-            </div>
-            <p className="shrink-0 rounded-full bg-blue-50 px-4 py-2 text-sm font-bold text-blue-800">
-              {completedTaskCount} of {JOB_SEEKER_PROFILE_SECTION_TITLES.length + 1} complete
-            </p>
-          </div>
-          <div
-            className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100"
-            role="progressbar"
-            aria-label="Profile setup progress"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={setupProgress}
-          >
-            <div
-              className="h-full rounded-full bg-blue-700 transition-all"
-              style={{ width: `${setupProgress}%` }}
-            />
-          </div>
-          <ul className="mt-5 grid gap-2 sm:grid-cols-2">
-            {[...JOB_SEEKER_PROFILE_SECTION_TITLES, "Resume / CV"].map((task) => {
-              const complete = !incompleteTasks.includes(task);
-              return (
-                <li
-                  key={task}
-                  className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm ${
-                    complete
-                      ? "bg-green-50 text-green-800"
-                      : "bg-amber-50 text-amber-900"
-                  }`}
-                >
-                  <span aria-hidden="true">{complete ? "✓" : "○"}</span>
-                  <span>{task}</span>
-                  <span className="ml-auto text-xs font-semibold">
-                    {complete ? "Complete" : "To do"}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-          {incompleteTasks.length > 0 && !editingScreening && (
-            <button
-              type="button"
-              onClick={startScreeningEdit}
-              className="mt-4 rounded-full bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#064A91]"
-            >
-              Continue profile setup
-            </button>
-          )}
-          {incompleteTasks.length === 0 && (
-            <p role="status" className="mt-4 rounded-xl bg-green-50 p-3 text-sm font-semibold text-green-800">
-              Your profile is complete and ready for job applications.
-            </p>
-          )}
-        </section>
-
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-lg font-black text-[#123B70]">PESO Screening Details</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Show or hide the information PESO needs for your employment profile.
+              <h2 className="mt-1 text-2xl font-black text-[#123B70]">
+                Job Seeker Registration Details
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                Complete your personal and employment information for PESO registration.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setScreeningDetailsOpen((open) => !open)}
               aria-expanded={screeningDetailsOpen}
-              aria-controls="job-seeker-screening-details"
+              aria-controls="job-seeker-registration-details"
               className="shrink-0 rounded-xl border border-blue-200 px-4 py-2.5 text-sm font-bold text-[#0759AE] transition hover:bg-blue-50"
             >
-              {screeningDetailsOpen ? "Hide Screening Details" : "Show Screening Details"}
+              {screeningDetailsOpen ? "Hide PESO Details" : "Show PESO Details"}
             </button>
           </div>
+        </header>
+
+        <section className="rounded-2xl border border-blue-100 bg-blue-50 p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-bold text-[#123B70]">Registration progress</h3>
+              <p className="mt-1 text-xs text-slate-600">
+                Complete all sections and upload your resume before applying for jobs.
+              </p>
+            </div>
+            <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[#123B70]">
+              {completedTaskCount}/{JOB_SEEKER_PROFILE_SECTION_TITLES.length + 1} complete
+            </span>
+          </div>
+          {screeningDetailsOpen && (
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {[...JOB_SEEKER_PROFILE_SECTION_TITLES, "Resume / CV"].map((task) => {
+                const complete = !incompleteTasks.includes(task);
+                return (
+                  <li
+                    key={task}
+                    className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium ${
+                      complete
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-white text-slate-600"
+                    }`}
+                  >
+                    <span aria-hidden="true">{complete ? "✓" : "○"}</span>
+                    {task}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {incompleteTasks.length === 0 && (
+            <p role="status" className="mt-3 rounded-xl bg-emerald-100 p-3 text-sm font-semibold text-emerald-800">
+              Your profile is complete and ready for job applications.
+            </p>
+          )}
         </section>
 
         {screeningDetailsOpen && <form
-          id="job-seeker-screening-details"
+          id="job-seeker-registration-details"
           onSubmit={saveScreening}
-          className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+          className="space-y-6"
         >
-          <div className="flex flex-col gap-3 border-b border-slate-100 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-xl font-black text-[#123B70]">Screening Details</h2>
+              <h2 className="text-xl font-black text-[#123B70]">PESO Screening Details</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Review and update the information you provided for employment screening.
+                Review and update the information used for your employment profile.
               </p>
             </div>
             {!editingScreening && (
               <button
                 type="button"
                 onClick={startScreeningEdit}
-                className="rounded-full bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#064A91]"
+                className="rounded-xl bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#064A91]"
               >
-                Edit Screening Details
+                Edit Registration Details
               </button>
             )}
           </div>
 
-          <div className="space-y-6 p-6">
+          <div className="space-y-6">
             {screeningSections.map((section) => (
-              <section key={section.title} className="space-y-4">
-                <h3 className="border-b border-slate-100 pb-2 text-base font-bold text-[#123B70]">
+              <section key={section.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <h3 className="font-bold text-slate-900">
                   {section.title}
                 </h3>
                 {section.title === "I. Personal Information" && (
-                  <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+                  <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
                     <h4 className="font-bold text-slate-900">
                       Data Privacy Statement / Consent
                     </h4>
@@ -1177,7 +1154,7 @@ export default function JobSeekerDashboard() {
                   </div>
                 )}
                 {section.title === "Certification / Authorization" && (
-                  <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+                  <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
                     I certify that the information I provided is true and correct
                     to the best of my knowledge. I authorize PESO Mabini to
                     include my profile in its employment information system
@@ -1187,7 +1164,7 @@ export default function JobSeekerDashboard() {
                     behalf.
                   </p>
                 )}
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   {section.fields.map((field) => {
                     const rawValue = editingScreening
                       ? screeningForm[field.key]
