@@ -991,6 +991,52 @@ export default function JobSeekerDashboard() {
             ) : (
               <p className="mt-2 text-sm text-slate-600">No resume uploaded</p>
             )}
+            {editingProfilePhoto && (
+              <div className="mt-4">
+                <p className="text-sm text-slate-500">
+                  {seeker.resume_url
+                    ? "Select a replacement resume. Your current resume will stay available until the new file is uploaded."
+                    : `Upload a ${RESUME_FORMATS_LABEL} file up to 5 MB. Your resume is stored privately.`}
+                </p>
+                {resumeError && (
+                  <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                    {resumeError}
+                  </p>
+                )}
+                {resumeSuccess && (
+                  <p role="status" className="mt-3 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+                    {resumeSuccess}
+                  </p>
+                )}
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <input
+                    type="file"
+                    accept={RESUME_ACCEPT}
+                    onChange={(event) => {
+                      setResumeFile(event.target.files?.[0] ?? null);
+                      event.currentTarget.value = "";
+                      setResumeError("");
+                      setResumeSuccess("");
+                    }}
+                    disabled={uploadingResume}
+                    className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:font-semibold file:text-blue-700"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void saveResume()}
+                    disabled={!resumeFile || uploadingResume}
+                    className="rounded-full bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#064A91] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {uploadingResume ? "Uploading..." : seeker.resume_url ? "Replace Resume" : "Upload Resume"}
+                  </button>
+                </div>
+                {resumeFile && (
+                  <p className="mt-2 text-sm text-slate-600">
+                    Selected: {resumeFile.name}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -1401,65 +1447,6 @@ export default function JobSeekerDashboard() {
             </div>
           )}
         </form>}
-
-        {/* RESUME UPLOAD */}
-        {editingProfilePhoto && <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-black text-[#123B70]">Resume / CV</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            {seeker.resume_url
-              ? "Select a replacement resume. Your current resume will stay available until the new file is uploaded."
-              : `Upload a ${RESUME_FORMATS_LABEL} file up to 5 MB. Your resume is stored privately.`}
-          </p>
-
-          {resumeError && (
-            <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-              {resumeError}
-            </p>
-          )}
-          {resumeSuccess && (
-            <p role="status" className="mt-4 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">
-              {resumeSuccess}
-            </p>
-          )}
-
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <input
-              type="file"
-              accept={RESUME_ACCEPT}
-              onChange={(event) => {
-                setResumeFile(event.target.files?.[0] ?? null);
-                event.currentTarget.value = "";
-                setResumeError("");
-                setResumeSuccess("");
-              }}
-              disabled={uploadingResume}
-              className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:font-semibold file:text-blue-700"
-            />
-            <button
-              type="button"
-              onClick={() => void saveResume()}
-              disabled={!resumeFile || uploadingResume}
-              className="rounded-full bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#064A91] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {uploadingResume ? "Uploading..." : seeker.resume_url ? "Replace Resume" : "Upload Resume"}
-            </button>
-            {seeker.resume_url && (
-              <button
-                type="button"
-                onClick={() => void openResume()}
-                disabled={openingResume}
-                className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-              >
-                {openingResume ? "Preparing..." : "Download Current"}
-              </button>
-            )}
-          </div>
-          {resumeFile && (
-            <p className="mt-2 text-sm text-slate-600">
-              Selected: {resumeFile.name}
-            </p>
-          )}
-        </div>}
 
         {/* ACCOUNT INFORMATION */}
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
