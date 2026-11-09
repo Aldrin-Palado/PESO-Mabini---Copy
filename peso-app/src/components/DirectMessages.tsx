@@ -74,6 +74,7 @@ export default function DirectMessages({
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [realtimeUnavailable, setRealtimeUnavailable] = useState(false);
   const [sessionMissing, setSessionMissing] = useState(false);
   const [hasScrolledMessages, setHasScrolledMessages] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -359,6 +360,7 @@ export default function DirectMessages({
       return;
     }
 
+    let fallbackPoll: ReturnType<typeof setInterval> | null = null;
     const channel = supabase
       .channel(`peso-messages-${conversationOwnerId}-${selectedUserId}`)
       .on(
@@ -376,15 +378,32 @@ export default function DirectMessages({
           }
         },
       )
-      .subscribe((status) => {
-        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          setError("Live message updates are temporarily unavailable.");
+      .subscribe((status, subscriptionError) => {
+        if (status === "SUBSCRIBED") {
+          if (fallbackPoll) {
+            clearInterval(fallbackPoll);
+            fallbackPoll = null;
+          }
+          setRealtimeUnavailable(false);
+          void loadMessages(false);
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          console.error("Message realtime subscription failed:", {
+            status,
+            error: subscriptionError,
+          });
+          setRealtimeUnavailable(true);
+          if (!fallbackPoll) {
+            fallbackPoll = setInterval(() => {
+              void loadMessages(false);
+            }, 5000);
+          }
         }
       });
 
     void loadMessages(true);
 
     return () => {
+      if (fallbackPoll) clearInterval(fallbackPoll);
       void supabase.removeChannel(channel);
     };
   }, [conversationOwnerId, loadMessages, recipientUserId, selectedUserId]);
@@ -537,6 +556,14 @@ export default function DirectMessages({
 
   return (
     <section className="space-y-5">
+      {realtimeUnavailable && (
+        <div
+          role="status"
+          className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
+        >
+          Live updates are reconnecting. This conversation will refresh automatically.
+        </div>
+      )}
       {error && (
         <div
           role="alert"

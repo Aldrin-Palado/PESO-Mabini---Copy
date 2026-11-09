@@ -295,6 +295,10 @@ export default function AdminDashboard() {
 
   const [applicationsError, setApplicationsError] =
     useState("");
+  const [applicationsRealtimeUnavailable, setApplicationsRealtimeUnavailable] =
+    useState(false);
+  const [profilesRealtimeUnavailable, setProfilesRealtimeUnavailable] =
+    useState(false);
   const [announcementTitle, setAnnouncementTitle] = useState("");
   const [announcementMessage, setAnnouncementMessage] = useState("");
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -1086,8 +1090,8 @@ export default function AdminDashboard() {
      EMPLOYERS
   ============================================================ */
 
-  const loadEmployers = async () => {
-    setModuleLoading(true);
+  const loadEmployers = async (showLoading = true) => {
+    if (showLoading) setModuleLoading(true);
     setModuleError("");
 
     try {
@@ -1110,7 +1114,7 @@ export default function AdminDashboard() {
 
       setEmployers(data ?? []);
     } finally {
-      setModuleLoading(false);
+      if (showLoading) setModuleLoading(false);
     }
   };
 
@@ -1118,8 +1122,8 @@ export default function AdminDashboard() {
      JOB SEEKERS
   ============================================================ */
 
-  const loadJobSeekers = async () => {
-    setModuleLoading(true);
+  const loadJobSeekers = async (showLoading = true) => {
+    if (showLoading) setModuleLoading(true);
     setModuleError("");
 
     try {
@@ -1158,7 +1162,7 @@ export default function AdminDashboard() {
       }
       setJobSeekerApplicationCounts(counts);
     } finally {
-      setModuleLoading(false);
+      if (showLoading) setModuleLoading(false);
     }
   };
 
@@ -1556,8 +1560,10 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!account || activePage !== "Applications") return;
 
+    setApplicationsRealtimeUnavailable(false);
     let active = true;
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    let fallbackPoll: ReturnType<typeof setInterval> | null = null;
     const channel = supabase
       .channel(`admin-applications-${account.user_id}`)
       .on(
@@ -1575,15 +1581,31 @@ export default function AdminDashboard() {
         },
       )
       .subscribe((status, subscriptionError) => {
-        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        if (status === "SUBSCRIBED") {
+          if (fallbackPoll) {
+            clearInterval(fallbackPoll);
+            fallbackPoll = null;
+          }
+          if (active) {
+            setApplicationsRealtimeUnavailable(false);
+            void loadApplications(false);
+          }
+        } else if (
+          status === "CHANNEL_ERROR" ||
+          status === "TIMED_OUT" ||
+          status === "CLOSED"
+        ) {
           console.error(
             "Admin application realtime subscription failed:",
-            subscriptionError,
+            { status, error: subscriptionError },
           );
           if (active) {
-            setApplicationsError(
-              "Live application updates are temporarily unavailable. Refresh the page to reconnect.",
-            );
+            setApplicationsRealtimeUnavailable(true);
+            if (!fallbackPoll) {
+              fallbackPoll = setInterval(() => {
+                void loadApplications(false);
+              }, 5000);
+            }
           }
         }
       });
@@ -1591,6 +1613,7 @@ export default function AdminDashboard() {
     return () => {
       active = false;
       if (refreshTimer) clearTimeout(refreshTimer);
+      if (fallbackPoll) clearInterval(fallbackPoll);
       void supabase.removeChannel(channel);
     };
   }, [account, activePage, loadApplications]);
@@ -1600,8 +1623,18 @@ export default function AdminDashboard() {
       return;
     }
 
+    setProfilesRealtimeUnavailable(false);
     const table = activePage === "Employers" ? "employer" : "job_seeker";
+    let active = true;
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    let fallbackPoll: ReturnType<typeof setInterval> | null = null;
+    const refreshProfiles = () => {
+      if (activePage === "Employers") {
+        void loadEmployers(false);
+      } else {
+        void loadJobSeekers(false);
+      }
+    };
     const channel = supabase
       .channel(`admin-${table}-profile-updates-${account.user_id}`)
       .on(
@@ -1610,25 +1643,42 @@ export default function AdminDashboard() {
         () => {
           if (refreshTimer) clearTimeout(refreshTimer);
           refreshTimer = setTimeout(() => {
-            if (activePage === "Employers") {
-              void loadEmployers();
-            } else {
-              void loadJobSeekers();
-            }
+            refreshProfiles();
           }, 150);
         },
       )
       .subscribe((status, subscriptionError) => {
-        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          console.error(`Admin ${table} realtime subscription failed:`, subscriptionError);
-          setModuleError(
-            `Live ${activePage.toLowerCase()} updates are temporarily unavailable.`,
-          );
+        if (status === "SUBSCRIBED") {
+          if (fallbackPoll) {
+            clearInterval(fallbackPoll);
+            fallbackPoll = null;
+          }
+          if (active) {
+            setProfilesRealtimeUnavailable(false);
+            refreshProfiles();
+          }
+        } else if (
+          status === "CHANNEL_ERROR" ||
+          status === "TIMED_OUT" ||
+          status === "CLOSED"
+        ) {
+          console.error(`Admin ${table} realtime subscription failed:`, {
+            status,
+            error: subscriptionError,
+          });
+          if (active) {
+            setProfilesRealtimeUnavailable(true);
+            if (!fallbackPoll) {
+              fallbackPoll = setInterval(refreshProfiles, 5000);
+            }
+          }
         }
       });
 
     return () => {
+      active = false;
       if (refreshTimer) clearTimeout(refreshTimer);
+      if (fallbackPoll) clearInterval(fallbackPoll);
       void supabase.removeChannel(channel);
     };
   }, [account, activePage]);
@@ -1898,7 +1948,14 @@ export default function AdminDashboard() {
         return (
           <EmployersModule
             employers={filteredEmployers}
-            loadError={moduleError}
+            loadError={[
+              moduleError,
+              profilesRealtimeUnavailable
+                ? "Live employer updates are reconnecting. This list will refresh automatically."
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             search={employerSearch}
             setSearch={setEmployerSearch}
             loading={moduleLoading}
@@ -1919,7 +1976,14 @@ export default function AdminDashboard() {
         return (
           <JobSeekersModule
             jobSeekers={filteredJobSeekers}
-            loadError={moduleError}
+            loadError={[
+              moduleError,
+              profilesRealtimeUnavailable
+                ? "Live job seeker updates are reconnecting. This list will refresh automatically."
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             search={jobSeekerSearch}
             setSearch={setJobSeekerSearch}
             loading={moduleLoading}
@@ -1939,7 +2003,14 @@ export default function AdminDashboard() {
         return (
           <ApplicationsModule
             applications={applications}
-            loadError={applicationsError}
+            loadError={[
+              applicationsError,
+              applicationsRealtimeUnavailable
+                ? "Live application updates are reconnecting. This list will refresh automatically."
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             search={applicationSearch}
             setSearch={setApplicationSearch}
             statusFilter={applicationStatusFilter}
