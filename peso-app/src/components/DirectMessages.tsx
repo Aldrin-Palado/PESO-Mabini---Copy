@@ -89,7 +89,7 @@ export default function DirectMessages({
   const refreshConversationContacts = useCallback(
     async (ownerId: string): Promise<MessageContact[]> => {
       const { data: contactData, error: contactsError } = await supabase.rpc(
-        mode === "staff"
+        mode === "admin" || mode === "staff"
           ? "get_peso_admin_inbox_contacts"
           : "get_peso_message_contacts",
       );
@@ -209,7 +209,7 @@ export default function DirectMessages({
       if (!cancelled) setUserId(user.id);
 
       let inboxOwnerId = user.id;
-      if (mode === "staff") {
+      if (mode === "admin" || mode === "staff") {
         const { data: adminInboxUserId, error: inboxError } = await supabase.rpc(
           "get_peso_admin_inbox_user",
         );
