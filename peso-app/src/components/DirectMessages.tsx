@@ -692,7 +692,10 @@ export default function DirectMessages({
             <h2 className="border-b border-slate-100 px-4 py-4 font-bold text-slate-800">
               Contacts
             </h2>
-            {(mode === "admin" || mode === "employer" || mode === "job_seeker") && (
+            {(mode === "admin" ||
+              mode === "staff" ||
+              mode === "employer" ||
+              mode === "job_seeker") && (
               <form
                 onSubmit={(event) => void startConversationByEmail(event)}
                 className="space-y-2 border-b border-slate-100 p-3"
