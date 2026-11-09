@@ -506,16 +506,18 @@ export default function DirectMessages({
     setSending(true);
     setError("");
 
-    const { error: sendError } = mode === "staff"
-      ? await supabase.rpc("send_peso_admin_inbox_reply", {
-          candidate_recipient_id: recipientUserId,
-          candidate_body: body,
-        })
-      : await supabase.from("peso_messages").insert({
-          sender_user_id: userId,
-          recipient_user_id: recipientUserId,
-          body,
-        });
+    const { error: sendError } = (
+  mode === "admin" || mode === "staff"
+)
+  ? await supabase.rpc("send_peso_admin_inbox_reply", {
+      candidate_recipient_id: recipientUserId,
+      candidate_body: body,
+    })
+  : await supabase.from("peso_messages").insert({
+      sender_user_id: userId,
+      recipient_user_id: recipientUserId,
+      body,
+    });
 
     if (sendError) {
       setError(`Message could not be sent: ${sendError.message}`);
@@ -640,11 +642,14 @@ export default function DirectMessages({
     setDecisionLoadingId(`contact-${decision}`);
     setDecisionError("");
     setDecisionNotice("");
-    const { error: sendError } = await supabase.from("peso_messages").insert({
-      sender_user_id: userId,
-      recipient_user_id: selectedUserId,
-      body: decision === "hired" ? hiringMessage : rejectionMessage,
-    });
+    const { error: sendError } = await supabase.rpc(
+  "send_peso_admin_inbox_reply",
+  {
+    candidate_recipient_id: selectedUserId,
+    candidate_body:
+      decision === "hired" ? hiringMessage : rejectionMessage,
+  }
+);
 
     if (sendError) {
       console.error("Could not send application decision message:", sendError);
