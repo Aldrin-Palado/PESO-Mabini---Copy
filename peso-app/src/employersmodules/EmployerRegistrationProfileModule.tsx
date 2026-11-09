@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import ESignatureInput from "../components/ESignatureInput";
 import VerificationDocumentsModule from "./VerificationDocumentsModule";
 import {
   employerDocumentRequirements,
@@ -259,7 +260,7 @@ export default function EmployerRegistrationProfileModule({
       return;
     }
     if (!form.authorized_representative_signature.trim()) {
-      setError("Enter the authorized representative's electronic signature.");
+      setError("Draw or upload the authorized representative's e-signature.");
       return;
     }
 
@@ -519,9 +520,27 @@ export default function EmployerRegistrationProfileModule({
           <p className="mt-3 text-sm leading-6 text-slate-600">
             I hereby certify that the above information provided is true and correct to the best of my knowledge and I allow the Mabini PESO to include and use the Company profile in the PESO Employment Information System (PEIS). The information herein shall be treated as confidential in Compliance with the Data Privacy Act of 2012.
           </p>
-          <label className={`${labelClass} mt-4`}>Authorized Representative's Electronic Signature{required}
-            <input name="authorized_representative_signature" value={form.authorized_representative_signature} onChange={update} required className={inputClass} />
-          </label>
+          <div className={`${labelClass} mt-4`}>
+            Authorized Representative's Electronic Signature{required}
+            {form.authorized_representative_signature &&
+              !form.authorized_representative_signature.startsWith("data:image/") && (
+                <span className="mt-2 block rounded-lg bg-slate-50 p-3 text-sm font-normal text-slate-600">
+                  Previously saved signature: {form.authorized_representative_signature}
+                </span>
+              )}
+            <ESignatureInput
+              value={form.authorized_representative_signature}
+              disabled={saving}
+              onChange={(signature) => {
+                setForm((current) => ({
+                  ...current,
+                  authorized_representative_signature: signature,
+                }));
+                setError("");
+                setSuccess("");
+              }}
+            />
+          </div>
           <label className="mt-4 flex items-start gap-2.5 text-sm leading-6 text-slate-700">
             <input type="checkbox" checked={consentAccepted} onChange={(event) => setConsentAccepted(event.target.checked)} required className="mt-1 h-4 w-4 accent-[#0759AE]" />
             <span>I certify that the information is true and correct and consent to the declaration above.{required}</span>
