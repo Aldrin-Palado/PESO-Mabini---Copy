@@ -78,10 +78,6 @@ export default function AdminSidebar({
       return isSuperadmin;
     }
 
-    if (module === "Messages") {
-      return true;
-    }
-
     // Admin has access to all regular modules
     // Staff can only access modules assigned to them
     return isSuperadmin || permissions.includes(module);

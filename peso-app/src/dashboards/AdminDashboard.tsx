@@ -54,6 +54,7 @@ type Permissions = {
   job_application: boolean;
   employers: boolean;
   job_seekers: boolean;
+  messages: boolean;
   notifications: boolean;
   peso_posts: boolean;
 };
@@ -556,6 +557,7 @@ export default function AdminDashboard() {
             job_application,
             employers,
             job_seekers,
+            messages,
             notifications,
             peso_posts
             `
@@ -641,6 +643,10 @@ export default function AdminDashboard() {
       result.push("Applications");
     }
 
+    if (permission.messages) {
+      result.push("Messages");
+    }
+
     if (permission.notifications) {
       result.push("Announcement");
     }
@@ -669,10 +675,6 @@ export default function AdminDashboard() {
 
     if (account?.role === "superadmin") {
       return true;
-    }
-
-    if (page === "Messages") {
-      return account?.role === "staff";
     }
 
     if (
