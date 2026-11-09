@@ -3,6 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import AuthSideImage from "./AuthSideImage";
 import PesoLogo from "./PesoLogo";
 import { supabase } from "../services/supabase";
+import {
+  getPasswordValidationError,
+  PASSWORD_REQUIREMENTS_HELP_TEXT,
+} from "../utils/passwordValidation";
 
 type EmployerRegistrationProps = {
   onBack: () => void;
@@ -43,8 +47,9 @@ export default function EmployerRegistration({
     event.preventDefault();
     setError("");
 
-    if (form.password.length < 8) {
-      setError("Password must contain at least 8 characters.");
+    const passwordError = getPasswordValidationError(form.password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
     if (form.password !== form.confirmPassword) {
@@ -254,6 +259,9 @@ export default function EmployerRegistration({
                     >
                       {showPassword ? "Hide" : "Show"}
                     </button>
+                  </span>
+                  <span className="mt-2 block text-xs font-normal text-slate-500">
+                    {PASSWORD_REQUIREMENTS_HELP_TEXT}
                   </span>
                 </label>
                 <label className={labelClassName}>

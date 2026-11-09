@@ -3,6 +3,10 @@ import { Link } from "react-router-dom";
 import AuthSideImage from "../components/AuthSideImage";
 import PesoLogo from "../components/PesoLogo";
 import { supabase } from "../services/supabase";
+import {
+  getPasswordValidationError,
+  PASSWORD_REQUIREMENTS_HELP_TEXT,
+} from "../utils/passwordValidation";
 
 type ResetStatus = "checking" | "ready" | "invalid";
 
@@ -52,6 +56,12 @@ export default function ResetPassword() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (loading || status !== "ready") return;
+
+    const passwordError = getPasswordValidationError(password);
+    if (passwordError) {
+      setErrorMessage(passwordError);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setErrorMessage("The passwords do not match.");
@@ -150,10 +160,14 @@ export default function ResetPassword() {
                     autoComplete="new-password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
+                    minLength={8}
                     required
                     disabled={loading}
                     className="w-full rounded-2xl border border-[#D5DEEB] bg-white px-5 py-4 text-base text-slate-900 outline-none transition focus:border-[#315FEA] focus:ring-4 focus:ring-[#315FEA]/10 disabled:bg-slate-100"
                   />
+                  <p className="mt-2 text-xs text-slate-500">
+                    {PASSWORD_REQUIREMENTS_HELP_TEXT}
+                  </p>
                 </div>
 
                 <div>
@@ -169,6 +183,7 @@ export default function ResetPassword() {
                     autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
+                    minLength={8}
                     required
                     disabled={loading}
                     className="w-full rounded-2xl border border-[#D5DEEB] bg-white px-5 py-4 text-base text-slate-900 outline-none transition focus:border-[#315FEA] focus:ring-4 focus:ring-[#315FEA]/10 disabled:bg-slate-100"

@@ -4,6 +4,10 @@ import AuthSideImage from "./AuthSideImage";
 import PesoLogo from "./PesoLogo";
 import TermsAndConditionsModal from "./TermsAndConditionsModal";
 import { supabase } from "../services/supabase";
+import {
+  getPasswordValidationError,
+  PASSWORD_REQUIREMENTS_HELP_TEXT,
+} from "../utils/passwordValidation";
 
 const fieldClassName =
   "w-full rounded-2xl border border-[#D5DEEB] bg-white px-5 py-3.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#315FEA] focus:ring-4 focus:ring-[#315FEA]/10";
@@ -56,8 +60,9 @@ function Register() {
       return;
     }
 
-    if (formData.password.length < 8) {
-      alert("Password must contain at least 8 characters.");
+    const passwordError = getPasswordValidationError(formData.password);
+    if (passwordError) {
+      alert(passwordError);
       return;
     }
 
@@ -362,6 +367,7 @@ function Register() {
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="Create a password"
+                    minLength={8}
                     required
                     className={`${fieldClassName} pr-20`}
                   />
@@ -372,6 +378,9 @@ function Register() {
                   >
                     {showPassword ? "Hide" : "Show"}
                   </button>
+                </span>
+                <span className="mt-2 block text-xs font-normal text-slate-500">
+                  {PASSWORD_REQUIREMENTS_HELP_TEXT}
                 </span>
               </label>
 
@@ -384,6 +393,7 @@ function Register() {
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     placeholder="Confirm your password"
+                    minLength={8}
                     required
                     className={`${fieldClassName} pr-20`}
                   />

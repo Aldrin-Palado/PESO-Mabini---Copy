@@ -147,7 +147,12 @@ export default {
         // 5. VALIDATE INPUT
         // ============================================================
 
-        if (!full_name || !email || !password) {
+        if (
+          !full_name ||
+          !email ||
+          typeof password !== "string" ||
+          !password
+        ) {
           return Response.json(
             {
               success: false,
@@ -158,12 +163,26 @@ export default {
           );
         }
 
-        if (password.length < 8) {
+        const passwordError =
+          password.length < 8
+            ? "Password must contain at least 8 characters."
+            : !/[A-Z]/.test(password)
+              ? "Password must contain at least one uppercase letter."
+              : !/[a-z]/.test(password)
+                ? "Password must contain at least one lowercase letter."
+                : !/[0-9]/.test(password)
+                  ? "Password must contain at least one number."
+                  : !/[\p{P}\p{S}]/u.test(password)
+                    ? "Password must contain at least one special character."
+                    : /\s/.test(password)
+                      ? "Password must not contain spaces."
+                      : null;
+
+        if (passwordError) {
           return Response.json(
             {
               success: false,
-              message:
-                "Password must contain at least 8 characters.",
+              message: passwordError,
             },
             { status: 400 }
           );

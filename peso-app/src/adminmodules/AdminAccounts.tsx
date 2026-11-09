@@ -3,6 +3,10 @@ import { createPortal } from "react-dom";
 import { supabase } from "../services/supabase";
 import AppIcon from "../components/AppIcon";
 import ProfileAvatar from "../components/ProfileAvatar";
+import {
+  getPasswordValidationError,
+  PASSWORD_REQUIREMENTS_HELP_TEXT,
+} from "../utils/passwordValidation";
 
 type Staff = {
   peso_staff_id: string;
@@ -289,10 +293,9 @@ export default function AdminAccounts() {
       return;
     }
 
-    if (form.password.length < 8) {
-      alert(
-        "Password must contain at least 8 characters."
-      );
+    const passwordError = getPasswordValidationError(form.password);
+    if (passwordError) {
+      setCreateError(passwordError);
       return;
     }
 
@@ -875,11 +878,14 @@ export default function AdminAccounts() {
                 minLength={8}
                 value={form.password}
                 onChange={(event) => setForm({ ...form, password: event.target.value })}
-                placeholder="Minimum 8 characters"
+                placeholder="Enter a strong password"
                 autoComplete="new-password"
                 disabled={creating}
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50"
               />
+              <span className="mt-1 block text-[10px] font-normal text-slate-500">
+                {PASSWORD_REQUIREMENTS_HELP_TEXT}
+              </span>
             </label>
 
             <label className="block text-xs font-semibold text-slate-600">
