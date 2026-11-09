@@ -1036,13 +1036,6 @@ export default function JobSeekerDashboard() {
                                     Previously saved signature: {rawValue}
                                   </span>
                                 )}
-                              {typeof rawValue === "string" &&
-                                rawValue.length > 0 &&
-                                !rawValue.startsWith("data:image/") && (
-                                  <span className="mt-2 block rounded-lg bg-white p-3 text-sm font-normal normal-case tracking-normal text-slate-600">
-                                    Previously saved signature: {rawValue}
-                                  </span>
-                                )}
                               <ESignatureInput
                                 value={String(rawValue ?? "")}
                                 disabled={savingScreening}

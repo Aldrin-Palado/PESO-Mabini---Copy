@@ -923,9 +923,32 @@ export default function EmployersModule({
                           <dt className="text-xs font-semibold text-slate-500">
                             Certification
                           </dt>
-                          <dd className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-800">
-                            {formatDetailValue(
-                              registrationDetails.certification,
+                          <dd className="mt-1 space-y-3 text-sm text-slate-800">
+                            {registrationDetails.certification &&
+                            typeof registrationDetails.certification === "object" &&
+                            !Array.isArray(registrationDetails.certification) ? (
+                              Object.entries(
+                                registrationDetails.certification as Record<string, unknown>,
+                              ).map(([key, value]) => (
+                                <div key={key} className="break-words">
+                                  <span className="font-semibold">
+                                    {formatDetailLabel(key)}:{" "}
+                                  </span>
+                                  {key === "authorized_representative_signature" &&
+                                  typeof value === "string" &&
+                                  value.startsWith("data:image/") ? (
+                                    <img
+                                      src={value}
+                                      alt="Authorized representative's e-signature"
+                                      className="mt-2 max-h-24 max-w-full rounded-lg border border-slate-200 bg-white p-2 object-contain"
+                                    />
+                                  ) : (
+                                    formatDetailValue(value)
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              formatDetailValue(registrationDetails.certification)
                             )}
                           </dd>
                         </div>

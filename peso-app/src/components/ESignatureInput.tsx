@@ -164,7 +164,7 @@ export default function ESignatureInput({
   };
 
   return (
-    <div className="mt-2">
+    <div className="mt-2 normal-case tracking-normal">
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
