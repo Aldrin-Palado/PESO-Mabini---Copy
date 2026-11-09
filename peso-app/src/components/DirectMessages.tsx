@@ -920,8 +920,10 @@ export default function DirectMessages({
                 </p>
               ) : (
                 messages.map((message) => {
-                  const ownMessage =
-                    message.sender_user_id === conversationOwnerId;
+                  const isAdminInbox = mode === "admin" || mode === "staff";
+                  const ownMessage = isAdminInbox
+                    ? message.sender_user_id !== selectedUserId
+                    : message.sender_user_id === conversationOwnerId;
                   return (
                     <div
                       key={message.message_id}
