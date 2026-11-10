@@ -82,6 +82,7 @@ function JobVacancies() {
               employment_type: job.employment_type ?? undefined,
               salary,
               description: job.description ?? undefined,
+              job_qualifications: job.job_qualifications ?? undefined,
               requirements: job.requirements ?? undefined,
               vacancies_available: job.vacancies_available ?? undefined,
               deadline: job.deadline ?? undefined,
@@ -107,6 +108,7 @@ function JobVacancies() {
               location: job.location ?? undefined,
               employment_type: job.employment_type ?? undefined,
               description: job.description ?? undefined,
+              job_qualifications: job.job_qualifications ?? undefined,
               employer: {
                 name: job.employer_name ?? undefined,
                 logoUrl: job.employer_logo_url,

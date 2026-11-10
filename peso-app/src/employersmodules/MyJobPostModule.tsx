@@ -13,6 +13,7 @@ type JobPost = {
   employer_id: string;
   position_title: string;
   description: string | null;
+  job_qualifications: string | null;
   requirements: string | null;
   location: string;
   employment_type: string;
@@ -41,6 +42,7 @@ type Props = {
 type JobForm = {
   position_title: string;
   description: string;
+  job_qualifications: string;
   requirements: string;
   location: string;
   employment_type: string;
@@ -54,6 +56,7 @@ type JobForm = {
 const emptyForm: JobForm = {
   position_title: "",
   description: "",
+  job_qualifications: "",
   requirements: "",
   location: "",
   employment_type: "Full-time",
@@ -136,6 +139,7 @@ export default function MyJobPostModule({
     setForm({
       position_title: job.position_title ?? "",
       description: job.description ?? "",
+      job_qualifications: job.job_qualifications ?? "",
       requirements: job.requirements ?? "",
       location: job.location ?? "",
       employment_type: job.employment_type ?? "Full-time",
@@ -365,6 +369,7 @@ export default function MyJobPostModule({
             employer_id: employerId,
             position_title: form.position_title.trim(),
             description: form.description.trim() || null,
+            job_qualifications: form.job_qualifications.trim() || null,
             requirements: form.requirements.trim() || null,
             location: form.location.trim(),
             employment_type: form.employment_type,
@@ -402,6 +407,7 @@ export default function MyJobPostModule({
           .update({
             position_title: form.position_title.trim(),
             description: form.description.trim() || null,
+            job_qualifications: form.job_qualifications.trim() || null,
             requirements: form.requirements.trim() || null,
             location: form.location.trim(),
             employment_type: form.employment_type,
@@ -831,6 +837,22 @@ export default function MyJobPostModule({
               />
             </label>
 
+            {/* JOB QUALIFICATIONS */}
+
+            <label className="text-sm font-semibold text-slate-700 md:col-span-2">
+              Job Qualifications
+
+              <textarea
+                rows={4}
+                value={form.job_qualifications}
+                onChange={(event) =>
+                  updateField("job_qualifications", event.target.value)
+                }
+                placeholder="Enter the education, skills, experience, or certifications required for this position"
+                className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal"
+              />
+            </label>
+
             {/* REQUIREMENTS */}
 
             <label className="text-sm font-semibold text-slate-700 md:col-span-2">
@@ -842,7 +864,7 @@ export default function MyJobPostModule({
                 onChange={(event) =>
                   updateField("requirements", event.target.value)
                 }
-                placeholder="Enter qualifications and requirements"
+                placeholder="Enter application requirements, such as documents or other instructions"
                 className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal"
               />
             </label>
@@ -994,6 +1016,14 @@ export default function MyJobPostModule({
                       <p className="text-xs font-semibold text-slate-400">Job Description</p>
                       <p className="mt-1 whitespace-pre-line text-sm leading-6 text-slate-600">
                         {job.description}
+                      </p>
+                    </div>
+                  )}
+                  {job.job_qualifications && (
+                    <div className="sm:col-span-2">
+                      <p className="text-xs font-semibold text-slate-400">Job Qualifications</p>
+                      <p className="mt-1 whitespace-pre-line text-sm leading-6 text-slate-600">
+                        {job.job_qualifications}
                       </p>
                     </div>
                   )}

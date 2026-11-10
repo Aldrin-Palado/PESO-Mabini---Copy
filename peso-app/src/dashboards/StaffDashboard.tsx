@@ -278,7 +278,7 @@ export default function StaffDashboard() {
             supabase
               .from("job_vacancy")
               .select(
-                "job_vacancy_id, employer_id, position_title, description, requirements, location, employment_type, salary_min, salary_max, vacancies_available, status, date_posted, deadline",
+                "job_vacancy_id, employer_id, position_title, description, job_qualifications, requirements, location, employment_type, salary_min, salary_max, vacancies_available, status, date_posted, deadline",
               )
               .order("date_posted", { ascending: false }),
             supabase.from("employer").select("employer_id, name, logo_url"),
@@ -1000,6 +1000,7 @@ function StaffRecordsModule({
           { label: "Date Posted", value: (record) => dateValue(record.date_posted) },
           { label: "Deadline", value: (record) => dateValue(record.deadline) },
           { label: "Description", value: (record) => textValue(record.description) },
+          { label: "Job Qualifications", value: (record) => textValue(record.job_qualifications) },
           { label: "Requirements", value: (record) => textValue(record.requirements) },
         ]
       : page === "Employers"

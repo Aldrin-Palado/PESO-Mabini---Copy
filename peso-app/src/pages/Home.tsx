@@ -618,6 +618,12 @@ function Home() {
                           <p className="mt-1 break-words text-sm text-slate-500 sm:text-base">
                             {job.employer_name || "Employer"}
                           </p>
+                          {job.job_qualifications && (
+                            <p className="mt-2 line-clamp-2 text-sm text-slate-600">
+                              <span className="font-semibold">Qualifications: </span>
+                              {job.job_qualifications}
+                            </p>
+                          )}
                           <span className="mt-3 inline-flex rounded-full bg-sky-50 px-3 py-1.5 text-xs font-semibold capitalize text-sky-700">
                             {job.job_classification}
                           </span>

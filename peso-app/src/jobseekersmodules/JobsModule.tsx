@@ -49,6 +49,7 @@ type Job = {
   classification: "local" | "international";
   salary: string;
   description: string;
+  jobQualifications: string;
   requirements: string;
   vacanciesAvailable: number;
   deadline: string | null;
@@ -160,6 +161,7 @@ export default function JobsModule({
             classification: row.job_classification,
             salary,
             description: row.description || "No description provided.",
+            jobQualifications: row.job_qualifications || "",
             requirements: row.requirements || "",
             vacanciesAvailable: row.vacancies_available,
             deadline: row.deadline,
@@ -923,6 +925,14 @@ export default function JobsModule({
                     </h3>
                     <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
                       {selectedJob.requirements || "No specific requirements provided."}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 border-l-4 border-l-blue-500 bg-white p-5">
+                    <h3 className="text-sm font-bold uppercase tracking-wide text-slate-800">
+                      Job Qualifications
+                    </h3>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                      {selectedJob.jobQualifications || "No specific qualifications provided."}
                     </p>
                   </div>
                 </div>

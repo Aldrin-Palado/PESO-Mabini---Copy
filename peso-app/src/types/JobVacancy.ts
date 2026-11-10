@@ -2,6 +2,7 @@ export interface OpenJobVacancyRow {
   job_vacancy_id: string;
   position_title: string;
   description: string | null;
+  job_qualifications: string | null;
   requirements: string | null;
   location: string;
   employment_type: string;
@@ -30,6 +31,7 @@ export interface PublicJobVacancyPreviewRow {
   location: string | null;
   employment_type: string | null;
   description: string | null;
+  job_qualifications: string | null;
 }
 
 export interface JobVacancy {
@@ -39,6 +41,7 @@ export interface JobVacancy {
   employment_type?: string;
   salary?: string;
   description?: string;
+  job_qualifications?: string;
   requirements?: string;
   vacancies_available?: number;
   deadline?: string;

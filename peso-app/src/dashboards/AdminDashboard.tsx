@@ -1206,6 +1206,11 @@ export default function AdminDashboard() {
       const employer = employers.find(
         (candidate) => candidate.employer_id === employerId,
       );
+      if (employer?.verification_refresh_required) {
+        throw new Error(
+          "The employer must update and resubmit company screening details before it can be verified again.",
+        );
+      }
       if (
         !employer ||
         !getEmployerRegistrationChecklist(
@@ -1343,6 +1348,11 @@ export default function AdminDashboard() {
       const seeker = jobSeekers.find(
         (jobSeeker) => jobSeeker.job_seeker_id === jobSeekerId,
       );
+      if (seeker?.verification_refresh_required) {
+        throw new Error(
+          "The job seeker must update and resubmit screening details before being verified again.",
+        );
+      }
       if (
         !seeker ||
         !String(seeker.full_name || "").trim() ||

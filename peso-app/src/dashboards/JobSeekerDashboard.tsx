@@ -49,6 +49,7 @@ type Seeker = {
   birth_date: string | null;
   resume_url: string | null;
   verification_status: "pending" | "verified" | "not_approved";
+  verification_refresh_required: boolean;
   registration_details: unknown;
 };
 
@@ -441,6 +442,7 @@ export default function JobSeekerDashboard() {
             birth_date,
             resume_url,
             verification_status,
+            verification_refresh_required,
             registration_details
           `
         )
@@ -548,9 +550,12 @@ export default function JobSeekerDashboard() {
           birth_date: birthDate || null,
           contact_no: contactNumber || null,
           address: presentAddress || null,
+          verification_details_reviewed_at: new Date().toISOString(),
         })
         .eq("job_seeker_id", seeker.job_seeker_id)
-        .select("registration_details, full_name, birth_date, contact_no, address")
+        .select(
+          "registration_details, full_name, birth_date, contact_no, address, verification_status, verification_refresh_required",
+        )
         .maybeSingle();
 
       if (updateError) throw updateError;
@@ -1689,6 +1694,39 @@ export default function JobSeekerDashboard() {
               </button>
             </div>
           )}
+          {seeker?.verification_refresh_required && (
+            <div
+              role="alert"
+              className="mx-auto mb-6 flex max-w-7xl flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
+            >
+              <p>
+                Your account was automatically unverified because your screening
+                details need an update. Review and resubmit them so PESO can
+                verify your account again.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  handlePageChange("Profile");
+                  startScreeningEdit();
+                }}
+                className="shrink-0 rounded-lg bg-amber-800 px-3 py-2 font-bold text-white hover:bg-amber-900"
+              >
+                Update screening details
+              </button>
+            </div>
+          )}
+          {seeker &&
+            !seeker.verification_refresh_required &&
+            seeker.verification_status === "pending" && (
+              <p
+                role="status"
+                className="mx-auto mb-6 max-w-7xl rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"
+              >
+                Your account is awaiting PESO verification. You can apply for
+                jobs again after PESO approves your updated details.
+              </p>
+            )}
           {renderContent()}
         </section>
 

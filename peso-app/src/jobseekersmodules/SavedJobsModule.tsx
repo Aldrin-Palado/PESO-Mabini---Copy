@@ -19,6 +19,7 @@ type Job = {
   classification: "local" | "international";
   salary: string;
   description: string;
+  jobQualifications: string;
   requirements: string;
   vacanciesAvailable: number;
   deadline: string | null;
@@ -114,6 +115,7 @@ export default function SavedJobsModule({
             classification: row.job_classification,
             salary,
             description: row.description || "No description provided.",
+            jobQualifications: row.job_qualifications || "",
             requirements: row.requirements || "",
             vacanciesAvailable: row.vacancies_available,
             deadline: row.deadline,
@@ -375,6 +377,7 @@ export default function SavedJobsModule({
             classification: selectedJob.classification,
             salary: selectedJob.salary,
             description: selectedJob.description,
+            jobQualifications: selectedJob.jobQualifications,
             requirements: selectedJob.requirements,
             openings: selectedJob.vacanciesAvailable,
             deadline: selectedJob.deadline,

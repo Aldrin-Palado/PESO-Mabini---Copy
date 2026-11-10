@@ -12,6 +12,7 @@ export type JobDetails = {
   classification?: string | null;
   salary?: string | null;
   description?: string | null;
+  jobQualifications?: string | null;
   requirements?: string | null;
   openings?: number | null;
   deadline?: string | null;
@@ -228,6 +229,14 @@ export default function JobDetailsModal({
                 </h3>
                 <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
                   {job.description || "No description provided."}
+                </p>
+              </section>
+              <section className="rounded-2xl border border-slate-200 border-l-4 border-l-blue-500 bg-white p-5">
+                <h3 className="text-sm font-bold uppercase tracking-wide text-slate-800">
+                  Job Qualifications
+                </h3>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                  {job.jobQualifications || "No specific qualifications provided."}
                 </p>
               </section>
               <section className="rounded-2xl border border-slate-200 border-l-4 border-l-indigo-500 bg-white p-5">

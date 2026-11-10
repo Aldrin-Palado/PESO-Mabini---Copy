@@ -7,6 +7,7 @@ type JobPost = {
   employer_id: string;
   position_title: string;
   description: string | null;
+  job_qualifications: string | null;
   requirements: string | null;
   location: string;
   employment_type: string;

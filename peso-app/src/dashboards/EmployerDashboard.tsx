@@ -45,6 +45,8 @@ interface EmployerProfile {
   contact_no: string | null;
   email: string | null;
   is_verified: boolean;
+  verification_status: "pending" | "verified" | "not_approved";
+  verification_refresh_required: boolean;
   logo_url: string | null;
   company_description: string | null;
   industry: string | null;
@@ -58,6 +60,7 @@ interface JobPost {
   employer_id: string;
   position_title: string;
   description: string | null;
+  job_qualifications: string | null;
   requirements: string | null;
   location: string;
   employment_type: string;
@@ -388,7 +391,7 @@ export default function EmployerDashboard() {
       await supabase
         .from("employer")
         .select(
-          "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified, logo_url, company_description, industry, website, registration_details, verification_documents"
+          "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified, verification_status, verification_refresh_required, logo_url, company_description, industry, website, registration_details, verification_documents"
         )
         .eq("user_id", user.id)
         .maybeSingle();
@@ -419,7 +422,7 @@ export default function EmployerDashboard() {
       await supabase
         .from("job_vacancy")
         .select(
-          "job_vacancy_id, employer_id, position_title, description, requirements, location, employment_type, job_classification, salary_min, salary_max, vacancies_available, status, date_posted, deadline, image_url"
+          "job_vacancy_id, employer_id, position_title, description, job_qualifications, requirements, location, employment_type, job_classification, salary_min, salary_max, vacancies_available, status, date_posted, deadline, image_url"
         )
         .eq("employer_id", employer.employer_id)
         .order("date_posted", { ascending: false });
@@ -669,7 +672,7 @@ export default function EmployerDashboard() {
       .update(changes)
       .eq("user_id", user.id)
       .select(
-        "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified, logo_url, company_description, industry, website, registration_details, verification_documents"
+        "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified, verification_status, verification_refresh_required, logo_url, company_description, industry, website, registration_details, verification_documents"
       )
       .maybeSingle();
 
@@ -736,7 +739,10 @@ export default function EmployerDashboard() {
       text("address_city"),
     ].filter(Boolean).join(", ");
     const changes = {
-      registration_details: details,
+      registration_details: {
+        ...details,
+      },
+      verification_details_reviewed_at: new Date().toISOString(),
       industry: industries.join(", ") || null,
       website: text("website").trim() || null,
       email: text("email").trim().toLowerCase() || profile.email,
@@ -750,7 +756,7 @@ export default function EmployerDashboard() {
       .update(changes)
       .eq("user_id", profile.user_id)
       .select(
-        "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified, logo_url, company_description, industry, website, registration_details, verification_documents",
+        "employer_id, user_id, name, address, contact_person, contact_no, email, is_verified, verification_status, verification_refresh_required, logo_url, company_description, industry, website, registration_details, verification_documents",
       )
       .maybeSingle();
 
@@ -1072,6 +1078,34 @@ export default function EmployerDashboard() {
               </button>
             </div>
           )}
+
+          {profile.verification_refresh_required ? (
+            <div
+              role="alert"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
+            >
+              <p>
+                Your account was automatically unverified because your company
+                screening details need an update. Review and resubmit them so
+                PESO can verify your account again.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate("Company Profile")}
+                className="shrink-0 rounded-lg bg-amber-800 px-3 py-2 font-bold text-white hover:bg-amber-900"
+              >
+                Update company details
+              </button>
+            </div>
+          ) : !profile.is_verified ? (
+            <p
+              role="status"
+              className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"
+            >
+              Your employer account is awaiting PESO verification. Job posting
+              is available after PESO approves your company details.
+            </p>
+          ) : null}
 
           {renderContent()}
         </section>
