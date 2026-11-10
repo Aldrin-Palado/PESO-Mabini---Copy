@@ -92,7 +92,9 @@ export default function PesoLogo({
     <>
       {mark}
 
-      <span className="min-w-0">
+      <span
+        className={`min-w-0 ${size === "sidebar" ? "max-[360px]:hidden" : ""}`}
+      >
         <span
           className={`flex min-w-0 items-baseline gap-1 whitespace-nowrap font-black leading-tight ${
             size === "sidebar"

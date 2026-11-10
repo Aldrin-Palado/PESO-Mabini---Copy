@@ -2202,7 +2202,7 @@ export default function AdminDashboard() {
       />
     )}
 
-    <div className="min-w-0 max-w-[92px] text-right sm:max-w-none sm:text-left">
+    <div className="min-w-0 max-w-[92px] text-right max-[360px]:hidden sm:max-w-none sm:text-left">
 
       <p className="break-words text-sm font-semibold text-slate-800 sm:truncate">
         {account?.full_name}

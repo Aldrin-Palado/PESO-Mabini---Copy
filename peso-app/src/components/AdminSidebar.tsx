@@ -108,7 +108,7 @@ export default function AdminSidebar({
       >
 
         {/* Logo / Title */}
-        <div className="flex items-start justify-between gap-2 border-b border-white/10 px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-5 sm:px-6">
+        <div className="flex items-start justify-between gap-2 border-b border-white/10 px-3 pt-[calc(env(safe-area-inset-top)+1.25rem)] pb-5 sm:px-6 lg:px-4">
           <PesoLogo
             size="sidebar"
             showName
@@ -137,7 +137,7 @@ export default function AdminSidebar({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 lg:overflow-y-auto">
+        <nav className="flex-1 px-2 py-4 sm:px-3 lg:overflow-y-auto">
 
           {/* =========================
               MAIN MENU
@@ -156,7 +156,7 @@ export default function AdminSidebar({
                 <button
                   key={module}
                   onClick={() => go(module)}
-                  className={`w-full rounded-md px-3 py-2 text-left text-sm font-medium transition ${
+                  className={`w-full min-w-0 rounded-md px-2 py-2 text-left text-xs font-medium transition min-[400px]:px-3 min-[400px]:text-sm ${
                     isActive
                       ? "bg-yellow-400 text-black shadow-sm"
                       : "text-blue-50/90 hover:bg-white/10 hover:text-white"
@@ -191,7 +191,7 @@ export default function AdminSidebar({
                   <button
                     key={module}
                     onClick={() => go(module)}
-                    className={`w-full rounded-md px-3 py-2 text-left text-sm font-medium transition ${
+                    className={`w-full min-w-0 rounded-md px-2 py-2 text-left text-xs font-medium transition min-[400px]:px-3 min-[400px]:text-sm ${
                       isActive
                         ? "bg-yellow-400 text-black shadow-sm"
                         : "text-blue-50/90 hover:bg-white/10 hover:text-white"
@@ -215,7 +215,7 @@ export default function AdminSidebar({
           {/* My Profile */}
           <button
             onClick={() => go("My Profile")}
-            className={`mb-1 w-full rounded-md px-3 py-2 text-left text-sm font-medium transition ${
+            className={`mb-1 w-full min-w-0 rounded-md px-2 py-2 text-left text-xs font-medium transition min-[400px]:px-3 min-[400px]:text-sm ${
               activePage === "My Profile"
                 ? "bg-yellow-400 text-black"
                 : "text-blue-50/90 hover:bg-white/10 hover:text-white"
@@ -227,7 +227,7 @@ export default function AdminSidebar({
           {/* Logout */}
           <button
             onClick={handleLogout}
-            className="w-full rounded-md px-3 py-2 text-left text-sm font-medium text-red-100 transition hover:bg-red-600/90 hover:text-white"
+            className="w-full min-w-0 rounded-md px-2 py-2 text-left text-xs font-medium text-red-100 transition hover:bg-red-600/90 hover:text-white min-[400px]:px-3 min-[400px]:text-sm"
           >
             Logout
           </button>
