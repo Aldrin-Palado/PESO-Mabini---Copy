@@ -669,7 +669,7 @@ export default function JobSeekersModule({
           </div>
         ) : (
           <>
-            <div className="divide-y divide-slate-100 2xl:hidden">
+            <div className="divide-y divide-slate-100">
               {visibleJobSeekers.map((jobSeeker, index) => {
                 const name = getSeekerName(jobSeeker);
                 const registration = getRegistrationDetails(jobSeeker);
@@ -760,7 +760,7 @@ export default function JobSeekersModule({
               })}
             </div>
 
-            <div className="hidden overflow-x-auto 2xl:block">
+            <div className="hidden">
             <table className="w-full min-w-[1200px] table-fixed">
               <thead className="bg-gradient-to-r from-[#1766B4] to-[#124A91] text-left">
                 <tr>

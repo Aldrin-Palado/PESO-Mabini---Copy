@@ -530,7 +530,7 @@ export default function EmployersModule({
           </div>
         ) : (
           <>
-            <div className="divide-y divide-slate-100 2xl:hidden">
+            <div className="divide-y divide-slate-100">
               {visibleEmployers.map((employer, index) => {
                 const name =
                   employer.name ||
@@ -642,7 +642,7 @@ export default function EmployersModule({
               })}
             </div>
 
-            <div className="hidden overflow-x-auto 2xl:block">
+            <div className="hidden">
             <table className="w-full min-w-[1040px] table-fixed">
               <thead className="bg-gradient-to-r from-[#1766B4] to-[#124A91] text-left">
                 <tr>
