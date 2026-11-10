@@ -15,6 +15,11 @@ type JobSeekerPage =
   | "Messages"
   | "Profile";
 
+type ApplicationDocument = {
+  name: string;
+  path: string;
+};
+
 type Application = {
   id: string;
   job: string;
@@ -26,6 +31,7 @@ type Application = {
   contactNumber: string | null;
   address: string | null;
   resumeUrl: string | null;
+  qualificationFiles: ApplicationDocument[];
 };
 
 type Props = {
@@ -97,6 +103,7 @@ export default function ApplicationsModule({
           applicant_contact_no,
           applicant_address,
           applicant_resume_url,
+          applicant_qualification_files,
           employer (
             name
           )
@@ -135,6 +142,17 @@ export default function ApplicationsModule({
             contactNumber: row.applicant_contact_no,
             address: row.applicant_address,
             resumeUrl: row.applicant_resume_url,
+            qualificationFiles: Array.isArray(row.applicant_qualification_files)
+              ? row.applicant_qualification_files.filter(
+                  (document): document is ApplicationDocument =>
+                    typeof document === "object" &&
+                    document !== null &&
+                    "name" in document &&
+                    typeof document.name === "string" &&
+                    "path" in document &&
+                    typeof document.path === "string",
+                )
+              : [],
           };
         })
       );
@@ -159,6 +177,25 @@ export default function ApplicationsModule({
       console.error("Could not open application resume:", error);
       setResumeError(
         error instanceof Error ? error.message : "Unable to open the uploaded resume.",
+      );
+    } finally {
+      setOpeningResume(false);
+    }
+  };
+
+  const handleOpenQualificationFile = async (document: ApplicationDocument) => {
+    if (openingResume) return;
+
+    setOpeningResume(true);
+    setResumeError("");
+    try {
+      await openStoredResume(document.path);
+    } catch (error) {
+      console.error("Could not open application document:", error);
+      setResumeError(
+        error instanceof Error
+          ? error.message
+          : "Unable to open the uploaded document.",
       );
     } finally {
       setOpeningResume(false);
@@ -424,6 +461,27 @@ export default function ApplicationsModule({
               <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
                 {resumeError}
               </p>
+            )}
+
+            {selectedApplication.qualificationFiles.length > 0 && (
+              <section className="mt-5">
+                <h3 className="text-sm font-semibold text-gray-800">
+                  Qualifications and requirements documents
+                </h3>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {selectedApplication.qualificationFiles.map((document) => (
+                    <button
+                      key={document.path}
+                      type="button"
+                      onClick={() => void handleOpenQualificationFile(document)}
+                      disabled={openingResume}
+                      className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100 disabled:cursor-wait disabled:opacity-60"
+                    >
+                      {openingResume ? "Opening..." : `View ${document.name}`}
+                    </button>
+                  ))}
+                </div>
+              </section>
             )}
 
             <footer className="mt-5 flex flex-wrap justify-end gap-3">

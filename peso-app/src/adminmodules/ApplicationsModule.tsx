@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { openStoredResume } from "../services/resumes";
 import type { ApplicationDecisionResult } from "../services/applicationDecisions";
+import ApplicationScopeToggle from "../components/ApplicationScopeToggle";
 import ModuleScoreboard from "./ModuleScoreboard";
 
 type Application = {
@@ -8,6 +9,7 @@ type Application = {
   application_id?: string;
   job_seeker_id?: string;
   employer_id?: string;
+  is_peso_application?: boolean;
   job_vacancy_id?: string | null;
   status?: string;
   application_status?: string;
@@ -23,6 +25,7 @@ type Application = {
   contact_number?: string | null;
   applicant_address?: string | null;
   resume_url?: string | null;
+  can_update_status?: boolean;
   [key: string]: any;
 };
 
@@ -35,6 +38,7 @@ type Props = {
   setStatusFilter: (value: string) => void;
   loading: boolean;
   canDecideApplications: boolean;
+  canDeleteApplications?: boolean;
   onUpdateStatus: (applicationId: string, status: string) => Promise<void>;
   onDecideApplication: (
     applicationId: string,
@@ -93,6 +97,7 @@ export default function ApplicationsModule({
   setStatusFilter,
   loading,
   canDecideApplications,
+  canDeleteApplications = true,
   onUpdateStatus,
   onDecideApplication,
   onDelete,
@@ -100,6 +105,9 @@ export default function ApplicationsModule({
   EmptyMessage,
   formatDate,
 }: Props) {
+  const [applicationScope, setApplicationScope] = useState<"peso" | "overall">(
+    "peso",
+  );
   const [employerFilter, setEmployerFilter] = useState("all");
   const [jobFilter, setJobFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
@@ -115,9 +123,17 @@ export default function ApplicationsModule({
   const [resumeError, setResumeError] = useState("");
   const [openingResumeId, setOpeningResumeId] = useState<string | null>(null);
 
+  const scopedApplications = useMemo(
+    () =>
+      applicationScope === "peso"
+        ? applications.filter((application) => application.is_peso_application)
+        : applications,
+    [applicationScope, applications],
+  );
+
   const employers = useMemo(() => {
     const options = new Map<string, string>();
-    for (const application of applications) {
+    for (const application of scopedApplications) {
       if (application.employer_id) {
         options.set(
           application.employer_id,
@@ -128,21 +144,21 @@ export default function ApplicationsModule({
     return [...options.entries()].sort((first, second) =>
       first[1].localeCompare(second[1]),
     );
-  }, [applications]);
+  }, [scopedApplications]);
 
   const jobs = useMemo(
     () =>
       [...new Set(
-        applications
+        scopedApplications
           .map((application) => application.position_title?.trim())
           .filter((title): title is string => Boolean(title)),
       )].sort((first, second) => first.localeCompare(second)),
-    [applications],
+    [scopedApplications],
   );
 
   const visibleApplications = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
-    return applications.filter((application) => {
+    return scopedApplications.filter((application) => {
       const status = getApplicationStatus(application);
       const appliedDate = application.date_applied || application.created_at;
       const appliedDay = appliedDate ? appliedDate.slice(0, 10) : "";
@@ -169,7 +185,7 @@ export default function ApplicationsModule({
       );
     });
   }, [
-    applications,
+    scopedApplications,
     dateFrom,
     dateTo,
     employerFilter,
@@ -213,8 +229,19 @@ export default function ApplicationsModule({
 
   const handleProgressUpdate = async (
     applicationId: string,
-    status: "pending" | "under_review" | "shortlisted" | "interview",
+    status:
+      | "pending"
+      | "under_review"
+      | "shortlisted"
+      | "interview"
+      | "hired"
+      | "rejected",
   ) => {
+    if (applicationScope !== "peso") {
+      setActionError("Overall applications are view-only.");
+      return;
+    }
+
     setUpdatingId(applicationId);
     setActionError("");
     setDecisionNotice("");
@@ -236,6 +263,10 @@ export default function ApplicationsModule({
     approved: boolean,
   ) => {
     if (!application.application_id) return;
+    if (applicationScope !== "peso" || !application.can_update_status) {
+      setActionError("Only PESO applications can be updated here.");
+      return;
+    }
     const applicant = application.applicant_name || "this applicant";
     const position = application.position_title || "this position";
     const confirmed = window.confirm(
@@ -305,13 +336,21 @@ export default function ApplicationsModule({
 
   return (
     <div className="space-y-4">
+      <ApplicationScopeToggle
+        value={applicationScope}
+        pesoCount={applications.filter(
+          (application) => application.is_peso_application,
+        ).length}
+        overallCount={applications.length}
+        onChange={setApplicationScope}
+      />
       <ModuleScoreboard
         title="Applications"
         metrics={[
-          { label: "Total applications", value: applications.length },
+          { label: "Total applications", value: scopedApplications.length },
           ...STATUSES.map((status) => ({
             label: status.label,
-            value: applications.filter(
+            value: scopedApplications.filter(
               (application) => getApplicationStatus(application) === status.value,
             ).length,
           })),
@@ -422,8 +461,14 @@ export default function ApplicationsModule({
         </header>
         {loading ? (
           <LoadingMessage />
-        ) : applications.length === 0 ? (
-          <EmptyMessage message="No applications found. Applications appear here after job seekers apply to a job." />
+        ) : scopedApplications.length === 0 ? (
+          <EmptyMessage
+            message={
+              applicationScope === "peso"
+                ? "No applications have been received for PESO job posts."
+                : "No applications found."
+            }
+          />
         ) : visibleApplications.length === 0 ? (
           <p className="px-4 py-8 text-center text-xs text-slate-500">
             No applications match these filters.
@@ -508,13 +553,17 @@ export default function ApplicationsModule({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
-                    {!["hired", "rejected", "withdrawn"].includes(status) &&
+                    {applicationScope === "peso" &&
+                    application.can_update_status &&
+                    !["hired", "rejected", "withdrawn"].includes(status) &&
                     application.application_id ? (
                       <label className="sr-only" htmlFor={`application-status-${rowId}`}>
                         Update application status
                       </label>
                     ) : null}
-                    {!["hired", "rejected", "withdrawn"].includes(status) &&
+                    {applicationScope === "peso" &&
+                    application.can_update_status &&
+                    !["hired", "rejected", "withdrawn"].includes(status) &&
                     application.application_id ? (
                       <select
                         id={`application-status-${rowId}`}
@@ -526,11 +575,19 @@ export default function ApplicationsModule({
                             nextStatus === "pending" ||
                             nextStatus === "under_review" ||
                             nextStatus === "shortlisted" ||
-                            nextStatus === "interview"
+                            nextStatus === "interview" ||
+                            nextStatus === "hired" ||
+                            (nextStatus === "rejected" && !canDecideApplications)
                           ) {
                             void handleProgressUpdate(
                               application.application_id!,
-                              nextStatus,
+                              nextStatus as
+                                | "pending"
+                                | "under_review"
+                                | "shortlisted"
+                                | "interview"
+                                | "hired"
+                                | "rejected",
                             );
                           } else if (nextStatus === "approved") {
                             void handleDecision(application, rowId, true);
@@ -544,17 +601,35 @@ export default function ApplicationsModule({
                         <option value="under_review">Under Review</option>
                         <option value="shortlisted">Shortlisted</option>
                         <option value="interview">Interview</option>
-                        {canDecideApplications && (
+                        {applicationScope === "peso" &&
+                        canDecideApplications &&
+                        application.can_update_status && (
                           <>
                             <option value="approved">Approved</option>
                             <option value="rejected">Reject</option>
                           </>
                         )}
+                        {applicationScope === "peso" &&
+                        !canDecideApplications &&
+                        application.can_update_status && (
+                          <>
+                            <option value="hired">Hired</option>
+                            <option value="rejected">Rejected</option>
+                          </>
+                        )}
                       </select>
                     ) : (
-                      <span className={`rounded-full px-2.5 py-1.5 text-[9px] font-bold ${statusStyle}`}>
-                        {getStatusLabel(status)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`rounded-full px-2.5 py-1.5 text-[9px] font-bold ${statusStyle}`}>
+                          {getStatusLabel(status)}
+                        </span>
+                        {(applicationScope === "overall" ||
+                          !application.can_update_status) && (
+                          <span className="text-[9px] font-semibold text-slate-400">
+                            View only
+                          </span>
+                        )}
+                      </div>
                     )}
                     <button
                       type="button"
@@ -573,14 +648,16 @@ export default function ApplicationsModule({
                         {openingResumeId === rowId ? "Opening..." : "Resume"}
                       </button>
                     )}
-                    <button
-                      type="button"
-                      disabled={!application.application_id || deletingId === rowId}
-                      onClick={() => void handleDelete(application, rowId)}
-                      className="rounded-md border border-slate-200 px-2 py-1 text-[9px] font-semibold text-slate-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
-                    >
-                      {deletingId === rowId ? "Deleting..." : "Delete"}
-                    </button>
+                    {applicationScope === "peso" && canDeleteApplications && (
+                      <button
+                        type="button"
+                        disabled={!application.application_id || deletingId === rowId}
+                        onClick={() => void handleDelete(application, rowId)}
+                        className="rounded-md border border-slate-200 px-2 py-1 text-[9px] font-semibold text-slate-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                      >
+                        {deletingId === rowId ? "Deleting..." : "Delete"}
+                      </button>
+                    )}
                   </div>
 
                   <div className="flex shrink-0 justify-between gap-3 text-[8px] text-slate-400 sm:block sm:text-right">

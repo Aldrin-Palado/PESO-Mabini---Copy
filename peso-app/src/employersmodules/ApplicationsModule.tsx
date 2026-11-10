@@ -1,5 +1,11 @@
 import { useMemo, useState } from "react";
 import { supabase } from "../services/supabase";
+import { openStoredResume } from "../services/resumes";
+
+type ApplicationDocument = {
+  name: string;
+  path: string;
+};
 
 type ApplicationRow = {
   application_id: string;
@@ -13,6 +19,7 @@ type ApplicationRow = {
   applicant_email?: string | null;
   contact_number?: string | null;
   applicant_address?: string | null;
+  applicant_qualification_files?: ApplicationDocument[] | null;
 };
 
 type Props = {
@@ -73,6 +80,7 @@ export default function ApplicationsModule({
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
   const [notice, setNotice] = useState("");
+  const [openingDocumentPath, setOpeningDocumentPath] = useState<string | null>(null);
   const [expandedApplicants, setExpandedApplicants] = useState<Set<string>>(
     () => new Set(),
   );
@@ -150,6 +158,23 @@ export default function ApplicationsModule({
       );
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleOpenDocument = async (document: ApplicationDocument) => {
+    setOpeningDocumentPath(document.path);
+    setActionError("");
+    try {
+      await openStoredResume(document.path);
+    } catch (error) {
+      console.error("Could not open applicant document:", error);
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "Unable to open the applicant document.",
+      );
+    } finally {
+      setOpeningDocumentPath(null);
     }
   };
 
@@ -368,6 +393,23 @@ export default function ApplicationsModule({
                             <p className="shrink-0 text-[9px] text-slate-400 sm:max-w-48 sm:text-right">
                               {application.applicant_address}
                             </p>
+                          )}
+                          {(application.applicant_qualification_files ?? []).length > 0 && (
+                            <div className="flex flex-wrap gap-2 sm:pl-2">
+                              {application.applicant_qualification_files?.map((document) => (
+                                <button
+                                  key={document.path}
+                                  type="button"
+                                  disabled={openingDocumentPath === document.path}
+                                  onClick={() => void handleOpenDocument(document)}
+                                  className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[10px] font-semibold text-blue-800 hover:bg-blue-100 disabled:cursor-wait disabled:opacity-60"
+                                >
+                                  {openingDocumentPath === document.path
+                                    ? "Opening..."
+                                    : `View ${document.name}`}
+                                </button>
+                              ))}
+                            </div>
                           )}
                         </article>
                       );

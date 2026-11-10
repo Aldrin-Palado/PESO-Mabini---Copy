@@ -85,6 +85,7 @@ interface ApplicationRow {
   applicant_email?: string | null;
   applicant_contact_no?: string | null;
   applicant_address?: string | null;
+  applicant_qualification_files?: { name: string; path: string }[] | null;
 }
 
 interface CompanyProfileForm {
@@ -155,7 +156,7 @@ async function loadEmployerApplications(
   const { data: applicationRows, error: applicationError } = await supabase
     .from("application")
     .select(
-      "application_id, employer_id, job_seeker_id, position_title, status, date_applied, applicant_name, applicant_email, applicant_contact_no, applicant_address",
+      "application_id, employer_id, job_seeker_id, position_title, status, date_applied, applicant_name, applicant_email, applicant_contact_no, applicant_address, applicant_qualification_files",
     )
     .eq("employer_id", employerId)
     .order("date_applied", { ascending: false });

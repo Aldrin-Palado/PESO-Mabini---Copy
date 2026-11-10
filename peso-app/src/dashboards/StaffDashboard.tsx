@@ -4,6 +4,8 @@ import AppIcon, { type AppIconName } from "../components/AppIcon";
 import ProfileAvatar from "../components/ProfileAvatar";
 import { supabase } from "../services/supabase";
 import { openStoredResume } from "../services/resumes";
+import ApplicationsModule from "../adminmodules/ApplicationsModule";
+import type { ApplicationDecisionResult } from "../services/applicationDecisions";
 import type {
   EmployerDocumentStatus,
   EmployerVerificationDocument,
@@ -43,6 +45,30 @@ type ModuleName =
 
 type StaffRecordPage = "Job Posts" | "Employers" | "Job Seekers";
 type StaffRecord = Record<string, unknown>;
+
+type StaffApplication = {
+  application_id: string;
+  employer_id: string;
+  job_seeker_id: string;
+  job_vacancy_id: string | null;
+  applicant_name: string | null;
+  applicant_email: string | null;
+  applicant_contact_no: string | null;
+  contact_number: string | null;
+  applicant_address: string | null;
+  resume_url: string | null;
+  employer_name: string | null;
+  position_title: string | null;
+  status: string;
+  date_applied: string;
+  updated_at?: string;
+  created_at?: string;
+  job_location: string | null;
+  job_requirements: string | null;
+  is_peso_application: boolean;
+  can_update_status: boolean;
+  [key: string]: any;
+};
 
 export default function StaffDashboard() {
   const [staff, setStaff] =
@@ -1310,32 +1336,189 @@ function dateValue(value: unknown): string {
 ========================================================= */
 
 function JobApplications() {
+  const [applications, setApplications] = useState<StaffApplication[]>([]);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    const loadApplications = async () => {
+      setLoading(true);
+      setLoadError("");
+      const [
+        applicationsResult,
+        seekersResult,
+        employersResult,
+        jobsResult,
+      ] = await Promise.all([
+        supabase.from("application").select("*"),
+        supabase
+          .from("job_seeker")
+          .select(
+            "job_seeker_id, full_name, email, contact_no, address, resume_url",
+          ),
+        supabase.from("employer").select("employer_id, name, is_peso"),
+        supabase
+          .from("job_vacancy")
+          .select(
+            "job_vacancy_id, employer_id, position_title, requirements, location",
+          ),
+      ]);
+
+      if (!active) return;
+      if (applicationsResult.error) {
+        console.error("Staff application loading error:", applicationsResult.error);
+        setLoadError(
+          `Unable to load applications: ${applicationsResult.error.message}`,
+        );
+        setApplications([]);
+      } else {
+        const seekersById = new Map(
+          (seekersResult.data ?? []).map((seeker) => [
+            seeker.job_seeker_id,
+            seeker,
+          ]),
+        );
+        const employers = new Map(
+          (employersResult.data ?? []).map((employer) => [
+            employer.employer_id,
+            employer,
+          ]),
+        );
+        const jobs = jobsResult.data ?? [];
+        const supportingErrors: string[] = [];
+
+        if (seekersResult.error) {
+          console.error("Staff application seeker loading error:", seekersResult.error);
+          supportingErrors.push(
+            `Applicant details could not be loaded: ${seekersResult.error.message}`,
+          );
+        }
+        if (employersResult.error) {
+          console.error("Staff application employer loading error:", employersResult.error);
+          supportingErrors.push(
+            `Employer details could not be loaded: ${employersResult.error.message}`,
+          );
+        }
+        if (jobsResult.error) {
+          console.error("Staff application job loading error:", jobsResult.error);
+          supportingErrors.push(
+            `Job details could not be loaded: ${jobsResult.error.message}`,
+          );
+        }
+
+        setLoadError(supportingErrors.join(" "));
+        setApplications(
+          (applicationsResult.data ?? []).map((application) => {
+            const seeker = seekersById.get(application.job_seeker_id);
+            const employer = employers.get(application.employer_id);
+            const job = jobs.find((candidate) =>
+              application.job_vacancy_id
+                ? candidate.job_vacancy_id === application.job_vacancy_id
+                : candidate.employer_id === application.employer_id &&
+                  candidate.position_title === application.position_title,
+            );
+            const isPesoApplication = employer?.is_peso === true;
+
+            return {
+              ...application,
+              applicant_name:
+                application.applicant_name ?? seeker?.full_name ?? null,
+              applicant_email:
+                application.applicant_email ?? seeker?.email ?? null,
+              applicant_contact_no:
+                application.applicant_contact_no ?? seeker?.contact_no ?? null,
+              contact_number:
+                application.applicant_contact_no ?? seeker?.contact_no ?? null,
+              applicant_address:
+                application.applicant_address ?? seeker?.address ?? null,
+              resume_url:
+                application.applicant_resume_url ?? seeker?.resume_url ?? null,
+              employer_name: employer?.name ?? null,
+              job_location: job?.location ?? null,
+              job_requirements: job?.requirements ?? null,
+              is_peso_application: isPesoApplication,
+              can_update_status:
+                !employersResult.error &&
+                !jobsResult.error &&
+                isPesoApplication &&
+                Boolean(job),
+            };
+          }),
+        );
+      }
+      setLoading(false);
+    };
+
+    void loadApplications();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const updateApplicationStatus = async (
+    applicationId: string,
+    status: string,
+  ) => {
+    const { data, error } = await supabase
+      .from("application")
+      .update({ status })
+      .eq("application_id", applicationId)
+      .select("application_id")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Staff application status update error:", error);
+      throw new Error(`Application status could not be updated: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error(
+        "Application status was not updated. The record may no longer exist or you may not be assigned to manage applications.",
+      );
+    }
+
+    setApplications((current) =>
+      current.map((application) =>
+        application.application_id === applicationId
+          ? { ...application, status }
+          : application,
+      ),
+    );
+  };
+
+  const unsupportedDecision = async (): Promise<ApplicationDecisionResult> => {
+    throw new Error("Application decisions are unavailable to staff.");
+  };
+
+  const unsupportedDelete = async () => {
+    throw new Error("Application deletion is unavailable to staff.");
+  };
 
   return (
-    <div>
-
-      <h2 className="text-2xl font-black text-[#123B70]">
-        Job Applications
-      </h2>
-
-      <p className="mt-2 text-slate-500">
-        Review and manage job applications.
-      </p>
-
-      <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-8">
-
-        <p className="font-bold text-slate-700">
-          Application Management
-        </p>
-
-        <p className="mt-2 text-sm text-slate-500">
-          Applications assigned to this module
-          can be managed here.
-        </p>
-
-      </div>
-
-    </div>
+    <ApplicationsModule
+      applications={applications}
+      loadError={loadError}
+      search={search}
+      setSearch={setSearch}
+      statusFilter={statusFilter}
+      setStatusFilter={setStatusFilter}
+      loading={loading}
+      canDecideApplications={false}
+      canDeleteApplications={false}
+      onUpdateStatus={updateApplicationStatus}
+      onDecideApplication={unsupportedDecision}
+      onDelete={unsupportedDelete}
+      LoadingMessage={() => (
+        <p className="p-6 text-sm text-slate-500">Loading applications...</p>
+      )}
+      EmptyMessage={({ message }) => (
+        <p className="p-6 text-sm text-slate-500">{message}</p>
+      )}
+      formatDate={(value) => dateValue(value)}
+    />
   );
 }
 

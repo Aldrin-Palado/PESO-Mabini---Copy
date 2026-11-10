@@ -64,6 +64,11 @@ type ApplicationDetails = {
   address: string;
 };
 
+type ApplicationDocument = {
+  name: string;
+  path: string;
+};
+
 type Props = {
   seeker: Seeker;
   profileComplete: boolean;
@@ -99,6 +104,8 @@ export default function JobsModule({
   const [applicationSubmitting, setApplicationSubmitting] = useState(false);
   const [applicationSubmitted, setApplicationSubmitted] = useState(false);
   const [applicationResumeFile, setApplicationResumeFile] = useState<File | null>(null);
+  const [applicationQualificationFiles, setApplicationQualificationFiles] =
+    useState<File[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -326,6 +333,7 @@ export default function JobsModule({
     setApplicationError("");
     setApplicationSubmitted(false);
     setApplicationResumeFile(null);
+    setApplicationQualificationFiles([]);
     setApplicationJob(job);
   };
 
@@ -363,10 +371,27 @@ export default function JobsModule({
       setApplicationError("Please upload a resume before submitting your application.");
       return;
     }
+    if (applicationQualificationFiles.length > 10) {
+      setApplicationError("You can upload up to 10 supporting documents.");
+      return;
+    }
+    const invalidQualificationFile = applicationQualificationFiles.find((file) => {
+      const extension = getResumeExtension(file.name);
+      return !RESUME_MIME_TYPES[extension] || file.size > 5 * 1024 * 1024;
+    });
+    if (invalidQualificationFile) {
+      const extension = getResumeExtension(invalidQualificationFile.name);
+      setApplicationError(
+        !RESUME_MIME_TYPES[extension]
+          ? `Supporting documents must be ${RESUME_FORMATS_LABEL}.`
+          : `Each supporting document must not exceed 5 MB.`,
+      );
+      return;
+    }
 
     setApplicationSubmitting(true);
     setApplicationError("");
-    let uploadedResumePath: string | null = null;
+    const uploadedPaths: string[] = [];
 
     try {
       const { data: jobRow, error: jobError } = await supabase
@@ -435,12 +460,35 @@ export default function JobsModule({
         if (uploadError) {
           throw new Error(`Unable to upload your resume: ${uploadError.message}`);
         }
-        uploadedResumePath = resumePath;
+        uploadedPaths.push(resumePath);
         applicantResumeUrl = resumePath;
+      }
+
+      const qualificationFiles: ApplicationDocument[] = [];
+      for (const [index, file] of applicationQualificationFiles.entries()) {
+        const extension = getResumeExtension(file.name);
+        const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const documentPath =
+          `${seeker.user_id}/applications/${applicationJob.id}/` +
+          `${Date.now()}-${index}-${safeFileName}`;
+        const { error: uploadError } = await supabase.storage
+          .from(RESUME_BUCKET)
+          .upload(documentPath, file, {
+            upsert: false,
+            contentType: RESUME_MIME_TYPES[extension],
+          });
+        if (uploadError) {
+          throw new Error(
+            `Unable to upload ${file.name}: ${uploadError.message}`,
+          );
+        }
+        uploadedPaths.push(documentPath);
+        qualificationFiles.push({ name: file.name, path: documentPath });
       }
 
       const { error: insertError } = await supabase.from("application").insert({
         employer_id: jobRow.employer_id,
+        job_vacancy_id: applicationJob.id,
         job_seeker_id: seeker.job_seeker_id,
         position_title: jobRow.position_title,
         applicant_name: applicationDetails.fullName.trim(),
@@ -448,6 +496,7 @@ export default function JobsModule({
         applicant_contact_no: applicationDetails.contactNumber.trim(),
         applicant_address: applicationDetails.address.trim(),
         applicant_resume_url: applicantResumeUrl,
+        applicant_qualification_files: qualificationFiles,
       });
 
       if (insertError) {
@@ -457,14 +506,15 @@ export default function JobsModule({
         throw new Error(`Unable to submit your application: ${insertError.message}`);
       }
 
+      uploadedPaths.length = 0;
       setApplicationSubmitted(true);
     } catch (error) {
-      if (uploadedResumePath) {
+      if (uploadedPaths.length > 0) {
         const { error: cleanupError } = await supabase.storage
           .from(RESUME_BUCKET)
-          .remove([uploadedResumePath]);
+          .remove(uploadedPaths);
         if (cleanupError) {
-          console.error("Could not remove unlinked application resume:", cleanupError);
+          console.error("Could not remove unlinked application documents:", cleanupError);
         }
       }
       console.error("Error submitting job application:", error);
@@ -1255,6 +1305,37 @@ export default function JobsModule({
                           ? `Your profile resume will be attached if you do not choose another. Upload a ${RESUME_FORMATS_LABEL} file up to 5 MB to use a different resume.`
                           : `Upload a ${RESUME_FORMATS_LABEL} file up to 5 MB.`}
                     </span>
+                  </label>
+                  <label className="block">
+                    <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+                      Qualifications and requirements documents
+                      <span className="ml-1 font-normal text-slate-500">
+                        (optional)
+                      </span>
+                    </span>
+                    <input
+                      type="file"
+                      multiple
+                      accept={RESUME_ACCEPT}
+                      disabled={applicationSubmitting}
+                      onChange={(event) => {
+                        setApplicationQualificationFiles(
+                          Array.from(event.target.files ?? []),
+                        );
+                        event.target.value = "";
+                      }}
+                      className="block w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-60"
+                    />
+                    <span className="mt-1.5 block text-xs text-slate-500">
+                      Upload up to 10 files ({RESUME_FORMATS_LABEL}), maximum 5 MB each.
+                    </span>
+                    {applicationQualificationFiles.length > 0 && (
+                      <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-slate-600">
+                        {applicationQualificationFiles.map((file, index) => (
+                          <li key={`${file.name}-${index}`}>{file.name}</li>
+                        ))}
+                      </ul>
+                    )}
                   </label>
 
                   {applicationError && (

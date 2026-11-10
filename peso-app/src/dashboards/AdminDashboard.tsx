@@ -1444,7 +1444,7 @@ export default function AdminDashboard() {
             .order("created_at", {
               ascending: false,
             }),
-          supabase.from("employer").select("employer_id, name"),
+          supabase.from("employer").select("employer_id, name, is_peso"),
           supabase
             .from("job_vacancy")
             .select("job_vacancy_id, position_title, employer_id, requirements, location"),
@@ -1456,6 +1456,11 @@ export default function AdminDashboard() {
           employer.employer_id,
           employer.name,
         ]),
+      );
+      const pesoEmployerIds = new Set(
+        (employersResult.data ?? [])
+          .filter((employer) => employer.is_peso)
+          .map((employer) => employer.employer_id),
       );
       const jobs = jobsResult.data ?? [];
       const supportingErrors: string[] = [];
@@ -1554,6 +1559,14 @@ export default function AdminDashboard() {
               application.applicant_address ?? seeker?.address ?? null,
             employer_name:
               employersById.get(application.employer_id) ?? null,
+            is_peso_application: pesoEmployerIds.has(application.employer_id),
+            can_update_status: Boolean(
+              account &&
+                job &&
+                pesoEmployerIds.has(application.employer_id) &&
+                (account.role === "superadmin" ||
+                  permissions.includes("Applications")),
+            ),
             job_requirements:
               job?.requirements ?? null,
             job_location:
@@ -1565,7 +1578,7 @@ export default function AdminDashboard() {
     } finally {
       if (showLoading) setModuleLoading(false);
     }
-  }, []);
+  }, [account, permissions]);
 
   useEffect(() => {
     if (!account || activePage !== "Applications") return;
@@ -2027,6 +2040,7 @@ export default function AdminDashboard() {
             setStatusFilter={setApplicationStatusFilter}
             loading={moduleLoading}
             canDecideApplications={isSuperadmin}
+            canDeleteApplications={isSuperadmin}
             onUpdateStatus={updateApplicationStatus}
             onDecideApplication={decideApplication}
             onDelete={deleteApplication}

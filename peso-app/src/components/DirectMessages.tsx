@@ -27,9 +27,11 @@ type PesoMessage = {
 
 type ApplicantApplication = {
   application_id: string;
+  employer_id: string;
   position_title: string | null;
   status: string;
   date_applied: string;
+  can_update_status: boolean;
 };
 
 type Props = {
@@ -68,6 +70,7 @@ export default function DirectMessages({
   const [decisionLoadingId, setDecisionLoadingId] = useState<string | null>(null);
   const [decisionNotice, setDecisionNotice] = useState("");
   const [decisionError, setDecisionError] = useState("");
+  const [decisionWarning, setDecisionWarning] = useState("");
   const [applicationsLoading, setApplicationsLoading] = useState(false);
   const [draft, setDraft] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
@@ -129,6 +132,7 @@ export default function DirectMessages({
     setApplicantApplications([]);
     setDecisionNotice("");
     setDecisionError("");
+    setDecisionWarning("");
 
     if (
       mode !== "admin" ||
@@ -153,12 +157,40 @@ export default function DirectMessages({
 
       const { data, error: applicationError } = await supabase
         .from("application")
-        .select("application_id, position_title, status, date_applied")
+        .select(
+          "application_id, employer_id, position_title, status, date_applied",
+        )
         .eq("job_seeker_id", seeker.job_seeker_id)
         .order("date_applied", { ascending: false });
       if (applicationError) throw applicationError;
+
+      const { data: employers, error: employersError } = await supabase
+        .from("employer")
+        .select("employer_id, is_peso");
+      if (employersError) {
+        console.error("Could not verify PESO job applications:", employersError);
+        if (!cancelled) {
+          setDecisionWarning(
+            "PESO applications could not be verified. Status updates are disabled.",
+          );
+        }
+      }
+
       if (!cancelled) {
-        setApplicantApplications((data ?? []) as ApplicantApplication[]);
+        setApplicantApplications(
+          (data ?? []).map((application) => {
+            return {
+              ...application,
+              can_update_status:
+                !employersError &&
+                (employers ?? []).some(
+                  (employer) =>
+                    employer.employer_id === application.employer_id &&
+                    employer.is_peso,
+                ),
+            };
+          }),
+        );
       }
     };
 
@@ -554,6 +586,11 @@ export default function DirectMessages({
     application: ApplicantApplication,
     action: "pending" | "under_review" | "approved" | "rejected",
   ) => {
+    if (!application.can_update_status) {
+      setDecisionError("You can only update applications for jobs you posted.");
+      return;
+    }
+
     const finalDecision = action === "approved" || action === "rejected";
     const approved = action === "approved";
     if (
@@ -799,7 +836,14 @@ export default function DirectMessages({
                 <p role="alert" className="text-xs text-red-700">
                   {decisionError}
                 </p>
-              ) : applicantApplications.length === 0 ? (
+              ) : (
+                <>
+              {decisionWarning && (
+                <p role="alert" className="text-xs text-amber-700">
+                  {decisionWarning}
+                </p>
+              )}
+              {applicantApplications.length === 0 ? (
                 <div className="space-y-3">
                   <p className="text-xs text-slate-500">
                     No application is linked to this Job Seeker. These buttons send a message only; they do not change an application status.
@@ -844,6 +888,10 @@ export default function DirectMessages({
                         {finalStatus ? (
                           <span className="text-xs font-semibold text-slate-500">
                             {status === "hired" ? "You're Hired" : "Decision recorded"}
+                          </span>
+                        ) : !application.can_update_status ? (
+                          <span className="text-xs font-semibold text-slate-400">
+                            View only
                           </span>
                         ) : (
                           <div className="flex flex-wrap gap-2">
@@ -899,6 +947,8 @@ export default function DirectMessages({
                     );
                   })}
                 </div>
+              )}
+                </>
               )}
               {decisionNotice && (
                 <p role="status" className="text-xs text-emerald-800">
