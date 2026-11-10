@@ -346,13 +346,15 @@ export default function HomeModule({
                             setViewingImages(postImages);
                           }}
                           aria-label={`View image ${index + 1} of ${postImages.length} for ${post.title}`}
-                          className="group relative aspect-square overflow-hidden bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600"
+                          className="group relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600"
                         >
                           <img
                             src={imageUrl}
                             alt=""
                             loading="lazy"
-                            className="absolute inset-0 h-full w-full object-contain transition group-hover:bg-slate-200"
+                            className={`w-full bg-slate-50 object-cover transition group-hover:scale-105 ${
+                              postImages.length === 1 ? "h-48" : "h-36"
+                            }`}
                           />
                           {index === 3 && postImages.length > 4 && (
                             <span className="absolute inset-0 flex items-center justify-center bg-slate-950/60 text-lg font-bold text-white">

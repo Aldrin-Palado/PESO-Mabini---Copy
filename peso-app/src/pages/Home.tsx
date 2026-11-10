@@ -360,13 +360,13 @@ function Home() {
                               setViewingImages(getPostImages(post));
                             }}
                             aria-label={`View image ${index + 1} of ${getPostImages(post).length} for ${post.title}`}
-                            className="group relative aspect-square overflow-hidden bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-600"
+                            className="group relative overflow-hidden bg-slate-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-600"
                           >
                             <img
                               src={imageUrl}
                               alt=""
                               loading="lazy"
-                              className={`absolute inset-0 h-full w-full object-contain transition group-hover:bg-slate-200 ${
+                              className={`h-52 w-full object-contain transition group-hover:bg-slate-100 ${
                                 index === 3 && getPostImages(post).length > 4
                                   ? "brightness-50"
                                   : ""
