@@ -799,28 +799,45 @@ function Home() {
               </button>
             </div>
             {getPostImages(selectedPESOPost).length > 0 && (
-              <div className="grid gap-2 bg-slate-50 p-3 sm:grid-cols-2 sm:p-5">
-                {getPostImages(selectedPESOPost).map((imageUrl, index) => (
-                  <button
-                    key={imageUrl}
-                    type="button"
-                    onClick={() => {
-                      setViewingImageIndex(index);
-                      setViewingImages(getPostImages(selectedPESOPost));
-                    }}
-                    aria-label={`View image ${index + 1} of ${getPostImages(selectedPESOPost).length}`}
-                    className="group relative overflow-hidden rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-sky-600"
-                  >
-                    <img
-                      src={imageUrl}
-                      alt={`${selectedPESOPost.title}, image ${index + 1}`}
-                      className="h-56 w-full object-contain sm:h-72"
-                    />
-                    <span className="absolute inset-0 flex items-center justify-center bg-slate-950/0 text-sm font-bold text-white transition group-hover:bg-slate-950/30">
-                      View image
-                    </span>
-                  </button>
-                ))}
+              <div className="relative flex min-h-64 items-center justify-center bg-slate-950 p-3 sm:min-h-[28rem] sm:p-5">
+                <img
+                  src={getPostImages(selectedPESOPost)[viewingImageIndex % getPostImages(selectedPESOPost).length]}
+                  alt={`${selectedPESOPost.title}, image ${(viewingImageIndex % getPostImages(selectedPESOPost).length) + 1}`}
+                  className="max-h-[65vh] max-w-full object-contain"
+                />
+                {getPostImages(selectedPESOPost).length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setViewingImageIndex(
+                          (index) =>
+                            (index - 1 + getPostImages(selectedPESOPost).length) %
+                            getPostImages(selectedPESOPost).length,
+                        )
+                      }
+                      aria-label="Previous image"
+                      className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-3xl text-white transition hover:bg-white/25"
+                    >
+                      ‹
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setViewingImageIndex(
+                          (index) => (index + 1) % getPostImages(selectedPESOPost).length,
+                        )
+                      }
+                      aria-label="Next image"
+                      className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-3xl text-white transition hover:bg-white/25"
+                    >
+                      ›
+                    </button>
+                  </>
+                )}
+                <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white">
+                  {(viewingImageIndex % getPostImages(selectedPESOPost).length) + 1} / {getPostImages(selectedPESOPost).length}
+                </span>
               </div>
             )}
             {getPostVideos(selectedPESOPost).length > 0 && (
