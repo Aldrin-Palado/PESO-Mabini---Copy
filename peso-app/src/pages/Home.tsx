@@ -360,13 +360,13 @@ function Home() {
                               setViewingImages(getPostImages(post));
                             }}
                             aria-label={`View image ${index + 1} of ${getPostImages(post).length} for ${post.title}`}
-                            className="group relative overflow-hidden bg-slate-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-600"
+                            className="group relative aspect-square overflow-hidden bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-600"
                           >
                             <img
                               src={imageUrl}
                               alt=""
                               loading="lazy"
-                              className={`h-52 w-full object-contain transition group-hover:bg-slate-100 ${
+                              className={`absolute inset-0 h-full w-full object-contain transition group-hover:bg-slate-200 ${
                                 index === 3 && getPostImages(post).length > 4
                                   ? "brightness-50"
                                   : ""
@@ -793,9 +793,9 @@ function Home() {
                 type="button"
                 onClick={() => setSelectedPESOPost(null)}
                 aria-label="Close announcement"
-                className="flex h-10 w-10 items-center justify-center rounded-full text-2xl text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                className="flex h-10 w-10 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900"
               >
-                ×
+                <AppIcon name="x" className="h-5 w-5" />
               </button>
             </div>
             {getPostImages(selectedPESOPost).length > 0 && (
@@ -817,9 +817,9 @@ function Home() {
                         )
                       }
                       aria-label="Previous image"
-                      className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-3xl text-white transition hover:bg-white/25"
+                      className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
                     >
-                      ‹
+                      <AppIcon name="arrowLeft" className="h-5 w-5" />
                     </button>
                     <button
                       type="button"
@@ -829,9 +829,9 @@ function Home() {
                         )
                       }
                       aria-label="Next image"
-                      className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-3xl text-white transition hover:bg-white/25"
+                      className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
                     >
-                      ›
+                      <AppIcon name="arrowRight" className="h-5 w-5" />
                     </button>
                   </>
                 )}
@@ -887,9 +887,9 @@ function Home() {
             type="button"
             onClick={() => setViewingImages(null)}
             aria-label="Close image viewer"
-            className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-3xl text-white hover:bg-white/20"
+            className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
           >
-            ×
+            <AppIcon name="x" className="h-5 w-5" />
           </button>
           {viewingImages.length > 1 && (
             <button
@@ -900,9 +900,9 @@ function Home() {
                 )
               }
               aria-label="Previous image"
-              className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-3xl text-white hover:bg-white/20 sm:left-6"
+              className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 sm:left-6"
             >
-              ‹
+              <AppIcon name="arrowLeft" className="h-5 w-5" />
             </button>
           )}
           <figure className="flex max-h-full max-w-full flex-col items-center gap-3">
@@ -922,9 +922,9 @@ function Home() {
                 setViewingImageIndex((index) => (index + 1) % viewingImages.length)
               }
               aria-label="Next image"
-              className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-3xl text-white hover:bg-white/20 sm:right-6"
+              className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 sm:right-6"
             >
-              ›
+              <AppIcon name="arrowRight" className="h-5 w-5" />
             </button>
           )}
         </div>
