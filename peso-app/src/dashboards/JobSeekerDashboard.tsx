@@ -705,6 +705,8 @@ export default function JobSeekerDashboard() {
   // =====================================================
 
   const handleLogout = async () => {
+    if (!window.confirm("Are you sure you want to log out?")) return;
+
     try {
       setLoading(true);
 
@@ -1244,28 +1246,6 @@ export default function JobSeekerDashboard() {
 
         </div>
 
-        {/* ACCOUNT ACTIONS */}
-        <div className="rounded-2xl border border-red-100 bg-white p-6 shadow-sm">
-
-          <h2 className="text-lg font-black text-slate-800">
-            Account Actions
-          </h2>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Sign out of your PESO MABINI Job Seeker
-            account.
-          </p>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="mt-5 rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-red-700"
-          >
-            Logout
-          </button>
-
-        </div>
-
       </div>
     );
   };
@@ -1718,7 +1698,11 @@ export default function JobSeekerDashboard() {
           )}
           {seeker &&
             !seeker.verification_refresh_required &&
-            seeker.verification_status === "pending" && (
+            seeker.verification_status === "pending" &&
+            isJobSeekerProfileComplete(
+              seeker.registration_details,
+              seeker.resume_url,
+            ) && (
               <p
                 role="status"
                 className="mx-auto mb-6 max-w-7xl rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"

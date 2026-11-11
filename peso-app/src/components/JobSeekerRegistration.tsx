@@ -120,12 +120,19 @@ function Register() {
         return;
       }
 
-      alert(
-        isEmployer
-          ? "Account created. Please check your email to confirm it, then sign in and complete your PESO registration paperwork in the employer portal."
-          : "Account created successfully! Please check your email to confirm your account, then sign in and complete your profile setup before applying for jobs.",
-      );
-      navigate("/login");
+      if (data.session) {
+        alert(
+          isEmployer
+            ? "Account created successfully! You are now logged in. Complete your PESO registration paperwork in the employer portal."
+            : "Account created successfully! You are now logged in. Complete your profile setup before applying for jobs.",
+        );
+        navigate(isEmployer ? "/employer" : "/jobseeker", { replace: true });
+      } else {
+        alert(
+          "Account created successfully! Please check your email to confirm your account, then sign in to complete your profile setup.",
+        );
+        navigate("/login", { replace: true });
+      }
     } catch (error) {
       console.error("Registration error:", error);
       const message =

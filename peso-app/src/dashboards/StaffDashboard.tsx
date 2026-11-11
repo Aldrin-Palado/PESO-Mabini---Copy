@@ -467,6 +467,8 @@ export default function StaffDashboard() {
   ===================================================== */
 
   const handleLogout = async () => {
+    if (!window.confirm("Are you sure you want to log out?")) return;
+
     await supabase.auth.signOut();
 
     window.location.replace("/login");

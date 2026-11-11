@@ -574,6 +574,8 @@ export default function EmployerDashboard() {
   ========================= */
 
   const signOut = async () => {
+    if (!window.confirm("Are you sure you want to log out?")) return;
+
     setError("");
 
     const { error: signOutError } =
@@ -1098,7 +1100,13 @@ export default function EmployerDashboard() {
                 Update company details
               </button>
             </div>
-          ) : !profile.is_verified ? (
+          ) : !profile.is_verified &&
+            profile.verification_status === "pending" &&
+            getEmployerRegistrationChecklist(
+              profile.registration_details,
+              profile.verification_documents,
+              profile,
+            ).every((item) => item.complete) ? (
             <p
               role="status"
               className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"
