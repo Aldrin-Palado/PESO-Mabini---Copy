@@ -831,6 +831,7 @@ export default function AdminDashboard() {
               ["shortlisted", "Shortlisted"],
               ["qualified", "Qualified"],
               ["interviewed", "Interviewed"],
+              ["withdrawn", "Withdrawn"],
               ["hired", "You're Hired"],
               ["rejected", "Rejected"],
             ] as const;

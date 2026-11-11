@@ -56,6 +56,7 @@ const STATUSES = [
   { value: "shortlisted", label: "Shortlisted", color: "bg-indigo-100 text-indigo-700" },
   { value: "qualified", label: "Qualified", color: "bg-violet-100 text-violet-700" },
   { value: "interviewed", label: "Interviewed", color: "bg-amber-100 text-amber-700" },
+  { value: "withdrawn", label: "Withdrawn", color: "bg-gray-100 text-gray-600" },
   { value: "hired", label: "You're Hired", color: "bg-emerald-100 text-emerald-700" },
   { value: "rejected", label: "Rejected", color: "bg-red-100 text-red-700" },
 ];
@@ -261,6 +262,7 @@ export default function ApplicationsModule({
       | "shortlisted"
       | "qualified"
       | "interviewed"
+      | "withdrawn"
       | "hired"
       | "rejected",
   ) => {
@@ -582,7 +584,7 @@ export default function ApplicationsModule({
                   <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
                     {applicationScope === "peso" &&
                     application.can_update_status &&
-                    !["hired", "rejected"].includes(status) &&
+                    !["hired", "rejected", "withdrawn"].includes(status) &&
                     application.application_id ? (
                       <label className="sr-only" htmlFor={`application-status-${rowId}`}>
                         Update application status
@@ -590,7 +592,7 @@ export default function ApplicationsModule({
                     ) : null}
                     {applicationScope === "peso" &&
                     application.can_update_status &&
-                    !["hired", "rejected"].includes(status) &&
+                    !["hired", "rejected", "withdrawn"].includes(status) &&
                     application.application_id ? (
                       <select
                         id={`application-status-${rowId}`}
@@ -604,6 +606,7 @@ export default function ApplicationsModule({
                             nextStatus === "shortlisted" ||
                             nextStatus === "qualified" ||
                             nextStatus === "interviewed" ||
+                            nextStatus === "withdrawn" ||
                             nextStatus === "hired" ||
                             (nextStatus === "rejected" && !canDecideApplications)
                           ) {
@@ -615,6 +618,7 @@ export default function ApplicationsModule({
                                 | "shortlisted"
                                 | "qualified"
                                 | "interviewed"
+                                | "withdrawn"
                                 | "hired"
                                 | "rejected",
                             );
@@ -631,6 +635,7 @@ export default function ApplicationsModule({
                         <option value="shortlisted">Shortlisted</option>
                         <option value="qualified">Qualified</option>
                         <option value="interviewed">Interviewed</option>
+                        <option value="withdrawn">Withdrawn</option>
                         {applicationScope === "peso" &&
                         canDecideApplications &&
                         application.can_update_status && (

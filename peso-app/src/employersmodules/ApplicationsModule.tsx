@@ -33,6 +33,7 @@ const STATUSES = [
   { value: "shortlisted", label: "Shortlisted", color: "bg-indigo-100 text-indigo-700" },
   { value: "qualified", label: "Qualified", color: "bg-violet-100 text-violet-700" },
   { value: "interviewed", label: "Interviewed", color: "bg-amber-100 text-amber-700" },
+  { value: "withdrawn", label: "Withdrawn", color: "bg-gray-100 text-gray-600" },
   { value: "hired", label: "You're Hired", color: "bg-emerald-100 text-emerald-700" },
   { value: "rejected", label: "Rejected", color: "bg-red-100 text-red-700" },
 ];

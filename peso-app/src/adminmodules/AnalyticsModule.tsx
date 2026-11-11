@@ -164,6 +164,7 @@ export default function AnalyticsModule({
       { key: "shortlisted", label: "Shortlisted" },
       { key: "qualified", label: "Qualified" },
       { key: "interviewed", label: "Interviewed" },
+      { key: "withdrawn", label: "Withdrawn" },
       { key: "hired", label: "You're Hired" },
       { key: "rejected", label: "Rejected" },
     ];

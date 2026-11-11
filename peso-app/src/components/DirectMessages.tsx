@@ -871,7 +871,7 @@ export default function DirectMessages({
                 <div className="space-y-2">
                   {applicantApplications.map((application) => {
                     const status = application.status.toLowerCase();
-                    const finalStatus = ["hired", "rejected"].includes(status);
+                    const finalStatus = ["hired", "rejected", "withdrawn"].includes(status);
                     return (
                       <article
                         key={application.application_id}
