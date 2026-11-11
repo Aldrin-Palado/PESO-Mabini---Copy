@@ -2,14 +2,14 @@ type RegistrationDetails = Record<string, unknown>;
 
 export const JOB_SEEKER_PROFILE_SECTION_TITLES = [
   "I. Personal Information",
-  "II. Employment Information",
+  "II. Job Preference",
   "III. Language / Dialect Proficiency",
   "IV. Educational Background",
   "V. Technical / Vocational and Other Training",
   "VI. Eligibility / Professional License",
   "VII. Work Experience",
   "VIII. Other Skills Acquired Without Certificate",
-  "IX. History of SPES / GIP Engagement",
+  "XI. History of SPES / GIP Engagement",
   "Certification / Authorization",
 ] as const;
 
@@ -42,8 +42,10 @@ export function getIncompleteJobSeekerProfileSections(
   const incomplete: string[] = [];
   const hasAll = (keys: string[]) => keys.every((key) => hasValue(details, key));
 
-  if (
+  let personalInformationIncomplete =
     !hasAll([
+      "firstName",
+      "lastName",
       "middleName",
       "dateOfBirth",
       "sex",
@@ -59,25 +61,35 @@ export function getIncompleteJobSeekerProfileSections(
       "heightCm",
       "weightKg",
       "disability",
-    ]) ||
-    details.privacyConsent !== true
-  ) {
-    incomplete.push(JOB_SEEKER_PROFILE_SECTION_TITLES[0]);
-  }
-
-  if (
-    !hasAll([
       "employmentStatus",
       "isOfw",
       "isFormerOfw",
       "is4PsBeneficiary",
-      "preferredOccupation",
-      "companyApplyingFor",
-      "preferredWorkLocation",
     ]) ||
-    ((details.employmentStatus === "Unemployed" ||
+    details.privacyConsent !== true;
+
+  if (
+    (details.employmentStatus === "Self-employed" ||
+      details.employmentStatus === "Other") &&
+    !hasValue(details, "employmentStatusDetails")
+  ) {
+    personalInformationIncomplete = true;
+  }
+  if (
+    (details.employmentStatus === "Unemployed" ||
       details.employmentStatus === "N/A") &&
-      !hasAll(["unemploymentDurationMonths", "unemploymentReason"])) ||
+    (!hasAll(["unemploymentDurationMonths", "unemploymentReason"]) ||
+      (details.unemploymentReason === "Other" &&
+        !hasValue(details, "unemploymentReasonDetails")))
+  ) {
+    personalInformationIncomplete = true;
+  }
+  if (personalInformationIncomplete) {
+    incomplete.push(JOB_SEEKER_PROFILE_SECTION_TITLES[0]);
+  }
+
+  if (
+    !hasAll(["preferredOccupation", "companyApplyingFor", "preferredWorkLocation"]) ||
     (details.preferredWorkLocation === "Other" &&
       !hasValue(details, "otherWorkLocation"))
   ) {

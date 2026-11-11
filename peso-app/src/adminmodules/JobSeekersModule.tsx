@@ -68,8 +68,10 @@ const detailFields: {
   fields: { key: string; label: string }[];
 }[] = [
   {
-    section: "Personal Information",
+    section: "I. Personal Information",
     fields: [
+      { key: "firstName", label: "First Name" },
+      { key: "lastName", label: "Surname" },
       { key: "dateOfBirth", label: "Date of Birth" },
       { key: "sex", label: "Sex" },
       { key: "civilStatus", label: "Civil Status" },
@@ -83,31 +85,36 @@ const detailFields: {
       { key: "heightCm", label: "Height (cm)" },
       { key: "weightKg", label: "Weight (kg)" },
       { key: "disability", label: "Disability" },
-    ],
-  },
-  {
-    section: "Employment Information",
-    fields: [
       { key: "employmentStatus", label: "Employment Status" },
+      { key: "employmentStatusDetails", label: "Employment Status Details" },
       { key: "unemploymentDurationMonths", label: "Months Looking for Work" },
       { key: "unemploymentReason", label: "Reason for Unemployment" },
+      { key: "unemploymentReasonDetails", label: "Other Unemployment Reason" },
       { key: "isOfw", label: "OFW" },
       { key: "isFormerOfw", label: "Former OFW" },
       { key: "is4PsBeneficiary", label: "4Ps Beneficiary" },
-      { key: "preferredOccupation", label: "Preferred Occupation" },
-      { key: "companyApplyingFor", label: "Company Applying For" },
-      { key: "preferredWorkLocation", label: "Preferred Work Location" },
+      { key: "privacyConsent", label: "Data Privacy Consent" },
+      { key: "privacyConsentAt", label: "Consent Given At" },
     ],
   },
   {
-    section: "Language / Dialect Proficiency",
+    section: "II. Job Preference",
+    fields: [
+      { key: "preferredOccupation", label: "Preferred Occupation" },
+      { key: "companyApplyingFor", label: "Company Applying For" },
+      { key: "preferredWorkLocation", label: "Preferred Work Location" },
+      { key: "otherWorkLocation", label: "Other Preferred Work Location" },
+    ],
+  },
+  {
+    section: "III. Language / Dialect Proficiency",
     fields: [
       { key: "languages", label: "Languages" },
       { key: "otherLanguage", label: "Other Language / Dialect" },
     ],
   },
   {
-    section: "Educational Background",
+    section: "IV. Educational Background",
     fields: [
       { key: "educationLevel", label: "Highest Educational Attainment" },
       { key: "elementaryEducation", label: "Elementary" },
@@ -118,7 +125,7 @@ const detailFields: {
     ],
   },
   {
-    section: "Technical / Vocational and Other Training",
+    section: "V. Technical / Vocational and Other Training",
     fields: [
       { key: "training1", label: "Training / Course 1" },
       { key: "training2", label: "Training / Course 2" },
@@ -126,14 +133,14 @@ const detailFields: {
     ],
   },
   {
-    section: "Eligibility / Professional License",
+    section: "VI. Eligibility / Professional License",
     fields: [
       { key: "eligibility1", label: "Eligibility / License 1" },
       { key: "eligibility2", label: "Eligibility / License 2" },
     ],
   },
   {
-    section: "Work Experience",
+    section: "VII. Work Experience",
     fields: [
       { key: "noWorkExperience", label: "No Previous Work Experience" },
       { key: "workExperience1", label: "Most Recent Work Experience" },
@@ -142,11 +149,11 @@ const detailFields: {
     ],
   },
   {
-    section: "Other Skills Acquired Without Certificate",
+    section: "VIII. Other Skills Acquired Without Certificate",
     fields: [{ key: "otherSkills", label: "Other Skills" }],
   },
   {
-    section: "History of SPES / GIP Engagement",
+    section: "XI. History of SPES / GIP Engagement",
     fields: [
       { key: "spesGipHistory", label: "Participated in SPES / GIP" },
       { key: "engagementPeriod", label: "Period of Engagement" },
@@ -158,8 +165,6 @@ const detailFields: {
     fields: [
       { key: "signature", label: "Signature" },
       { key: "signatureDate", label: "Date Signed" },
-      { key: "privacyConsent", label: "Data Privacy Consent" },
-      { key: "privacyConsentAt", label: "Consent Given At" },
     ],
   },
 ];

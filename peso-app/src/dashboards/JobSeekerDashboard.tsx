@@ -133,35 +133,42 @@ const screeningSections: {
   {
     title: "I. Personal Information",
     fields: [
+      {
+        key: "privacyConsent",
+        label: "I have read, understood, and agree to PESO Mabini's Data Privacy Statement and expressly consent to the collection, recording, organization, updating or modification, retrieval, consultation, use, consolidation, blocking, erasure, or destruction of my personal data as part of my information.",
+        type: "checkbox",
+        required: true,
+      },
+      { key: "lastName", label: "Surname", required: true },
       { key: "firstName", label: "First Name", required: true },
-      { key: "lastName", label: "Last Name", required: true },
       { key: "middleName", label: "Middle Name", required: true },
       { key: "dateOfBirth", label: "Date of Birth", type: "date", required: true },
-      { key: "sex", label: "Sex", type: "select", options: ["Female", "Male", "Prefer not to say"], required: true },
+      { key: "sex", label: "Sex", type: "select", options: ["Male", "Female"], required: true },
       { key: "contactNumber", label: "Contact Number", required: true },
       { key: "presentAddress", label: "Present Address", type: "textarea", required: true },
       { key: "permanentAddress", label: "Permanent Address", type: "textarea", required: true },
-      { key: "civilStatus", label: "Civil Status", type: "select", options: ["Single", "Married", "Widowed", "Separated", "Annulled", "Others"], required: true },
+      { key: "civilStatus", label: "Civil Status", type: "select", options: ["Single", "Married", "Widow/er"], required: true },
       { key: "fatherName", label: "Father's Name", required: true },
       { key: "motherName", label: "Mother's Name", required: true },
-      { key: "parentsCivilStatus", label: "Parents' Civil Status", type: "select", options: ["Single", "Married", "Widowed", "Separated", "Annulled", "Others"], required: true },
+      { key: "parentsCivilStatus", label: "Parent's Civil Status", type: "select", options: ["Living Together", "Solo Parent", "Separated"], required: true },
       { key: "governmentIdType", label: "Type of Government ID", type: "select", options: ["Philippine Identification (PhilID)", "SSS", "GSIS", "UMID", "Driver's License", "Passport", "Voter's ID", "PRC ID", "PhilHealth", "Postal ID", "Other"], required: true },
       { key: "governmentIdNumber", label: "Government ID Number", required: true },
       { key: "heightCm", label: "Height (cm)", type: "number", required: true },
       { key: "weightKg", label: "Weight (kg)", type: "number", required: true },
       { key: "disability", label: "Disability", type: "select", options: ["Visual", "Hearing", "Speech", "Physical", "Mental", "Other", "N/A"], required: true },
-      { key: "privacyConsent", label: "I agree to the Data Privacy Statement", type: "checkbox", required: true },
-    ],
-  },
-  {
-    title: "II. Employment Information",
-    fields: [
-      { key: "employmentStatus", label: "Employment Status", type: "select", options: ["Employed", "Wage Employed", "Self-employed", "Fisherman/Fisherfolk", "Vendor/Retailer", "Home-based Worker", "Transport", "Domestic Worker", "Freelancer", "Artisan/Craft Worker", "Unemployed", "N/A"], required: true },
-      { key: "unemploymentDurationMonths", label: "Months Looking for Work", type: "number" },
-      { key: "unemploymentReason", label: "Reason for Unemployment", type: "select", options: ["New entrant/Fresh graduate", "Finished contract", "Resigned", "Retired", "Terminated/Laid off due to calamity", "Terminated/Laid off (local)", "Terminated/Laid off (abroad)", "Other"] },
+      { key: "employmentStatus", label: "Employment Status", type: "select", options: ["Employed", "Wage Employed", "Self-employed", "Fisherman/Fisherfolk", "Vendor/Retailer", "Home-based Worker", "Transport", "Domestic Worker", "Freelancer", "Artisan/Craft Worker", "Unemployed", "N/A", "Other"], required: true },
+      { key: "employmentStatusDetails", label: "If self-employed or other, please specify", required: true },
+      { key: "unemploymentDurationMonths", label: "How long have you been looking for work? (months)", type: "number", required: true },
+      { key: "unemploymentReason", label: "Reason for Unemployment", type: "select", options: ["New entrant/Fresh graduate", "Finished contract", "Resigned", "Retired", "Terminated/Laid off due to calamity", "Terminated/Laid off (local)", "Terminated/Laid off (abroad)", "Other"], required: true },
+      { key: "unemploymentReasonDetails", label: "Please specify other reason", required: true },
       { key: "isOfw", label: "Are you an OFW?", type: "select", options: ["Yes", "No"], required: true },
       { key: "isFormerOfw", label: "Are you a former OFW?", type: "select", options: ["Yes", "No"], required: true },
       { key: "is4PsBeneficiary", label: "Are you a 4Ps beneficiary?", type: "select", options: ["Yes", "No"], required: true },
+    ],
+  },
+  {
+    title: "II. Job Preference",
+    fields: [
       { key: "preferredOccupation", label: "Preferred Occupation", required: true },
       { key: "companyApplyingFor", label: "Company Applying For", required: true },
       { key: "preferredWorkLocation", label: "Preferred Work Location", type: "select", options: ["Mabini", "Batangas Province", "Anywhere in the Philippines", "Other"], required: true },
@@ -217,7 +224,7 @@ const screeningSections: {
     ],
   },
   {
-    title: "IX. History of SPES / GIP Engagement",
+    title: "XI. History of SPES / GIP Engagement",
     fields: [
       { key: "spesGipHistory", label: "Participated in SPES / GIP?", type: "select", options: ["Yes", "No"], required: true },
       { key: "engagementPeriod", label: "Period of Engagement", required: true },
@@ -232,6 +239,38 @@ const screeningSections: {
     ],
   },
 ];
+
+function isScreeningFieldVisible(
+  field: ScreeningField,
+  details: ScreeningDetails,
+): boolean {
+  const employmentStatus = String(details.employmentStatus || "");
+  const unemploymentReason = String(details.unemploymentReason || "");
+
+  if (field.key === "employmentStatusDetails") {
+    return employmentStatus === "Self-employed" || employmentStatus === "Other";
+  }
+  if (
+    field.key === "unemploymentDurationMonths" ||
+    field.key === "unemploymentReason"
+  ) {
+    return employmentStatus === "Unemployed" || employmentStatus === "N/A";
+  }
+  if (field.key === "unemploymentReasonDetails") {
+    return (
+      (employmentStatus === "Unemployed" || employmentStatus === "N/A") &&
+      unemploymentReason === "Other"
+    );
+  }
+  if (field.key === "otherWorkLocation") {
+    return details.preferredWorkLocation === "Other";
+  }
+  if (field.key === "engagementPeriod" || field.key === "spesGipId") {
+    return details.spesGipHistory === "Yes";
+  }
+
+  return true;
+}
 
 function parseScreeningDetails(value: unknown): ScreeningDetails {
   let details = value;
@@ -987,18 +1026,32 @@ export default function JobSeekerDashboard() {
                     <p>
                       The Public Employment Service Office (PESO) of the
                       Municipality of Mabini, Batangas recognizes its
-                      responsibilities under Republic Act No. 10173, the Data
-                      Privacy Act of 2012. Information collected will be stored
-                      in the office&apos;s authorized information system,
-                      accessed only by authorized PESO Mabini personnel, and
-                      protected using appropriate safeguards.
+                      responsibilities under Republic Act No. 10173, also known
+                      as the Data Privacy Act of 2012, with respect to the
+                      personal data collected, recorded, organized, updated,
+                      used, consolidated, or destroyed as part of this form.
+                      Personal data obtained from this form is stored in the
+                      office&apos;s authorized information and communications
+                      system and accessed only by PESO Mabini personnel.
+                      Appropriate organizational, technical, and physical
+                      safeguards are in place to protect your personal data.
                     </p>
+                    <p>The information collected will only be used for:</p>
+                    <ol className="list-inside list-decimal space-y-1">
+                      <li>
+                        Job application and/or referral to PESO Mabini partner
+                        establishments.
+                      </li>
+                      <li>
+                        Reporting of data to the Department of Labor and
+                        Employment (DOLE).
+                      </li>
+                      <li>Labor Market Information (LMI) data collection.</li>
+                    </ol>
                     <p>
-                      Information will be used for job application and referral
-                      services, DOLE reporting, and Labor Market Information
-                      collection. Personal information will not be disclosed
-                      without consent and may be retained for up to ten years
-                      for Labor Market Information purposes.
+                      PESO Mabini will not disclose job seekers&apos; personal
+                      information without consent and will retain this
+                      information for ten years for LMI purposes.
                     </p>
                   </div>
                 )}
@@ -1015,6 +1068,11 @@ export default function JobSeekerDashboard() {
                 )}
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   {section.fields.map((field) => {
+                    const fieldValues = editingScreening
+                      ? screeningForm
+                      : savedScreeningDetails;
+                    if (!isScreeningFieldVisible(field, fieldValues)) return null;
+
                     const rawValue = editingScreening
                       ? screeningForm[field.key]
                       : savedScreeningDetails[field.key];
