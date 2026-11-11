@@ -1,8 +1,8 @@
 import React, { useEffect, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import AppIcon from "../components/AppIcon";
+import ExportFormatControl from "../components/ExportFormatControl";
 import ModuleScoreboard from "./ModuleScoreboard";
-import { downloadCsv } from "../services/csvExport";
 import { supabase } from "../services/supabase";
 import type {
   EmployerDocumentStatus,
@@ -1021,29 +1021,22 @@ export default function EmployersModule({
               )}
             </section>
             <footer className="flex justify-end border-t border-slate-200 px-5 py-4 sm:px-6">
-              <button
-                type="button"
-                onClick={() =>
-                  downloadCsv(
-                    `${(detailsEmployer.name ||
-                      detailsEmployer.company_name ||
-                      detailsEmployer.business_name ||
-                      "employer")
-                      .toLowerCase()
-                      .replace(/[^a-z0-9]+/g, "-")
-                      .replace(/^-|-$/g, "")}-details.csv`,
-                    Object.entries(detailsEmployer)
-                      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-                      .map(([key, value]) => ({
-                        label: formatDetailLabel(key),
-                        value: formatDetailValue(value),
-                      })),
-                  )
-                }
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                Export CSV
-              </button>
+              <ExportFormatControl
+                filename={`${(detailsEmployer.name ||
+                  detailsEmployer.company_name ||
+                  detailsEmployer.business_name ||
+                  "employer")
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]+/g, "-")
+                  .replace(/^-|-$/g, "")}-details`}
+                columns={["Field", "Value"]}
+                rows={Object.entries(detailsEmployer)
+                  .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+                  .map(([key, value]) => [
+                    formatDetailLabel(key),
+                    formatDetailValue(value),
+                  ])}
+              />
             </footer>
           </section>
         </div>

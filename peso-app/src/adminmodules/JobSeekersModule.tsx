@@ -1,8 +1,8 @@
 import React, { useEffect, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import AppIcon from "../components/AppIcon";
+import ExportFormatControl from "../components/ExportFormatControl";
 import ModuleScoreboard from "./ModuleScoreboard";
-import { downloadCsv } from "../services/csvExport";
 import { openStoredResume } from "../services/resumes";
 import {
   getIncompleteJobSeekerProfileSections,
@@ -1141,59 +1141,46 @@ function ScreeningModal({
             ))
           )}
           <div className="flex justify-end border-t border-slate-200 pt-4">
-            <button
-              type="button"
-              onClick={() =>
-                downloadCsv(
-                  `${getSeekerName(jobSeeker)
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, "-")
-                    .replace(/^-|-$/g, "")}-details.csv`,
-                  [
-                    {
-                      label: "Full Name",
-                      value: getSeekerName(jobSeeker),
-                    },
-                    { label: "Email", value: jobSeeker.email },
-                    {
-                      label: "Contact Number",
-                      value: jobSeeker.contact_no || jobSeeker.phone,
-                    },
-                    {
-                      label: "Present Address",
-                      value: jobSeeker.address || details.presentAddress,
-                    },
-                    { label: "Status", value: status },
-                    {
-                      label: "Registered On",
-                      value: jobSeeker.created_at
-                        ? new Date(jobSeeker.created_at).toLocaleString()
-                        : "-",
-                    },
-                    {
-                      label: "Resume",
-                      value: jobSeeker.resume_url
-                        ? "Uploaded"
-                        : "Not uploaded",
-                    },
-                    ...detailFields.flatMap((group) =>
-                      group.fields.map((field) => ({
-                        label: `${group.section} - ${field.label}`,
-                        value:
-                          field.key === "signature" &&
-                          typeof details[field.key] === "string" &&
-                          details[field.key].startsWith("data:image/")
-                            ? "E-signature captured"
-                            : details[field.key],
-                      })),
-                    ),
-                  ],
-                )
-              }
-              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-            >
-              Export CSV
-            </button>
+            <ExportFormatControl
+              filename={`${getSeekerName(jobSeeker)
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "-")
+                .replace(/^-|-$/g, "")}-details`}
+              columns={["Field", "Value"]}
+              rows={[
+                ["Full Name", getSeekerName(jobSeeker)],
+                ["Email", jobSeeker.email],
+                [
+                  "Contact Number",
+                  jobSeeker.contact_no || jobSeeker.phone,
+                ],
+                [
+                  "Present Address",
+                  jobSeeker.address || details.presentAddress,
+                ],
+                ["Status", status],
+                [
+                  "Registered On",
+                  jobSeeker.created_at
+                    ? new Date(jobSeeker.created_at).toLocaleString()
+                    : "-",
+                ],
+                [
+                  "Resume",
+                  jobSeeker.resume_url ? "Uploaded" : "Not uploaded",
+                ],
+                ...detailFields.flatMap((group) =>
+                  group.fields.map((field) => [
+                    `${group.section} - ${field.label}`,
+                    field.key === "signature" &&
+                    typeof details[field.key] === "string" &&
+                    details[field.key].startsWith("data:image/")
+                      ? "E-signature captured"
+                      : details[field.key],
+                  ]),
+                ),
+              ]}
+            />
           </div>
         </div>
       </div>

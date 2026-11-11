@@ -11,6 +11,7 @@ import {
   Cell,
   LabelList,
 } from "recharts";
+import ExportFormatControl from "../components/ExportFormatControl";
 
 type JobPost = {
   id?: string;
@@ -109,6 +110,21 @@ const tooltipStyle = {
   fontSize: "12px",
   padding: "8px 12px",
 };
+
+const PLACEMENT_REPORT_COLUMNS = [
+  "No.",
+  "Last Name",
+  "First Name",
+  "Middle Name",
+  "Age",
+  "Sex",
+  "Contact Number",
+  "Position Applied",
+  "Qualified",
+  "Interviewed",
+  "Hired",
+  "Date Hired",
+];
 
 function getRegistrationDetails(value: unknown): Record<string, any> {
   if (value && typeof value === "object" && !Array.isArray(value)) {
@@ -256,6 +272,52 @@ export default function AnalyticsModule({
           ),
         ),
     [applications, generatedPlacementRange],
+  );
+  const placementExportRows = useMemo(
+    () =>
+      placementApplications.map((application, index) => {
+        const seeker = Array.isArray(application.job_seeker)
+          ? application.job_seeker[0]
+          : application.job_seeker;
+        const registration = getRegistrationDetails(
+          seeker?.registration_details,
+        );
+        const name = splitApplicantName(
+          String(application.applicant_name || seeker?.full_name || ""),
+        );
+        const history = application.application_status_history || [];
+        const statuses = new Set(
+          history.map((entry) =>
+            String(entry.status || "")
+              .trim()
+              .toLowerCase()
+              .replace(/\s+/g, "_"),
+          ),
+        );
+        const hiredEvent = history
+          .filter((entry) => String(entry.status || "").toLowerCase() === "hired")
+          .sort((first, second) =>
+            first.changed_at.localeCompare(second.changed_at),
+          )[0];
+
+        return [
+          index + 1,
+          registration.lastName || name.lastName,
+          registration.firstName || name.firstName,
+          registration.middleName || name.middleName,
+          getAge(registration.dateOfBirth || seeker?.birth_date),
+          registration.sex || seeker?.sex || "—",
+          application.applicant_contact_no || seeker?.contact_no || "—",
+          application.position_title || "—",
+          statuses.has("qualified") ? "Yes" : "No",
+          statuses.has("interviewed") || statuses.has("interview")
+            ? "Yes"
+            : "No",
+          statuses.has("hired") ? "Yes" : "No",
+          formatReportDate(hiredEvent?.changed_at),
+        ];
+      }),
+    [placementApplications],
   );
   const placementReportIsCurrent =
     generatedPlacementRange !== null &&
@@ -633,13 +695,24 @@ export default function AnalyticsModule({
           </p>
         ) : (
           <>
-            <div className="flex items-center justify-between px-5 py-3 text-xs text-slate-500">
-              <span>
-                Application date range: {formatReportDate(generatedPlacementRange.start)}
-                {" – "}
-                {formatReportDate(generatedPlacementRange.end)}
-              </span>
-              <span>{placementApplications.length} applicants</span>
+            <div className="flex flex-col gap-3 px-5 py-3 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p>
+                  Application date range:{" "}
+                  {formatReportDate(generatedPlacementRange.start)}
+                  {" – "}
+                  {formatReportDate(generatedPlacementRange.end)}
+                </p>
+                <p className="mt-1">{placementApplications.length} applicants</p>
+              </div>
+              {placementApplications.length > 0 && (
+                <ExportFormatControl
+                  filename={`placement-status-report-${generatedPlacementRange.start}-to-${generatedPlacementRange.end}`}
+                  columns={PLACEMENT_REPORT_COLUMNS}
+                  rows={placementExportRows}
+                  buttonLabel="Export report"
+                />
+              )}
             </div>
             <p className="px-5 pb-3 text-xs text-slate-500">
               Status progression is tracked from the status-history migration
@@ -655,58 +728,20 @@ export default function AnalyticsModule({
             <table className="min-w-[1120px] w-full border-collapse text-left text-xs">
               <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-3 py-3">No.</th>
-                  <th className="px-3 py-3">Last name</th>
-                  <th className="px-3 py-3">First name</th>
-                  <th className="px-3 py-3">Middle name</th>
-                  <th className="px-3 py-3">Age</th>
-                  <th className="px-3 py-3">Sex</th>
-                  <th className="px-3 py-3">Contact number</th>
-                  <th className="px-3 py-3">Position applied</th>
-                  <th className="px-3 py-3 text-center">Qualified</th>
-                  <th className="px-3 py-3 text-center">Interviewed</th>
-                  <th className="px-3 py-3 text-center">Hired</th>
-                  <th className="px-3 py-3">Date hired</th>
+                  {PLACEMENT_REPORT_COLUMNS.map((column, index) => (
+                    <th
+                      key={column}
+                      className={`px-3 py-3 ${
+                        index >= 8 && index <= 10 ? "text-center" : ""
+                      }`}
+                    >
+                      {column}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {placementApplications.map((application, index) => {
-                  const seeker = Array.isArray(application.job_seeker)
-                    ? application.job_seeker[0]
-                    : application.job_seeker;
-                  const registration = getRegistrationDetails(
-                    seeker?.registration_details,
-                  );
-                  const fullName = String(
-                    application.applicant_name || seeker?.full_name || "",
-                  );
-                  const nameParts = splitApplicantName(fullName);
-                  const firstName = String(
-                    registration.firstName || nameParts.firstName,
-                  );
-                  const middleName = String(
-                    registration.middleName || nameParts.middleName,
-                  );
-                  const lastName = String(
-                    registration.lastName || nameParts.lastName,
-                  );
-                  const history = application.application_status_history || [];
-                  const reachedStatuses = new Set(
-                    history.map((entry) =>
-                      String(entry.status || "")
-                        .trim()
-                        .toLowerCase()
-                        .replace(/\s+/g, "_"),
-                    ),
-                  );
-                  const hiredEvent = history
-                    .filter(
-                      (entry) =>
-                        String(entry.status || "").toLowerCase() === "hired",
-                    )
-                    .sort((first, second) =>
-                      first.changed_at.localeCompare(second.changed_at),
-                    )[0];
+                {placementExportRows.map((row, index) => {
                   const statusCell = (reached: boolean) => (
                     <span
                       className={`inline-flex min-w-10 justify-center rounded-full px-2 py-1 font-bold ${
@@ -721,43 +756,34 @@ export default function AnalyticsModule({
 
                   return (
                     <tr
-                      key={application.application_id || application.id || index}
+                      key={
+                        placementApplications[index].application_id ||
+                        placementApplications[index].id ||
+                        index
+                      }
                       className="hover:bg-slate-50"
                     >
-                      <td className="px-3 py-3">{index + 1}</td>
-                      <td className="px-3 py-3">{lastName}</td>
-                      <td className="px-3 py-3">{firstName}</td>
-                      <td className="px-3 py-3">{middleName}</td>
-                      <td className="px-3 py-3">
-                        {getAge(
-                          registration.dateOfBirth || seeker?.birth_date,
-                        )}
-                      </td>
-                      <td className="px-3 py-3">
-                        {String(registration.sex || seeker?.sex || "—")}
-                      </td>
-                      <td className="px-3 py-3">
-                        {application.applicant_contact_no ||
-                          seeker?.contact_no ||
-                          "—"}
-                      </td>
-                      <td className="max-w-48 px-3 py-3">
-                        {application.position_title || "—"}
+                      {row.slice(0, 8).map((value, cellIndex) => (
+                        <td
+                          key={cellIndex}
+                          className={`px-3 py-3 ${
+                            cellIndex === 7 ? "max-w-48" : ""
+                          }`}
+                        >
+                          {String(value)}
+                        </td>
+                      ))}
+                      <td className="px-3 py-3 text-center">
+                        {statusCell(row[8] === "Yes")}
                       </td>
                       <td className="px-3 py-3 text-center">
-                        {statusCell(reachedStatuses.has("qualified"))}
+                        {statusCell(row[9] === "Yes")}
                       </td>
                       <td className="px-3 py-3 text-center">
-                        {statusCell(
-                          reachedStatuses.has("interviewed") ||
-                            reachedStatuses.has("interview"),
-                        )}
-                      </td>
-                      <td className="px-3 py-3 text-center">
-                        {statusCell(reachedStatuses.has("hired"))}
+                        {statusCell(row[10] === "Yes")}
                       </td>
                       <td className="whitespace-nowrap px-3 py-3">
-                        {formatReportDate(hiredEvent?.changed_at)}
+                        {String(row[11])}
                       </td>
                     </tr>
                   );
