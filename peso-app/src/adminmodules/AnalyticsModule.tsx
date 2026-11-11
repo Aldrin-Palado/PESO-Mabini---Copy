@@ -186,6 +186,10 @@ export default function AnalyticsModule({
     useState<SelectedInsight>(null);
   const [placementStartDate, setPlacementStartDate] = useState("");
   const [placementEndDate, setPlacementEndDate] = useState("");
+  const [generatedPlacementRange, setGeneratedPlacementRange] = useState<{
+    start: string;
+    end: string;
+  } | null>(null);
 
   // APPLICATION STATUS COUNTS
 
@@ -239,8 +243,11 @@ export default function AnalyticsModule({
         .filter((application) => {
           const appliedDate = application.date_applied?.slice(0, 10) || "";
           return (
-            (!placementStartDate || appliedDate >= placementStartDate) &&
-            (!placementEndDate || appliedDate <= placementEndDate)
+            generatedPlacementRange !== null &&
+            Boolean(generatedPlacementRange.start) &&
+            Boolean(generatedPlacementRange.end) &&
+            appliedDate >= generatedPlacementRange.start &&
+            appliedDate <= generatedPlacementRange.end
           );
         })
         .sort((first, second) =>
@@ -248,8 +255,12 @@ export default function AnalyticsModule({
             String(first.date_applied || ""),
           ),
         ),
-    [applications, placementStartDate, placementEndDate],
+    [applications, generatedPlacementRange],
   );
+  const placementReportIsCurrent =
+    generatedPlacementRange !== null &&
+    generatedPlacementRange.start === placementStartDate &&
+    generatedPlacementRange.end === placementEndDate;
 
   // ANALYTICS DATA
 
@@ -562,7 +573,7 @@ export default function AnalyticsModule({
               Qualified, Interviewed, and Hired stages.
             </p>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-end gap-3">
             <label className="text-xs font-semibold text-slate-600">
               Applied from
               <input
@@ -583,39 +594,63 @@ export default function AnalyticsModule({
                 className="mt-1 block rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal"
               />
             </label>
-            {(placementStartDate || placementEndDate) && (
+            <button
+              type="button"
+              disabled={
+                !placementStartDate ||
+                !placementEndDate ||
+                placementStartDate > placementEndDate
+              }
+              onClick={() =>
+                setGeneratedPlacementRange({
+                  start: placementStartDate,
+                  end: placementEndDate,
+                })
+              }
+              className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Generate report
+            </button>
+            {(placementStartDate || placementEndDate || generatedPlacementRange) && (
               <button
                 type="button"
                 onClick={() => {
                   setPlacementStartDate("");
                   setPlacementEndDate("");
+                  setGeneratedPlacementRange(null);
                 }}
-                className="self-end rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
               >
-                Clear dates
+                Clear
               </button>
             )}
           </div>
         </div>
 
-        <div className="flex items-center justify-between px-5 py-3 text-xs text-slate-500">
-          <span>
-            Date range is based on application date. Blank dates include all
-            overall applications.
-          </span>
-          <span>{placementApplications.length} applicants</span>
-        </div>
-        <p className="px-5 pb-3 text-xs text-slate-500">
-          Status progression is tracked from the status-history migration
-          forward. Older applications only have their latest known status;
-          their hired date uses the last available update timestamp.
-        </p>
-
-        {placementApplications.length === 0 ? (
+        {!placementReportIsCurrent ? (
           <p className="border-t border-slate-100 px-5 py-10 text-center text-sm text-slate-500">
-            No applications were found in this date range.
+            Select an application date range and generate a report to view results.
           </p>
         ) : (
+          <>
+            <div className="flex items-center justify-between px-5 py-3 text-xs text-slate-500">
+              <span>
+                Application date range: {formatReportDate(generatedPlacementRange.start)}
+                {" – "}
+                {formatReportDate(generatedPlacementRange.end)}
+              </span>
+              <span>{placementApplications.length} applicants</span>
+            </div>
+            <p className="px-5 pb-3 text-xs text-slate-500">
+              Status progression is tracked from the status-history migration
+              forward. Older applications only have their latest known status;
+              their hired date uses the last available update timestamp.
+            </p>
+            {placementApplications.length === 0 ? (
+              <p className="border-t border-slate-100 px-5 py-10 text-center text-sm text-slate-500">
+                No applications were found in this date range.
+              </p>
+            ) : (
           <div className="overflow-x-auto border-t border-slate-100">
             <table className="min-w-[1120px] w-full border-collapse text-left text-xs">
               <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-600">
@@ -730,6 +765,8 @@ export default function AnalyticsModule({
               </tbody>
             </table>
           </div>
+            )}
+          </>
         )}
       </section>
 
