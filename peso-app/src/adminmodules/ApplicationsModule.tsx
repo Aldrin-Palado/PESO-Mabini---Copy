@@ -54,22 +54,48 @@ const STATUSES = [
   { value: "pending", label: "Pending", color: "bg-slate-100 text-slate-600" },
   { value: "under_review", label: "Under Review", color: "bg-blue-100 text-blue-700" },
   { value: "shortlisted", label: "Shortlisted", color: "bg-indigo-100 text-indigo-700" },
-  { value: "interview", label: "Interview", color: "bg-amber-100 text-amber-700" },
+  { value: "qualified", label: "Qualified", color: "bg-violet-100 text-violet-700" },
+  { value: "interviewed", label: "Interviewed", color: "bg-amber-100 text-amber-700" },
   { value: "hired", label: "You're Hired", color: "bg-emerald-100 text-emerald-700" },
   { value: "rejected", label: "Rejected", color: "bg-red-100 text-red-700" },
-  { value: "withdrawn", label: "Withdrawn", color: "bg-gray-100 text-gray-600" },
 ];
 
+function normalizeApplicationStatus(value: string): string {
+  const normalized = String(value ?? "pending")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+
+  if (normalized === "interview" || normalized === "interviewed") {
+    return "interviewed";
+  }
+
+  if (normalized === "your_hired" || normalized === "youre_hired" || normalized === "you're_hired") {
+    return "hired";
+  }
+
+  return normalized;
+}
+
 function getApplicationStatus(application: Application): string {
-  return String(
+  return normalizeApplicationStatus(
     application.status || application.application_status || "pending",
-  ).toLowerCase().replace(/\s+/g, "_");
+  );
 }
 
 function getStatusLabel(value: string): string {
+  const normalizedValue = normalizeApplicationStatus(value);
+
   return (
-    STATUSES.find((status) => status.value === value)?.label ||
-    value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
+    STATUSES.find((status) => status.value === normalizedValue)?.label ||
+    ({
+      interview: "Interviewed",
+      interviewed: "Interviewed",
+      your_hired: "You're Hired",
+      youre_hired: "You're Hired",
+      "you're_hired": "You're Hired",
+    } as Record<string, string>)[normalizedValue] ||
+    normalizedValue.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
   );
 }
 
@@ -233,7 +259,8 @@ export default function ApplicationsModule({
       | "pending"
       | "under_review"
       | "shortlisted"
-      | "interview"
+      | "qualified"
+      | "interviewed"
       | "hired"
       | "rejected",
   ) => {
@@ -555,7 +582,7 @@ export default function ApplicationsModule({
                   <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
                     {applicationScope === "peso" &&
                     application.can_update_status &&
-                    !["hired", "rejected", "withdrawn"].includes(status) &&
+                    !["hired", "rejected"].includes(status) &&
                     application.application_id ? (
                       <label className="sr-only" htmlFor={`application-status-${rowId}`}>
                         Update application status
@@ -563,7 +590,7 @@ export default function ApplicationsModule({
                     ) : null}
                     {applicationScope === "peso" &&
                     application.can_update_status &&
-                    !["hired", "rejected", "withdrawn"].includes(status) &&
+                    !["hired", "rejected"].includes(status) &&
                     application.application_id ? (
                       <select
                         id={`application-status-${rowId}`}
@@ -575,7 +602,8 @@ export default function ApplicationsModule({
                             nextStatus === "pending" ||
                             nextStatus === "under_review" ||
                             nextStatus === "shortlisted" ||
-                            nextStatus === "interview" ||
+                            nextStatus === "qualified" ||
+                            nextStatus === "interviewed" ||
                             nextStatus === "hired" ||
                             (nextStatus === "rejected" && !canDecideApplications)
                           ) {
@@ -585,7 +613,8 @@ export default function ApplicationsModule({
                                 | "pending"
                                 | "under_review"
                                 | "shortlisted"
-                                | "interview"
+                                | "qualified"
+                                | "interviewed"
                                 | "hired"
                                 | "rejected",
                             );
@@ -600,7 +629,8 @@ export default function ApplicationsModule({
                         <option value="pending">Pending</option>
                         <option value="under_review">Under Review</option>
                         <option value="shortlisted">Shortlisted</option>
-                        <option value="interview">Interview</option>
+                        <option value="qualified">Qualified</option>
+                        <option value="interviewed">Interviewed</option>
                         {applicationScope === "peso" &&
                         canDecideApplications &&
                         application.can_update_status && (
@@ -613,7 +643,7 @@ export default function ApplicationsModule({
                         !canDecideApplications &&
                         application.can_update_status && (
                           <>
-                            <option value="hired">Hired</option>
+                            <option value="hired">You're Hired</option>
                             <option value="rejected">Rejected</option>
                           </>
                         )}

@@ -829,10 +829,10 @@ export default function AdminDashboard() {
               ["pending", "Pending"],
               ["under_review", "Under Review"],
               ["shortlisted", "Shortlisted"],
-              ["interview", "Interview"],
-              ["hired", "Hired"],
+              ["qualified", "Qualified"],
+              ["interviewed", "Interviewed"],
+              ["hired", "You're Hired"],
               ["rejected", "Rejected"],
-              ["withdrawn", "Withdrawn"],
             ] as const;
             const [total, ...statusCounts] = await Promise.all([
               getDashboardCount(

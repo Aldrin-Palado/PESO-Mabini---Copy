@@ -49,7 +49,7 @@ function StatusBadge({
     normalizedStatus === "pending"
       ? "bg-yellow-50 text-yellow-700"
       : normalizedStatus === "under_review" ||
-          normalizedStatus === "interview"
+          normalizedStatus === "interviewed"
         ? "bg-blue-50 text-blue-700"
         : normalizedStatus === "hired"
           ? "bg-green-50 text-green-700"
@@ -60,7 +60,9 @@ function StatusBadge({
   const label =
     normalizedStatus === "hired"
       ? "You're Hired"
-      : status.replace(/_/g, " ");
+      : normalizedStatus === "interviewed"
+        ? "Interviewed"
+        : status.replace(/_/g, " ");
 
   return (
     <span
@@ -239,12 +241,11 @@ export default function ApplicationsModule({
           "pending",
           "under_review",
           "shortlisted",
-          "interview",
+          "qualified",
+          "interviewed",
           "hired",
           "rejected",
-          "withdrawn",
-        ].map((item) => (
-          <button
+        ].map((item) => (          <button
             key={item}
             type="button"
             onClick={() => setFilter(item)}
@@ -256,7 +257,9 @@ export default function ApplicationsModule({
           >
             {item === "All"
               ? item
-              : item.replace(/_/g, " ")}
+                : item
+                    .replace(/_/g, " ")
+                    .replace(/\b\w/g, (letter) => letter.toUpperCase())}
           </button>
         ))}
       </div>

@@ -161,10 +161,11 @@ export default function AnalyticsModule({
     const statuses = [
       { key: "pending", label: "Pending" },
       { key: "under_review", label: "Under Review" },
-      { key: "interview", label: "Interview" },
-      { key: "hired", label: "Hired" },
+      { key: "shortlisted", label: "Shortlisted" },
+      { key: "qualified", label: "Qualified" },
+      { key: "interviewed", label: "Interviewed" },
+      { key: "hired", label: "You're Hired" },
       { key: "rejected", label: "Rejected" },
-      { key: "withdrawn", label: "Withdrawn" },
     ];
 
     // LAST SIX MONTHS
