@@ -970,7 +970,7 @@ export default function AdminDashboard() {
       supabase
         .from("application")
         .select(
-          "application_id, employer_id, job_seeker_id, position_title, status, date_applied"
+          "application_id, employer_id, job_seeker_id, position_title, status, date_applied, applicant_name, applicant_contact_no, job_seeker(job_seeker_id, full_name, birth_date, contact_no, registration_details), application_status_history(status, changed_at, is_backfill)"
         ),
 
       supabase

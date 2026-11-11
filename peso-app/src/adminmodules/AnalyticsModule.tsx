@@ -32,14 +32,30 @@ type JobSeeker = {
   id?: string;
   job_seeker_id?: string;
   full_name?: string;
+  contact_no?: string | null;
+  birth_date?: string | null;
+  registration_details?: unknown;
   [key: string]: any;
+};
+
+type ApplicationStatusHistory = {
+  status: string;
+  changed_at: string;
+  is_backfill?: boolean;
 };
 
 type Application = {
   id?: string;
   application_id?: string;
+  job_seeker_id?: string;
+  job_seeker?: JobSeeker | JobSeeker[] | null;
   status?: string;
   application_status?: string;
+  date_applied?: string;
+  position_title?: string | null;
+  applicant_name?: string | null;
+  applicant_contact_no?: string | null;
+  application_status_history?: ApplicationStatusHistory[];
   [key: string]: any;
 };
 
@@ -94,6 +110,66 @@ const tooltipStyle = {
   padding: "8px 12px",
 };
 
+function getRegistrationDetails(value: unknown): Record<string, any> {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, any>;
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? parsed
+        : {};
+    } catch {
+      return {};
+    }
+  }
+
+  return {};
+}
+
+function splitApplicantName(fullName: string) {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length < 2) {
+    return { firstName: parts[0] || "—", middleName: "—", lastName: "—" };
+  }
+
+  return {
+    firstName: parts[0],
+    middleName: parts.length > 2 ? parts.slice(1, -1).join(" ") : "—",
+    lastName: parts[parts.length - 1],
+  };
+}
+
+function getAge(birthDate?: string | null): string {
+  if (!birthDate) return "—";
+  const date = new Date(`${birthDate.slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return "—";
+
+  const today = new Date();
+  let age = today.getFullYear() - date.getFullYear();
+  const birthdayHasPassed =
+    today.getMonth() > date.getMonth() ||
+    (today.getMonth() === date.getMonth() &&
+      today.getDate() >= date.getDate());
+  if (!birthdayHasPassed) age--;
+
+  return age >= 0 ? String(age) : "—";
+}
+
+function formatReportDate(value?: string | null): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-PH", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+}
+
 export default function AnalyticsModule({
   counts,
   applications,
@@ -108,6 +184,8 @@ export default function AnalyticsModule({
 }: Props) {
   const [selectedInsight, setSelectedInsight] =
     useState<SelectedInsight>(null);
+  const [placementStartDate, setPlacementStartDate] = useState("");
+  const [placementEndDate, setPlacementEndDate] = useState("");
 
   // APPLICATION STATUS COUNTS
 
@@ -154,6 +232,24 @@ export default function AnalyticsModule({
       return status.toLowerCase() === "hired";
     }
   ).length;
+
+  const placementApplications = useMemo(
+    () =>
+      applications
+        .filter((application) => {
+          const appliedDate = application.date_applied?.slice(0, 10) || "";
+          return (
+            (!placementStartDate || appliedDate >= placementStartDate) &&
+            (!placementEndDate || appliedDate <= placementEndDate)
+          );
+        })
+        .sort((first, second) =>
+          String(second.date_applied || "").localeCompare(
+            String(first.date_applied || ""),
+          ),
+        ),
+    [applications, placementStartDate, placementEndDate],
+  );
 
   // ANALYTICS DATA
 
@@ -454,6 +550,188 @@ export default function AnalyticsModule({
         />
 
       </div>
+
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-4 border-b border-slate-200 p-5 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800">
+              Placement Status Report
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Overall applications and whether each applicant reached the
+              Qualified, Interviewed, and Hired stages.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <label className="text-xs font-semibold text-slate-600">
+              Applied from
+              <input
+                type="date"
+                value={placementStartDate}
+                max={placementEndDate || undefined}
+                onChange={(event) => setPlacementStartDate(event.target.value)}
+                className="mt-1 block rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal"
+              />
+            </label>
+            <label className="text-xs font-semibold text-slate-600">
+              Applied to
+              <input
+                type="date"
+                value={placementEndDate}
+                min={placementStartDate || undefined}
+                onChange={(event) => setPlacementEndDate(event.target.value)}
+                className="mt-1 block rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal"
+              />
+            </label>
+            {(placementStartDate || placementEndDate) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPlacementStartDate("");
+                  setPlacementEndDate("");
+                }}
+                className="self-end rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Clear dates
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between px-5 py-3 text-xs text-slate-500">
+          <span>
+            Date range is based on application date. Blank dates include all
+            overall applications.
+          </span>
+          <span>{placementApplications.length} applicants</span>
+        </div>
+        <p className="px-5 pb-3 text-xs text-slate-500">
+          Status progression is tracked from the status-history migration
+          forward. Older applications only have their latest known status;
+          their hired date uses the last available update timestamp.
+        </p>
+
+        {placementApplications.length === 0 ? (
+          <p className="border-t border-slate-100 px-5 py-10 text-center text-sm text-slate-500">
+            No applications were found in this date range.
+          </p>
+        ) : (
+          <div className="overflow-x-auto border-t border-slate-100">
+            <table className="min-w-[1120px] w-full border-collapse text-left text-xs">
+              <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-600">
+                <tr>
+                  <th className="px-3 py-3">No.</th>
+                  <th className="px-3 py-3">Last name</th>
+                  <th className="px-3 py-3">First name</th>
+                  <th className="px-3 py-3">Middle name</th>
+                  <th className="px-3 py-3">Age</th>
+                  <th className="px-3 py-3">Sex</th>
+                  <th className="px-3 py-3">Contact number</th>
+                  <th className="px-3 py-3">Position applied</th>
+                  <th className="px-3 py-3 text-center">Qualified</th>
+                  <th className="px-3 py-3 text-center">Interviewed</th>
+                  <th className="px-3 py-3 text-center">Hired</th>
+                  <th className="px-3 py-3">Date hired</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {placementApplications.map((application, index) => {
+                  const seeker = Array.isArray(application.job_seeker)
+                    ? application.job_seeker[0]
+                    : application.job_seeker;
+                  const registration = getRegistrationDetails(
+                    seeker?.registration_details,
+                  );
+                  const fullName = String(
+                    application.applicant_name || seeker?.full_name || "",
+                  );
+                  const nameParts = splitApplicantName(fullName);
+                  const firstName = String(
+                    registration.firstName || nameParts.firstName,
+                  );
+                  const middleName = String(
+                    registration.middleName || nameParts.middleName,
+                  );
+                  const lastName = String(
+                    registration.lastName || nameParts.lastName,
+                  );
+                  const history = application.application_status_history || [];
+                  const reachedStatuses = new Set(
+                    history.map((entry) =>
+                      String(entry.status || "")
+                        .trim()
+                        .toLowerCase()
+                        .replace(/\s+/g, "_"),
+                    ),
+                  );
+                  const hiredEvent = history
+                    .filter(
+                      (entry) =>
+                        String(entry.status || "").toLowerCase() === "hired",
+                    )
+                    .sort((first, second) =>
+                      first.changed_at.localeCompare(second.changed_at),
+                    )[0];
+                  const statusCell = (reached: boolean) => (
+                    <span
+                      className={`inline-flex min-w-10 justify-center rounded-full px-2 py-1 font-bold ${
+                        reached
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      {reached ? "Yes" : "No"}
+                    </span>
+                  );
+
+                  return (
+                    <tr
+                      key={application.application_id || application.id || index}
+                      className="hover:bg-slate-50"
+                    >
+                      <td className="px-3 py-3">{index + 1}</td>
+                      <td className="px-3 py-3">{lastName}</td>
+                      <td className="px-3 py-3">{firstName}</td>
+                      <td className="px-3 py-3">{middleName}</td>
+                      <td className="px-3 py-3">
+                        {getAge(
+                          registration.dateOfBirth || seeker?.birth_date,
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        {String(registration.sex || seeker?.sex || "—")}
+                      </td>
+                      <td className="px-3 py-3">
+                        {application.applicant_contact_no ||
+                          seeker?.contact_no ||
+                          "—"}
+                      </td>
+                      <td className="max-w-48 px-3 py-3">
+                        {application.position_title || "—"}
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        {statusCell(reachedStatuses.has("qualified"))}
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        {statusCell(
+                          reachedStatuses.has("interviewed") ||
+                            reachedStatuses.has("interview"),
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        {statusCell(reachedStatuses.has("hired"))}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3">
+                        {formatReportDate(hiredEvent?.changed_at)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       {/* CHARTS AND SHARED INSIGHT PANEL */}
 
