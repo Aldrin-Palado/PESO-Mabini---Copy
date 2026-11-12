@@ -135,39 +135,19 @@ export default function CompanyProfileModule({
     "mb-2 block text-sm font-bold text-slate-700";
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <section className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-[#123B70] sm:text-3xl">
-            Company Profile
-          </h1>
-
-          <p className="mt-2 text-sm text-slate-500">
-            Manage your company description and profile image.
-          </p>
-        </div>
-
-        {!isEditing && (
-          <button
-            type="button"
-            onClick={() => {
-              setError("");
-              setSuccess("");
-              setIsEditing(true);
-            }}
-            className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#123B70]"
-          >
-            Edit Profile
-          </button>
-        )}
-      </section>
+    <div className="mx-auto max-w-5xl space-y-6">
+      <header>
+        <h1 className="text-3xl font-black text-[#123B70]">My Profile</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          View and manage your company information and contact details.
+        </p>
+      </header>
 
       {/* Success Message */}
       {success && (
         <div
           role="status"
-          className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700"
+          className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800"
         >
           {success}
         </div>
@@ -177,7 +157,7 @@ export default function CompanyProfileModule({
       {error && (
         <div
           role="alert"
-          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+          className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800"
         >
           {error}
         </div>
@@ -188,82 +168,107 @@ export default function CompanyProfileModule({
         onSubmit={handleSubmit}
         className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
       >
-        {/* Company Header */}
-        <div className="border-b border-slate-100 bg-slate-50 px-6 py-6">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white text-2xl font-black text-[#0446A7]">
-              {logoPreviewUrl || formData.company_logo_url ? (
-                <img
-                  src={logoPreviewUrl || formData.company_logo_url || ""}
-                  alt={`${formData.company_name || "Company"} logo`}
-                  className="h-full w-full object-contain"
+        <div className="flex flex-col gap-5 border-b border-slate-100 bg-slate-50 px-6 py-6 sm:flex-row sm:items-center">
+          <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white text-2xl font-black text-[#0446A7] shadow-sm">
+            {logoPreviewUrl || formData.company_logo_url ? (
+              <img
+                src={logoPreviewUrl || formData.company_logo_url || ""}
+                alt={`${formData.company_name || "Company"} logo`}
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              formData.company_name?.trim().charAt(0).toUpperCase() || "C"
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-black text-[#123B70]">
+              {formData.company_name || "Company Information"}
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              {formData.industry || "Company profile"}
+            </p>
+            <p className="mt-1 break-words text-sm text-slate-500">
+              {formData.company_email || "Not provided"}
+            </p>
+            {isEditing && (
+              <div className="mt-3">
+                <label
+                  htmlFor="company-logo"
+                  className="inline-flex cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  {logoFile ? "Change image" : "Upload company image"}
+                </label>
+                <input
+                  id="company-logo"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleLogoChange}
+                  disabled={isSaving}
+                  className="sr-only"
                 />
-              ) : (
-                formData.company_name?.trim().charAt(0).toUpperCase() || "C"
-              )}
-            </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  JPG, PNG, or WebP; maximum 5 MB.
+                </p>
+              </div>
+            )}
+          </div>
 
-            <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-black text-[#123B70]">
-                {formData.company_name || "Company Information"}
-              </h2>
+          {!isEditing && (
+            <button
+              type="button"
+              onClick={() => {
+                setError("");
+                setSuccess("");
+                setIsEditing(true);
+              }}
+              className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#123B70] sm:ml-auto"
+            >
+              Edit Profile
+            </button>
+          )}
+        </div>
 
-              <p className="mt-1 text-sm text-slate-500">
-                {formData.industry || "Company profile"}
-              </p>
-              {isEditing && (
-                <div className="mt-3">
-                  <label
-                    htmlFor="company-logo"
-                    className="inline-flex cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                  >
-                    {logoFile ? "Change image" : "Upload company image"}
-                  </label>
-                  <input
-                    id="company-logo"
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handleLogoChange}
-                    disabled={isSaving}
-                    className="sr-only"
-                  />
-                  <p className="mt-1 text-xs text-slate-500">
-                    JPG, PNG, or WebP; maximum 5 MB.
-                  </p>
-                </div>
-              )}
-            </div>
+        <div className="p-6">
+          <dl className="grid gap-5 sm:grid-cols-2">
+            {[
+              ["Contact person", formData.contact_person],
+              ["Phone", formData.company_phone],
+              ["Address", formData.company_address],
+              ["Website", formData.website],
+            ].map(([label, value]) => (
+              <div key={label}>
+                <dt className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                  {label}
+                </dt>
+                <dd className="mt-1 break-words text-sm text-slate-700">
+                  {value || "Not provided"}
+                </dd>
+              </div>
+            ))}
+          </dl>
+
+          <div className="mt-6">
+            <label htmlFor="company_description" className={labelClass}>
+              Company Description
+            </label>
+            <textarea
+              id="company_description"
+              name="company_description"
+              rows={5}
+              maxLength={3000}
+              value={formData.company_description ?? ""}
+              onChange={handleChange}
+              disabled={!isEditing || isSaving}
+              placeholder="Describe your company, services, and workplace..."
+              className={`${inputClass} resize-y`}
+            />
+            <p className="mt-2 text-right text-xs text-slate-400">
+              {(formData.company_description ?? "").length}/3000 characters
+            </p>
           </div>
         </div>
 
-        {/* Company Description */}
-        <div className="p-6">
-          <label
-            htmlFor="company_description"
-            className={labelClass}
-          >
-            Company Description
-          </label>
-
-          <textarea
-            id="company_description"
-            name="company_description"
-            rows={5}
-            maxLength={3000}
-            value={formData.company_description ?? ""}
-            onChange={handleChange}
-            disabled={!isEditing || isSaving}
-            placeholder="Describe your company, services, and workplace..."
-            className={`${inputClass} resize-y`}
-          />
-
-          <p className="mt-2 text-right text-xs text-slate-400">
-            {(formData.company_description ?? "").length}/3000
-            characters
-          </p>
-        </div>
-
-        {/* Actions */}
         {isEditing && (
           <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-5">
             <button
@@ -274,7 +279,6 @@ export default function CompanyProfileModule({
             >
               Cancel
             </button>
-
             <button
               type="submit"
               disabled={isSaving}
@@ -285,18 +289,6 @@ export default function CompanyProfileModule({
           </div>
         )}
       </form>
-
-      {/* Profile Information */}
-      <div className="rounded-2xl border border-blue-100 bg-blue-50 p-5">
-        <h3 className="font-bold text-[#123B70]">
-          Keep your company profile updated
-        </h3>
-
-        <p className="mt-2 text-sm leading-6 text-slate-600">
-          A clear description helps job seekers understand your organization
-          and workplace.
-        </p>
-      </div>
     </div>
   );
 }
