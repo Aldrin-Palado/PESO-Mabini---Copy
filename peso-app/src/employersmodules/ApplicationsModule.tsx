@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { supabase } from "../services/supabase";
 import { openStoredResume } from "../services/resumes";
+import ProfileAvatar from "../components/ProfileAvatar";
 
 type ApplicationDocument = {
   name: string;
@@ -17,6 +18,7 @@ type ApplicationRow = {
   date_applied: string;
   applicant_name?: string | null;
   applicant_email?: string | null;
+  applicant_user_id?: string | null;
   contact_number?: string | null;
   applicant_address?: string | null;
   applicant_qualification_files?: ApplicationDocument[] | null;
@@ -167,6 +169,7 @@ export default function ApplicationsModule({
         key,
         name: groupApplications[0].applicant_name || "Job Seeker",
         email: groupApplications[0].applicant_email || "Email unavailable",
+        userId: groupApplications[0].applicant_user_id || null,
         applications: [...groupApplications].sort(
           (first, second) =>
             new Date(first.date_applied || 0).getTime() -
@@ -375,9 +378,19 @@ export default function ApplicationsModule({
               <section key={group.key} aria-label={`Applications for ${group.name}`}>
                 <header className="flex items-center justify-between gap-3 bg-slate-50 px-3 py-2.5 sm:px-4">
                   <div className="flex min-w-0 items-center gap-2.5">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0759AE] text-[10px] font-bold text-white">
-                      {group.name.trim().charAt(0).toUpperCase()}
-                    </span>
+                    {group.userId ? (
+                      <ProfileAvatar
+                        key={group.userId}
+                        userId={group.userId}
+                        fullName={group.name}
+                        size="small"
+                        showControls={false}
+                      />
+                    ) : (
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0759AE] text-[10px] font-bold text-white">
+                        {group.name.trim().charAt(0).toUpperCase()}
+                      </span>
+                    )}
                     <div className="min-w-0">
                       <p className="truncate text-[11px] font-bold text-slate-800">
                         {group.name}

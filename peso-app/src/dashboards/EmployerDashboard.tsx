@@ -85,6 +85,7 @@ interface ApplicationRow {
   applicant_email?: string | null;
   applicant_contact_no?: string | null;
   applicant_address?: string | null;
+  applicant_user_id?: string | null;
   applicant_qualification_files?: { name: string; path: string }[] | null;
 }
 
@@ -171,13 +172,18 @@ async function loadEmployerApplications(
   ];
   let seekerDetailsById = new Map<
     string,
-    { name: string; email: string | null; contactNumber: string | null }
+    {
+      name: string;
+      email: string | null;
+      contactNumber: string | null;
+      userId: string | null;
+    }
   >();
 
   if (seekerIds.length > 0) {
     const { data: seekers, error: seekerError } = await supabase
       .from("job_seeker")
-      .select("job_seeker_id, full_name, email, contact_no")
+      .select("job_seeker_id, user_id, full_name, email, contact_no")
       .in("job_seeker_id", seekerIds);
 
     if (seekerError) {
@@ -190,6 +196,7 @@ async function loadEmployerApplications(
             name: seeker.full_name || "Job Seeker",
             email: seeker.email,
             contactNumber: seeker.contact_no,
+            userId: seeker.user_id,
           },
         ]),
       );
@@ -205,6 +212,7 @@ async function loadEmployerApplications(
       contact_number:
         application.applicant_contact_no || seeker?.contactNumber || null,
       applicant_address: application.applicant_address || null,
+      applicant_user_id: seeker?.userId ?? null,
     };
   });
 }
