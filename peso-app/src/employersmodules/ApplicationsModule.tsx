@@ -106,6 +106,9 @@ export default function ApplicationsModule({
   const [actionError, setActionError] = useState("");
   const [notice, setNotice] = useState("");
   const [openingDocumentPath, setOpeningDocumentPath] = useState<string | null>(null);
+  const [downloadingDocumentPath, setDownloadingDocumentPath] = useState<string | null>(null);
+  const [selectedApplication, setSelectedApplication] =
+    useState<ApplicationRow | null>(null);
   const [expandedApplicants, setExpandedApplicants] = useState<Set<string>>(
     () => new Set(),
   );
@@ -200,6 +203,33 @@ export default function ApplicationsModule({
       );
     } finally {
       setOpeningDocumentPath(null);
+    }
+  };
+
+  const handleDownloadDocument = async (document: ApplicationDocument) => {
+    setDownloadingDocumentPath(document.path);
+    setActionError("");
+    try {
+      const { data, error } = await supabase.storage
+        .from("Resume Files")
+        .createSignedUrl(document.path, 60, { download: document.name });
+
+      if (error) throw error;
+
+      const link = window.document.createElement("a");
+      link.href = data.signedUrl;
+      link.download = document.name;
+      link.rel = "noopener noreferrer";
+      link.click();
+    } catch (error) {
+      console.error("Could not download applicant document:", error);
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "Unable to download the applicant document.",
+      );
+    } finally {
+      setDownloadingDocumentPath(null);
     }
   };
 
@@ -392,6 +422,16 @@ export default function ApplicationsModule({
                             </p>
                           </div>
                           <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActionError("");
+                                setSelectedApplication(application);
+                              }}
+                              className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[10px] font-semibold text-blue-800 transition hover:bg-blue-100"
+                            >
+                              Details
+                            </button>
                             <label
                               className="sr-only"
                               htmlFor={`employer-application-status-${application.application_id}`}
@@ -402,9 +442,19 @@ export default function ApplicationsModule({
                               id={`employer-application-status-${application.application_id}`}
                               value={status}
                               disabled={updatingId === application.application_id}
-                              onChange={(event) =>
-                                void handleStatusChange(application, event.target.value)
-                              }
+                              onChange={(event) => {
+                                const newStatus = event.currentTarget.value;
+                                const confirmed = window.confirm(
+                                  `Are you sure you want to change ${application.applicant_name || "this applicant"}'s application status from ${getStatusLabel(status)} to ${getStatusLabel(newStatus)}?`,
+                                );
+
+                                if (!confirmed) {
+                                  event.currentTarget.value = status;
+                                  return;
+                                }
+
+                                void handleStatusChange(application, newStatus);
+                              }}
                               className={`max-w-full rounded-lg border px-3 py-2 text-[10px] font-bold outline-none transition focus:ring-2 focus:ring-blue-200 disabled:cursor-wait disabled:opacity-60 ${statusStyle}`}
                             >
                               {STATUSES.map((item) => (
@@ -414,28 +464,6 @@ export default function ApplicationsModule({
                               ))}
                             </select>
                           </div>
-                          {application.applicant_address && (
-                            <p className="shrink-0 text-[9px] text-slate-400 sm:max-w-48 sm:text-right">
-                              {application.applicant_address}
-                            </p>
-                          )}
-                          {(application.applicant_qualification_files ?? []).length > 0 && (
-                            <div className="flex flex-wrap gap-2 sm:pl-2">
-                              {application.applicant_qualification_files?.map((document) => (
-                                <button
-                                  key={document.path}
-                                  type="button"
-                                  disabled={openingDocumentPath === document.path}
-                                  onClick={() => void handleOpenDocument(document)}
-                                  className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[10px] font-semibold text-blue-800 hover:bg-blue-100 disabled:cursor-wait disabled:opacity-60"
-                                >
-                                  {openingDocumentPath === document.path
-                                    ? "Opening..."
-                                    : `View ${document.name}`}
-                                </button>
-                              ))}
-                            </div>
-                          )}
                         </article>
                       );
                     })}
@@ -446,6 +474,127 @@ export default function ApplicationsModule({
           </div>
         )}
       </section>
+
+      {selectedApplication && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setSelectedApplication(null);
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="application-details-title"
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
+          >
+            <header className="flex items-start justify-between gap-4 border-b border-slate-100 p-5 sm:p-6">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-blue-700">
+                  Application details
+                </p>
+                <h2
+                  id="application-details-title"
+                  className="mt-1 text-xl font-bold text-slate-900"
+                >
+                  {selectedApplication.applicant_name || "Job Seeker"}
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  {selectedApplication.position_title || "Position not specified"}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close application details"
+                onClick={() => setSelectedApplication(null)}
+                className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+              >
+                Close
+              </button>
+            </header>
+
+            <div className="space-y-6 p-5 sm:p-6">
+              {actionError && (
+                <p
+                  role="alert"
+                  className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                >
+                  {actionError}
+                </p>
+              )}
+              <dl className="grid gap-4 sm:grid-cols-2">
+                {[
+                  ["Email", selectedApplication.applicant_email],
+                  ["Contact number", selectedApplication.contact_number],
+                  ["Address", selectedApplication.applicant_address],
+                  ["Date applied", formatDate(selectedApplication.date_applied)],
+                  ["Application status", getStatusLabel(selectedApplication.status)],
+                ].map(([label, value]) => (
+                  <div key={label}>
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      {label}
+                    </dt>
+                    <dd className="mt-1 break-words text-sm text-slate-800">
+                      {value || "Not provided"}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+
+              <section>
+                <h3 className="text-sm font-bold text-slate-900">
+                  Attached requirements
+                </h3>
+                {(selectedApplication.applicant_qualification_files ?? []).length ===
+                0 ? (
+                  <p className="mt-2 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
+                    No requirement documents were attached to this application.
+                  </p>
+                ) : (
+                  <ul className="mt-3 space-y-2">
+                    {selectedApplication.applicant_qualification_files?.map(
+                      (document) => (
+                        <li
+                          key={document.path}
+                          className="flex flex-col gap-3 rounded-xl border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <span className="min-w-0 break-all text-sm font-medium text-slate-700">
+                            {document.name}
+                          </span>
+                          <div className="flex shrink-0 gap-2">
+                            <button
+                              type="button"
+                              disabled={openingDocumentPath === document.path}
+                              onClick={() => void handleOpenDocument(document)}
+                              className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800 transition hover:bg-blue-100 disabled:cursor-wait disabled:opacity-60"
+                            >
+                              {openingDocumentPath === document.path
+                                ? "Opening..."
+                                : "View"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={downloadingDocumentPath === document.path}
+                              onClick={() => void handleDownloadDocument(document)}
+                              className="rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-800 disabled:cursor-wait disabled:opacity-60"
+                            >
+                              {downloadingDocumentPath === document.path
+                                ? "Downloading..."
+                                : "Download"}
+                            </button>
+                          </div>
+                        </li>
+                      ),
+                    )}
+                  </ul>
+                )}
+              </section>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
