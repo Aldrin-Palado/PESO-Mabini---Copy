@@ -774,7 +774,7 @@ export default function AdminAccounts() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <p className="font-semibold text-slate-500">
-          Loading admin accounts...
+          Loading accounts...
         </p>
       </div>
     );
@@ -825,7 +825,7 @@ export default function AdminAccounts() {
             <AppIcon name="user" className="h-4 w-4 text-[#0759AE]" />
             <div>
               <h2 className="text-sm font-bold text-slate-800">
-                New Admin Account
+                New Account
               </h2>
               <p className="text-xs text-slate-500">
                 Create a PESO Staff account and choose its dashboard access.
@@ -911,7 +911,7 @@ export default function AdminAccounts() {
                 className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-normal text-slate-500"
               />
               <span className="mt-1 block text-[10px] font-normal text-slate-400">
-                Super Admin access cannot be assigned from this form.
+                Admin access cannot be assigned from this form.
               </span>
             </label>
 
@@ -1022,7 +1022,7 @@ export default function AdminAccounts() {
               }}
               className="rounded-lg bg-[#0759AE] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#064A91]"
             >
-              {showCreateModal ? "Cancel" : "+ Add Admin"}
+              {showCreateModal ? "Cancel" : "+ Add Account"}
             </button>
           </div>
         </div>

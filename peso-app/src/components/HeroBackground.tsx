@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type HeroBackgroundProps = {
   /** Resolved image URL (Vite asset, CDN, Supabase storage, ...). */
@@ -33,15 +33,23 @@ export default function HeroBackground({
   priority = false,
   className = "",
 }: HeroBackgroundProps) {
+  const imageRef = useRef<HTMLImageElement>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [status, setStatus] = useState<"loading" | "loaded" | "error">(
     "loading",
   );
 
-  // Reset when the source changes so a swapped hero does not stay hidden.
+  // Cached images may finish before this effect runs, so sync with the element.
   useEffect(() => {
     setRetryCount(0);
-    setStatus("loading");
+    const image = imageRef.current;
+    setStatus(
+      image?.complete
+        ? image.naturalWidth > 0
+          ? "loaded"
+          : "error"
+        : "loading",
+    );
   }, [src]);
 
   useEffect(() => {
@@ -78,6 +86,7 @@ export default function HeroBackground({
 
   return (
     <img
+      ref={imageRef}
       src={imageSrc}
       alt=""
       aria-hidden="true"

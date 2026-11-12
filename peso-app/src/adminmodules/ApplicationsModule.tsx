@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { openStoredResume } from "../services/resumes";
 import type { ApplicationDecisionResult } from "../services/applicationDecisions";
 import ApplicationScopeToggle from "../components/ApplicationScopeToggle";
-import ModuleScoreboard from "./ModuleScoreboard";
+import ModuleScoreboard from "../components/ModuleScoreboard";
 
 type Application = {
   id?: string;
@@ -276,7 +276,12 @@ export default function ApplicationsModule({
     setDecisionNotice("");
     try {
       await onUpdateStatus(applicationId, status);
-      setDecisionNotice(`Application status set to ${getStatusLabel(status)}.`);
+      const finalStatus = status === "hired" || status === "rejected";
+      setDecisionNotice(
+        `Application status set to ${getStatusLabel(status)}.${
+          finalStatus ? " The applicant was automatically notified in PESO-Hub Messages." : ""
+        }`,
+      );
     } catch (error) {
       setActionError(
         error instanceof Error ? error.message : "Unable to update application status.",
@@ -296,15 +301,6 @@ export default function ApplicationsModule({
       setActionError("Only PESO applications can be updated here.");
       return;
     }
-    const applicant = application.applicant_name || "this applicant";
-    const position = application.position_title || "this position";
-    const confirmed = window.confirm(
-      approved
-        ? `Approve ${applicant} for ${position} and send the hiring message?`
-        : `Reject ${applicant}'s application for ${position} and send the rejection message?`,
-    );
-    if (!confirmed) return;
-
     setUpdatingId(rowId);
     setActionError("");
     setDecisionNotice("");

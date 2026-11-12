@@ -66,9 +66,9 @@ export default function AdminSidebar({
   ];
 
   // Administrative-only modules
-  const adminModules: AdminModule[] = [
-    "Admin Accounts",
-    "Admin Audit Logs",
+  const adminModules: { module: AdminModule; label: string }[] = [
+    { module: "Admin Accounts", label: "Manage Accounts" },
+    { module: "Admin Audit Logs", label: "Admin Audit Logs" },
   ];
 
   const canAccess = (module: AdminModule) => {
@@ -194,7 +194,7 @@ export default function AdminSidebar({
               </p>
 
               <div className="space-y-1">
-                {adminModules.map((module) => {
+                {adminModules.map(({ module, label }) => {
                   if (!canAccess(module)) return null;
 
                   const isActive = activePage === module;
@@ -209,7 +209,7 @@ export default function AdminSidebar({
                         : "text-blue-50/90 hover:bg-white/10 hover:text-white"
                     }`}
                   >
-                    {module}
+                    {label}
                   </button>
                   );
                 })}

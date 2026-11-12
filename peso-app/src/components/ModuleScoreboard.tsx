@@ -1,4 +1,4 @@
-import AppIcon, { type AppIconName } from "../components/AppIcon";
+import AppIcon, { type AppIconName } from "./AppIcon";
 
 export type ScoreboardMetric = {
   label: string;

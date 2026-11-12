@@ -197,7 +197,14 @@ export default function ApplicationsModule({
       if (error) throw error;
 
       await onRefresh();
-      setNotice(`Application status set to ${getStatusLabel(newStatus)}.`);
+      const finalStatus = ["hired", "rejected"].includes(
+        normalizeApplicationStatus(newStatus),
+      );
+      setNotice(
+        `Application status set to ${getStatusLabel(newStatus)}.${
+          finalStatus ? " The applicant was automatically notified in Messages." : ""
+        }`,
+      );
     } catch (error) {
       setActionError(
         error instanceof Error
@@ -267,8 +274,8 @@ export default function ApplicationsModule({
             type="button"
             onClick={() => setStatusFilter("All")}
             aria-pressed={statusFilter === "All"}
-            className={`rounded-full bg-slate-100 px-2.5 py-1.5 text-[10px] font-semibold text-slate-600 transition ${
-              statusFilter === "All" ? "ring-2 ring-blue-500 ring-offset-1" : ""
+            className={`rounded-full bg-[#123B70] px-2.5 py-1.5 text-[10px] font-semibold text-white transition hover:bg-[#0D315F] ${
+              statusFilter === "All" ? "ring-2 ring-yellow-400 ring-offset-1" : ""
             }`}
           >
             All
@@ -482,19 +489,12 @@ export default function ApplicationsModule({
                               id={`employer-application-status-${application.application_id}`}
                               value={status}
                               disabled={updatingId === application.application_id}
-                              onChange={(event) => {
-                                const newStatus = event.currentTarget.value;
-                                const confirmed = window.confirm(
-                                  `Are you sure you want to change ${application.applicant_name || "this applicant"}'s application status from ${getStatusLabel(status)} to ${getStatusLabel(newStatus)}?`,
-                                );
-
-                                if (!confirmed) {
-                                  event.currentTarget.value = status;
-                                  return;
-                                }
-
-                                void handleStatusChange(application, newStatus);
-                              }}
+                              onChange={(event) =>
+                                void handleStatusChange(
+                                  application,
+                                  event.currentTarget.value,
+                                )
+                              }
                               className={`max-w-full rounded-lg border px-3 py-2 text-[10px] font-bold outline-none transition focus:ring-2 focus:ring-blue-200 disabled:cursor-wait disabled:opacity-60 ${statusStyle}`}
                             >
                               {STATUSES.map((item) => (

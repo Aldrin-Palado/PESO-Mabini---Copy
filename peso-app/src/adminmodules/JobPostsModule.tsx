@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import AppIcon from "../components/AppIcon";
-import ModuleScoreboard from "./ModuleScoreboard";
+import ModuleScoreboard from "../components/ModuleScoreboard";
 
 type JobPost = {
   id?: string;

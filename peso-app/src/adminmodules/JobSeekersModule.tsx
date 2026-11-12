@@ -2,7 +2,7 @@ import React, { useEffect, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import AppIcon from "../components/AppIcon";
 import ExportFormatControl from "../components/ExportFormatControl";
-import ModuleScoreboard from "./ModuleScoreboard";
+import ModuleScoreboard from "../components/ModuleScoreboard";
 import { openStoredResume } from "../services/resumes";
 import {
   getIncompleteJobSeekerProfileSections,
