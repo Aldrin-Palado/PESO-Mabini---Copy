@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import AppIcon from "../components/AppIcon";
 import ExportFormatControl from "../components/ExportFormatControl";
 import ModuleScoreboard from "../components/ModuleScoreboard";
+import ProfileAvatar from "../components/ProfileAvatar";
 import { supabase } from "../services/supabase";
 import type {
   EmployerDocumentStatus,
@@ -19,6 +20,7 @@ type Employer = {
   name?: string;
   contact_person?: string;
   email?: string;
+  user_id?: string | null;
   contact_no?: string;
   phone?: string;
   address?: string;
@@ -696,9 +698,19 @@ export default function EmployersModule({
                       >
                         <td className="px-3 py-3">
                           <div className="flex min-w-0 items-center gap-3">
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-[#1766B4]">
-                              <AppIcon name="building" className="h-5 w-5" />
-                            </span>
+                            {employer.user_id ? (
+                              <ProfileAvatar
+                                key={employer.user_id}
+                                userId={employer.user_id}
+                                fullName={name}
+                                size="small"
+                                showControls={false}
+                              />
+                            ) : (
+                              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-[#1766B4]">
+                                <AppIcon name="building" className="h-5 w-5" />
+                              </span>
+                            )}
                             <span className="truncate text-sm font-bold text-slate-900" title={name}>
                               {name}
                             </span>
@@ -795,6 +807,22 @@ export default function EmployersModule({
             onClick={(event) => event.stopPropagation()}
           >
             <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
+            <div className="flex min-w-0 items-center gap-3">
+              {detailsEmployer.user_id ? (
+                <ProfileAvatar
+                  key={detailsEmployer.user_id}
+                  userId={detailsEmployer.user_id}
+                  fullName={
+                    detailsEmployer.name ||
+                    detailsEmployer.company_name ||
+                    detailsEmployer.business_name ||
+                    detailsEmployer.full_name ||
+                    "Unnamed Employer"
+                  }
+                  size="small"
+                  showControls={false}
+                />
+              ) : null}
               <div className="min-w-0">
                 <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#203F8B]">
                   Employer Details
@@ -810,6 +838,7 @@ export default function EmployersModule({
                     "Unnamed Employer"}
                 </h2>
               </div>
+            </div>
               <div className="flex shrink-0 items-center gap-2">
                 <button
                     type="button"
