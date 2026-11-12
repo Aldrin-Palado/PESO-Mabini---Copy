@@ -1919,7 +1919,7 @@ export default function AdminDashboard() {
         );
 
       case "Messages":
-        return <MessagesModule canDecideApplications={isSuperadmin} />;
+        return <MessagesModule />;
 
       case "Announcement":
         return (
