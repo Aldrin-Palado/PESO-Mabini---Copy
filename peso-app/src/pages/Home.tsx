@@ -783,7 +783,7 @@ function Home() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="peso-announcement-title"
-            className="my-auto max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
+            className="my-auto max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
           >
             <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur sm:px-7">
               <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
