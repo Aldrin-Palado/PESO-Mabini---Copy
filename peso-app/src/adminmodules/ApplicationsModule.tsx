@@ -376,7 +376,6 @@ export default function ApplicationsModule({
       <ModuleScoreboard
         title="Applications"
         metrics={[
-          { label: "Total applications", value: scopedApplications.length },
           ...STATUSES.map((status) => ({
             label: status.label,
             value: scopedApplications.filter(

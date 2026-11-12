@@ -70,8 +70,36 @@ export async function exportData(
   }
 
   if (format === "docx") {
-    const { Document, Packer, Paragraph, Table, TableCell, TableRow, TextRun } =
-      await import("docx");
+    const {
+      Document,
+      PageOrientation,
+      Packer,
+      Paragraph,
+      Table,
+      TableCell,
+      TableLayoutType,
+      TableRow,
+      TextRun,
+      WidthType,
+    } = await import("docx");
+    const pageWidth = 15840;
+    const pageHeight = 12240;
+    const pageMargin = 720;
+    const availableTableWidth = pageWidth - pageMargin * 2;
+    const columnWeights = columns.map((column) =>
+      Math.max(6, Math.min(20, column.length + 2)),
+    );
+    const totalColumnWeight = columnWeights.reduce(
+      (total, weight) => total + weight,
+      0,
+    );
+    const columnWidths = columnWeights.map((weight) =>
+      Math.round((availableTableWidth * weight) / totalColumnWeight),
+    );
+    columnWidths[columnWidths.length - 1] +=
+      availableTableWidth -
+      columnWidths.reduce((total, width) => total + width, 0);
+
     const tableRows = matrix.map(
       (row, rowIndex) =>
         new TableRow({
@@ -80,7 +108,13 @@ export async function exportData(
               new TableCell({
                 children: [
                   new Paragraph({
-                    children: [new TextRun({ text: value, bold: rowIndex === 0 })],
+                    children: [
+                      new TextRun({
+                        text: value,
+                        bold: rowIndex === 0,
+                        size: 18,
+                      }),
+                    ],
                   }),
                 ],
               }),
@@ -90,11 +124,32 @@ export async function exportData(
     const document = new Document({
       sections: [
         {
+          properties: {
+            page: {
+              size: {
+                width: pageWidth,
+                height: pageHeight,
+                orientation: PageOrientation.LANDSCAPE,
+              },
+              margin: {
+                top: pageMargin,
+                right: pageMargin,
+                bottom: pageMargin,
+                left: pageMargin,
+              },
+            },
+          },
           children: [
             new Paragraph({
               children: [new TextRun({ text: filename, bold: true, size: 30 })],
             }),
-            new Table({ rows: tableRows }),
+            new Table({
+              rows: tableRows,
+              width: { size: availableTableWidth, type: WidthType.DXA },
+              columnWidths,
+              layout: TableLayoutType.FIXED,
+              margins: { top: 80, right: 100, bottom: 80, left: 100 },
+            }),
           ],
         },
       ],

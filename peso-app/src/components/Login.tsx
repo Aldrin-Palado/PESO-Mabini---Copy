@@ -231,9 +231,6 @@ function Login() {
             />
 
             <div className="mb-8">
-              <p className="text-sm font-semibold text-[#3156A2]">
-                Secure account access
-              </p>
               <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[#102A4C] sm:text-4xl">
                 Sign in
               </h2>
