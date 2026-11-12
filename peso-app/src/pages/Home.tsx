@@ -366,7 +366,7 @@ function Home() {
                               src={imageUrl}
                               alt=""
                               loading="lazy"
-                              className={`h-52 w-full object-contain transition group-hover:bg-slate-100 ${
+                              className={`h-52 w-full object-cover transition group-hover:bg-slate-100 ${
                                 index === 3 && getPostImages(post).length > 4
                                   ? "brightness-50"
                                   : ""
