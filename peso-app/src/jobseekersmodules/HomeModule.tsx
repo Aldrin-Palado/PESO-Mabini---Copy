@@ -618,7 +618,7 @@ export default function HomeModule({
             <img
               src={viewingImages[viewingImageIndex]}
               alt={`PESO post image ${viewingImageIndex + 1}`}
-              className="max-h-[82vh] max-w-[85vw] object-contain"
+              className="max-h-[88vh] max-w-[92vw] object-contain"
             />
             <figcaption className="text-sm text-white/80">
               {viewingImageIndex + 1} / {viewingImages.length}

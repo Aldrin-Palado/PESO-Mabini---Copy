@@ -1413,13 +1413,6 @@ export default function JobSeekerDashboard() {
         return (
           <MessagesModule
             initialContactId={messageContactToOpen}
-            onNavigate={(page) =>
-              handlePageChange(
-                page === "Applications"
-                  ? "Application"
-                  : page
-              )
-            }
           />
         );
 
