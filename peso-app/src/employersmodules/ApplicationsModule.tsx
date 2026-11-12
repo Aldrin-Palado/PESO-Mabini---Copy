@@ -100,6 +100,7 @@ export default function ApplicationsModule({
 }: Props) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [jobPostFilter, setJobPostFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -113,6 +114,19 @@ export default function ApplicationsModule({
     () => new Set(),
   );
 
+  const jobPostOptions = useMemo(
+    () =>
+      [
+        ...new Set(
+          applications.map(
+            (application) =>
+              application.position_title?.trim() || "Position not specified",
+          ),
+        ),
+      ].sort((first, second) => first.localeCompare(second)),
+    [applications],
+  );
+
   const visibleApplications = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
     return applications.filter((application) => {
@@ -120,6 +134,9 @@ export default function ApplicationsModule({
       return (
         (statusFilter === "All" ||
           getApplicationStatus(application) === statusFilter) &&
+        (!jobPostFilter ||
+          (application.position_title?.trim() || "Position not specified") ===
+            jobPostFilter) &&
         (!normalizedSearch ||
           [
             application.applicant_name,
@@ -134,7 +151,7 @@ export default function ApplicationsModule({
         (!dateTo || (appliedDay && appliedDay <= dateTo))
       );
     });
-  }, [applications, dateFrom, dateTo, search, statusFilter]);
+  }, [applications, dateFrom, dateTo, jobPostFilter, search, statusFilter]);
 
   const applicationGroups = useMemo(() => {
     const groups = new Map<string, ApplicationRow[]>();
@@ -243,6 +260,16 @@ export default function ApplicationsModule({
           </p>
         </div>
         <div className="flex flex-wrap gap-2 lg:justify-end">
+          <button
+            type="button"
+            onClick={() => setStatusFilter("All")}
+            aria-pressed={statusFilter === "All"}
+            className={`rounded-full bg-slate-100 px-2.5 py-1.5 text-[10px] font-semibold text-slate-600 transition ${
+              statusFilter === "All" ? "ring-2 ring-blue-500 ring-offset-1" : ""
+            }`}
+          >
+            All
+          </button>
           {STATUSES.map((status) => (
             <button
               key={status.value}
@@ -285,16 +312,16 @@ export default function ApplicationsModule({
             />
           </label>
           <label className="text-[11px] font-semibold text-slate-600 xl:col-span-2">
-            Status
+            Job post
             <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
+              value={jobPostFilter}
+              onChange={(event) => setJobPostFilter(event.target.value)}
               className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal"
             >
-              <option value="All">All</option>
-              {STATUSES.map((status) => (
-                <option key={status.value} value={status.value}>
-                  {status.label}
+              <option value="">All job posts</option>
+              {jobPostOptions.map((jobPost) => (
+                <option key={jobPost} value={jobPost}>
+                  {jobPost}
                 </option>
               ))}
             </select>
