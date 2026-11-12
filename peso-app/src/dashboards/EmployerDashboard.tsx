@@ -996,6 +996,7 @@ export default function EmployerDashboard() {
         isSidebarOpen={isSidebarOpen}
         setIsSidebarOpen={setIsSidebarOpen}
         onSignOut={signOut}
+        hasUnreadMessages={notifications.length > 0}
       />
 
       {/* Mobile Sidebar Toggle */}

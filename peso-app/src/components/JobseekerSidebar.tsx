@@ -19,6 +19,7 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   onLogout: () => void;
+  hasUnreadMessages: boolean;
 };
 
 const menuItems: {
@@ -71,6 +72,7 @@ export default function JobSeekerSidebar({
   isOpen,
   onClose,
   onLogout,
+  hasUnreadMessages,
 }: Props) {
   return (
     <>
@@ -154,6 +156,12 @@ export default function JobSeekerSidebar({
                   </span>
 
                   <span>{item.label}</span>
+                  {item.label === "Messages" && hasUnreadMessages && (
+                    <span
+                      aria-hidden="true"
+                      className="ml-auto h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 ring-2 ring-white"
+                    />
+                  )}
                 </button>
               );
             })}

@@ -1564,6 +1564,7 @@ export default function JobSeekerDashboard() {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         onLogout={handleLogout}
+        hasUnreadMessages={notifications.length > 0}
       />
 
       {/* =================================================

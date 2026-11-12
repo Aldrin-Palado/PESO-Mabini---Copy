@@ -12,6 +12,7 @@ import type {
 } from "../services/employerRegistration";
 import MessagesModule from "../adminmodules/MessagesModule";
 import PESOPosts from "../adminmodules/PESOPosts";
+import { useUnreadMessages } from "../services/useUnreadMessages";
 
 type StaffPermission = {
   dashboard_overview: boolean;
@@ -73,6 +74,7 @@ type StaffApplication = {
 export default function StaffDashboard() {
   const [staff, setStaff] =
     useState<StaffAccount | null>(null);
+  const hasUnreadMessages = useUnreadMessages(staff?.user_id);
 
   const [permissions, setPermissions] =
     useState<StaffPermission | null>(null);
@@ -693,6 +695,12 @@ export default function StaffDashboard() {
                     <span>
                       {module.name}
                     </span>
+                    {module.name === "Messages" && hasUnreadMessages && (
+                      <span
+                        aria-hidden="true"
+                        className="ml-auto h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 ring-2 ring-white"
+                      />
+                    )}
 
                   </button>
                 );

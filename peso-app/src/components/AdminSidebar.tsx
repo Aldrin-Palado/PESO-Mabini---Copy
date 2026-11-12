@@ -21,6 +21,7 @@ type AdminSidebarProps = {
   setActivePage: (page: AdminModule | "My Profile") => void;
   permissions: AdminModule[];
   isSuperadmin: boolean;
+  hasUnreadMessages: boolean;
 };
 
 export default function AdminSidebar({
@@ -28,6 +29,7 @@ export default function AdminSidebar({
   setActivePage,
   permissions,
   isSuperadmin,
+  hasUnreadMessages,
 }: AdminSidebarProps) {
   // Off-canvas below `lg`: a permanently fixed 256px column leaves no room
   // for content on a 320px phone.
@@ -164,7 +166,15 @@ export default function AdminSidebar({
                       : "text-blue-50/90 hover:bg-white/10 hover:text-white"
                   }`}
                 >
-                  {module}
+                  <span className="flex items-center justify-between gap-2">
+                    {module}
+                    {module === "Messages" && hasUnreadMessages && (
+                      <span
+                        aria-hidden="true"
+                        className="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 ring-2 ring-white/80"
+                      />
+                    )}
+                  </span>
                 </button>
               );
             })}

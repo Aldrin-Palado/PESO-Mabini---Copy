@@ -32,6 +32,7 @@ import {
   type EmployerVerificationDocument,
 } from "../services/employerRegistration";
 import { isJobSeekerProfileComplete } from "../services/jobSeekerProfile";
+import { useUnreadMessages } from "../services/useUnreadMessages";
 
 /* ============================================================
    TYPES
@@ -206,6 +207,7 @@ async function getDashboardCount(
 export default function AdminDashboard() {
   const [account, setAccount] =
     useState<Account | null>(null);
+  const hasUnreadMessages = useUnreadMessages(account?.user_id);
 
   const [permissions, setPermissions] =
     useState<AdminModule[]>([]);
@@ -2177,6 +2179,7 @@ export default function AdminDashboard() {
         activePage={activePage}
         setActivePage={setActivePage}
         permissions={permissions}
+        hasUnreadMessages={hasUnreadMessages}
         isSuperadmin={
           account?.role ===
           "superadmin"

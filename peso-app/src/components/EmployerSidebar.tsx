@@ -17,6 +17,7 @@ interface EmployersSidebarProps {
   isSidebarOpen: boolean;
   setIsSidebarOpen: Dispatch<SetStateAction<boolean>>;
   onSignOut: () => void;
+  hasUnreadMessages: boolean;
 }
 
 const menuItems: {
@@ -36,6 +37,7 @@ function EmployersSidebar({
   isSidebarOpen,
   setIsSidebarOpen,
   onSignOut,
+  hasUnreadMessages,
 }: EmployersSidebarProps) {
   const handleNavigation = (menu: EmployerMenuName) => {
     setActiveMenu(menu);
@@ -120,7 +122,13 @@ function EmployersSidebar({
                     )}
                   </span>
 
-                  {item.name}
+                  <span>{item.name}</span>
+                  {item.name === "Messages" && hasUnreadMessages && (
+                    <span
+                      aria-hidden="true"
+                      className="ml-auto h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 ring-2 ring-white"
+                    />
+                  )}
                 </button>
               );
             })}
