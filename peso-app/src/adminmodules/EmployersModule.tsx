@@ -24,6 +24,7 @@ type Employer = {
   contact_no?: string;
   phone?: string;
   address?: string;
+  logo_url?: string | null;
   is_active?: boolean;
   is_verified?: boolean;
   verification_status?: EmployerVerificationStatus;
@@ -220,6 +221,44 @@ function EmployerScreeningField({
         </p>
       )}
     </div>
+  );
+}
+
+function EmployerProfileImage({
+  employer,
+  name,
+}: {
+  employer: Employer;
+  name: string;
+}) {
+  const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
+
+  if (employer.logo_url && failedLogoUrl !== employer.logo_url) {
+    return (
+      <img
+        src={employer.logo_url}
+        alt={`${name} logo`}
+        onError={() => setFailedLogoUrl(employer.logo_url ?? null)}
+        className="h-10 w-10 shrink-0 rounded-full border border-slate-200 bg-white object-contain"
+      />
+    );
+  }
+
+  if (employer.user_id) {
+    return (
+      <ProfileAvatar
+        userId={employer.user_id}
+        fullName={name}
+        size="small"
+        showControls={false}
+      />
+    );
+  }
+
+  return (
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[#1766B4]">
+      <AppIcon name="building" className="h-5 w-5" />
+    </span>
   );
 }
 
@@ -850,19 +889,7 @@ export default function EmployersModule({
                       >
                         <td className="px-3 py-3">
                           <div className="flex min-w-0 items-center gap-3">
-                            {employer.user_id ? (
-                              <ProfileAvatar
-                                key={employer.user_id}
-                                userId={employer.user_id}
-                                fullName={name}
-                                size="small"
-                                showControls={false}
-                              />
-                            ) : (
-                              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-[#1766B4]">
-                                <AppIcon name="building" className="h-5 w-5" />
-                              </span>
-                            )}
+                            <EmployerProfileImage employer={employer} name={name} />
                             <span className="truncate text-sm font-bold text-slate-900" title={name}>
                               {name}
                             </span>
@@ -960,15 +987,10 @@ export default function EmployersModule({
           >
             <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
               <div className="flex min-w-0 items-center gap-3">
-                {detailsEmployer.user_id ? (
-                  <ProfileAvatar
-                    key={detailsEmployer.user_id}
-                    userId={detailsEmployer.user_id}
-                    fullName={employerName}
-                    size="small"
-                    showControls={false}
-                  />
-                ) : null}
+                <EmployerProfileImage
+                  employer={detailsEmployer}
+                  name={employerName}
+                />
                 <div className="min-w-0">
                   <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#203F8B]">
                     Employer Screening

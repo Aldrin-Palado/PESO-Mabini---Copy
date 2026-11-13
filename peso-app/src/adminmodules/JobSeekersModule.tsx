@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import AppIcon from "../components/AppIcon";
 import ExportFormatControl from "../components/ExportFormatControl";
 import ModuleScoreboard from "../components/ModuleScoreboard";
+import ProfileAvatar from "../components/ProfileAvatar";
 import { openStoredResume } from "../services/resumes";
 import {
   getIncompleteJobSeekerProfileSections,
@@ -12,6 +13,7 @@ import {
 type JobSeeker = {
   id?: string;
   job_seeker_id?: string;
+  user_id?: string | null;
   full_name?: string;
   first_name?: string;
   last_name?: string;
@@ -237,6 +239,28 @@ function getSeekerName(jobSeeker: JobSeeker): string {
     jobSeeker.full_name ||
     `${jobSeeker.first_name || ""} ${jobSeeker.last_name || ""}`.trim() ||
     "Unnamed Job Seeker"
+  );
+}
+
+function JobSeekerAvatar({ jobSeeker }: { jobSeeker: JobSeeker }) {
+  const fullName = getSeekerName(jobSeeker);
+
+  if (jobSeeker.user_id) {
+    return (
+      <ProfileAvatar
+        key={jobSeeker.user_id}
+        userId={jobSeeker.user_id}
+        fullName={fullName}
+        size="small"
+        showControls={false}
+      />
+    );
+  }
+
+  return (
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[#1766B4]">
+      <AppIcon name="user" className="h-4 w-4" />
+    </span>
   );
 }
 
@@ -813,9 +837,7 @@ export default function JobSeekersModule({
                       >
                         <td className="px-3 py-3">
                           <div className="flex min-w-0 items-center gap-3">
-                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-[#1766B4]">
-                              <AppIcon name="user" className="h-4 w-4" />
-                            </span>
+                            <JobSeekerAvatar jobSeeker={jobSeeker} />
                             <div className="min-w-0">
                               <p className="truncate text-xs font-bold text-slate-900" title={name}>{name}</p>
                               {verificationStatus !== "verified" && (
@@ -902,13 +924,16 @@ export default function JobSeekersModule({
             onSubmit={(event) => void saveJobSeeker(event)}
             className="max-h-[90vh] w-full max-w-xl space-y-4 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
           >
-            <div>
-              <h2 id="edit-job-seeker-title" className="text-lg font-bold text-slate-900">
-                Update Job Seeker
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Update the job seeker’s profile information. Changing this email does not change sign-in credentials.
-              </p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 id="edit-job-seeker-title" className="text-lg font-bold text-slate-900">
+                  Update Job Seeker
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Update the job seeker’s profile information. Changing this email does not change sign-in credentials.
+                </p>
+              </div>
+              <JobSeekerAvatar jobSeeker={editingSeeker} />
             </div>
 
             <label className="block text-sm font-medium text-slate-700">
@@ -1024,16 +1049,19 @@ function ScreeningModal({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
-          <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#203F8B]">
-              Job Seeker Screening
-            </p>
-            <h3 className="mt-1 truncate text-lg font-bold text-slate-900">
-              {getSeekerName(jobSeeker)}
-            </h3>
-            <p className="mt-0.5 truncate text-sm text-slate-500">
-              {jobSeeker.email || "-"}
-            </p>
+          <div className="flex min-w-0 items-center gap-3">
+            <JobSeekerAvatar jobSeeker={jobSeeker} />
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#203F8B]">
+                Job Seeker Screening
+              </p>
+              <h3 className="mt-1 truncate text-lg font-bold text-slate-900">
+                {getSeekerName(jobSeeker)}
+              </h3>
+              <p className="mt-0.5 truncate text-sm text-slate-500">
+                {jobSeeker.email || "-"}
+              </p>
+            </div>
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
