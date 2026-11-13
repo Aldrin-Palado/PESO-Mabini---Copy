@@ -24,6 +24,7 @@ type Application = {
   id: string;
   job: string;
   company: string;
+  companyLogoUrl: string | null;
   date: string;
   status: string;
   applicantName: string | null;
@@ -107,7 +108,8 @@ export default function ApplicationsModule({
           applicant_resume_url,
           applicant_qualification_files,
           employer (
-            name
+            name,
+            logo_url
           )
         `)
         .eq("job_seeker_id", seeker.job_seeker_id)
@@ -133,6 +135,7 @@ export default function ApplicationsModule({
             id: row.application_id,
             job: row.position_title || "Position not specified",
             company: employer?.name || "Employer",
+            companyLogoUrl: employer?.logo_url ?? null,
             date: new Date(row.date_applied).toLocaleDateString("en-PH", {
               year: "numeric",
               month: "long",
@@ -311,8 +314,16 @@ export default function ApplicationsModule({
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
 
                 {/* Company Icon */}
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100 font-bold text-blue-700">
-                  {application.company.charAt(0)}
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-blue-100 font-bold text-blue-700">
+                  {application.companyLogoUrl ? (
+                    <img
+                      src={application.companyLogoUrl}
+                      alt={`${application.company} logo`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    application.company.charAt(0)
+                  )}
                 </div>
 
                 {/* Application Information */}

@@ -122,13 +122,15 @@ function EmployersSidebar({
                     )}
                   </span>
 
-                  <span>{item.name}</span>
-                  {item.name === "Messages" && hasUnreadMessages && (
-                    <span
-                      aria-hidden="true"
-                      className="ml-auto h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 ring-2 ring-white"
-                    />
-                  )}
+                  <span className="relative inline-flex">
+                    {item.name}
+                    {item.name === "Messages" && hasUnreadMessages && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute -right-2 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"
+                      />
+                    )}
+                  </span>
                 </button>
               );
             })}
@@ -142,8 +144,8 @@ function EmployersSidebar({
             onClick={onSignOut}
             className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50"
           >
-            <span className="flex w-5 justify-center text-lg" aria-hidden="true">
-              ↪
+            <span className="flex w-5 justify-center" aria-hidden="true">
+              <AppIcon name="logOut" className="h-5 w-5" />
             </span>
             Logout
           </button>

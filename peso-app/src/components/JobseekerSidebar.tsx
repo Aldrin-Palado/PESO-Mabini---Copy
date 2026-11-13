@@ -155,13 +155,15 @@ export default function JobSeekerSidebar({
                     )}
                   </span>
 
-                  <span>{item.label}</span>
-                  {item.label === "Messages" && hasUnreadMessages && (
-                    <span
-                      aria-hidden="true"
-                      className="ml-auto h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 ring-2 ring-white"
-                    />
-                  )}
+                  <span className="relative inline-flex">
+                    {item.label}
+                    {item.label === "Messages" && hasUnreadMessages && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute -right-2 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"
+                      />
+                    )}
+                  </span>
                 </button>
               );
             })}
@@ -210,8 +212,8 @@ export default function JobSeekerSidebar({
             }}
             className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50"
           >
-            <span className="flex w-5 justify-center text-lg">
-              ↪
+            <span className="flex w-5 justify-center">
+              <AppIcon name="logOut" className="h-5 w-5" />
             </span>
 
             <span>Logout</span>

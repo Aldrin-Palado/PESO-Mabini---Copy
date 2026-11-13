@@ -16,6 +16,7 @@ export type AppIconName =
   | "file"
   | "graduationCap"
   | "lightbulb"
+  | "logOut"
   | "mail"
   | "mapPin"
   | "megaphone"
@@ -94,6 +95,16 @@ const iconPaths: Record<AppIconName, ReactNode> = {
   lightbulb: (
     <>
       <path d="M9 18h6m-5 4h4m-2-20a7 7 0 0 0-4 12.7c.8.5 1 1.2 1 1.8h6c0-.6.2-1.3 1-1.8A7 7 0 0 0 12 2z" />
+    </>
+  ),
+  logOut: (
+    <>
+      <path d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5" strokeWidth="2.4" />
+      <path
+        d="M13 7h-4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h4v1.5a1.5 1.5 0 0 0 2.55 1.08l7-6.5a1.5 1.5 0 0 0 0-2.16l-7-6.5A1.5 1.5 0 0 0 13 5.5V7z"
+        fill="currentColor"
+        stroke="none"
+      />
     </>
   ),
   mail: (

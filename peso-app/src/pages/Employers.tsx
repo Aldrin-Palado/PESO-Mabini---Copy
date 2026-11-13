@@ -17,42 +17,42 @@ const recommendations: {
     title: "Entry-Level Roles",
     description:
       "Reach recent graduates and candidates beginning their careers with clear, accessible entry-level openings.",
-    examples: "Office assistant, sales associate, service crew",
+    examples: "Office Assistant, Sales Associate, Service Crew",
   },
   {
     icon: "wrench",
     title: "Skilled and Technical Roles",
     description:
       "Connect with applicants whose technical training and practical experience match your workforce needs.",
-    examples: "Electrician, technician, machine operator",
+    examples: "Electrician, Technician, Machine Operator",
   },
   {
     icon: "briefcase",
     title: "Professional Positions",
     description:
       "Promote opportunities requiring specialized knowledge, professional credentials, or relevant experience.",
-    examples: "Accountant, HR staff, supervisor",
+    examples: "Accountant, HR Staff, Supervisor",
   },
   {
     icon: "clock",
     title: "Flexible and Fixed-Term Work",
     description:
       "Make temporary, seasonal, and part-time openings visible to candidates seeking flexible arrangements.",
-    examples: "Seasonal staff, part-time cashier, project assistant",
+    examples: "Seasonal Staff, Part-Time Cashier, Project Assistant",
   },
   {
     icon: "factory",
     title: "Local Opportunities",
     description:
       "Prioritize local recruitment by sharing vacancies available in Mabini and nearby communities.",
-    examples: "Retail staff, hospitality staff, production worker",
+    examples: "Retail Staff, Hospitality Staff, Production Worker",
   },
   {
     icon: "chart",
     title: "Career Development Roles",
     description:
       "Highlight positions that offer structured learning, increased responsibility, and room to progress.",
-    examples: "Trainee, junior staff, team leader",
+    examples: "Trainee, Junior Staff, Team Leader",
   },
 ];
 

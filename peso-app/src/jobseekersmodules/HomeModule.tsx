@@ -204,6 +204,21 @@ export default function HomeModule({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedPESOPost, viewingImages]);
 
+  useEffect(() => {
+    const imageUrls = [
+      ...new Set([
+        ...(selectedPESOPost?.image_urls ?? []),
+        ...(selectedPESOPost?.image_url ? [selectedPESOPost.image_url] : []),
+        ...(viewingImages ?? []),
+      ]),
+    ];
+    imageUrls.forEach((url) => {
+      const image = new Image();
+      image.fetchPriority = "low";
+      image.src = url;
+    });
+  }, [selectedPESOPost, viewingImages]);
+
   return (
     <div className="mx-auto max-w-6xl space-y-5">
 

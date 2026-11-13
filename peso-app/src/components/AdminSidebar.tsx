@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import PesoLogo from "./PesoLogo";
 import SidebarToggle from "./SidebarToggle";
+import AppIcon from "./AppIcon";
 import { supabase } from "../services/supabase";
 
 export type AdminModule =
@@ -166,14 +167,16 @@ export default function AdminSidebar({
                       : "text-blue-50/90 hover:bg-white/10 hover:text-white"
                   }`}
                 >
-                  <span className="flex items-center justify-between gap-2">
-                    {module}
-                    {module === "Messages" && hasUnreadMessages && (
-                      <span
-                        aria-hidden="true"
-                        className="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 ring-2 ring-white/80"
-                      />
-                    )}
+                  <span className="flex items-center">
+                    <span className="relative inline-flex">
+                      {module}
+                      {module === "Messages" && hasUnreadMessages && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute -right-2 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white/80"
+                        />
+                      )}
+                    </span>
                   </span>
                 </button>
               );
@@ -239,8 +242,11 @@ export default function AdminSidebar({
           {/* Logout */}
           <button
             onClick={handleLogout}
-            className="w-full min-w-0 rounded-md px-2 py-2 text-left text-xs font-medium text-red-100 transition hover:bg-red-600/90 hover:text-white min-[400px]:px-3 min-[400px]:text-sm"
+            className="flex w-full min-w-0 items-center gap-3 rounded-md px-2 py-2 text-left text-xs font-medium text-red-100 transition hover:bg-red-600/90 hover:text-white min-[400px]:px-3 min-[400px]:text-sm"
           >
+            <span className="flex w-5 justify-center" aria-hidden="true">
+              <AppIcon name="logOut" className="h-5 w-5" />
+            </span>
             Logout
           </button>
 

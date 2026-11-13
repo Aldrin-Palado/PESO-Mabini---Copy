@@ -34,6 +34,7 @@ type Props = {
   employerLogoUrl?: string | null;
   profileComplete?: boolean;
   isVerified: boolean;
+  requiresEmployerVerification?: boolean;
   onRefresh: () => Promise<void> | void;
   publisherTitle?: string;
   publisherDescription?: string;
@@ -76,6 +77,7 @@ export default function MyJobPostModule({
   employerLogoUrl,
   profileComplete = true,
   isVerified,
+  requiresEmployerVerification = true,
   onRefresh,
   publisherTitle = "My Job Posts",
   publisherDescription = "Add, update, or close your job vacancies from here.",
@@ -116,12 +118,12 @@ export default function MyJobPostModule({
   };
 
   const openCreateForm = () => {
-    if (!profileComplete) {
+    if (requiresEmployerVerification && !profileComplete) {
       window.alert(PROFILE_SETUP_REQUIRED_MESSAGE);
       return;
     }
 
-    if (!isVerified) {
+    if (requiresEmployerVerification && !isVerified) {
       window.alert(VERIFICATION_PENDING_MESSAGE);
       return;
     }
@@ -294,7 +296,7 @@ export default function MyJobPostModule({
       return;
     }
 
-    if (!editingId) {
+    if (!editingId && requiresEmployerVerification) {
       const { data: currentEmployer, error: employerStatusError } =
         await supabase
           .from("employer")

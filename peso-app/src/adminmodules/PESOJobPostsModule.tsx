@@ -128,7 +128,8 @@ export default function PESOJobPostsModule() {
         employerId={employerId}
         employerName={employerName}
         employerLogoUrl={employerLogoUrl}
-        isVerified
+        isVerified={false}
+        requiresEmployerVerification={false}
         onRefresh={loadJobs}
         publisherTitle="PESO Job Posts"
         publisherDescription="Create and manage job vacancies posted by PESO staff/admin."

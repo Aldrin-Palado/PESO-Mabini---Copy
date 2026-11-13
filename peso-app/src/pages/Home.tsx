@@ -109,6 +109,21 @@ function Home() {
   }, [selectedPESOPost, selectedAnnouncement, viewingImages]);
 
   useEffect(() => {
+    const imageUrls = [
+      ...new Set([
+        ...(selectedPESOPost?.image_urls ?? []),
+        ...(selectedPESOPost?.image_url ? [selectedPESOPost.image_url] : []),
+        ...(viewingImages ?? []),
+      ]),
+    ];
+    imageUrls.forEach((url) => {
+      const image = new Image();
+      image.fetchPriority = "low";
+      image.src = url;
+    });
+  }, [selectedPESOPost, viewingImages]);
+
+  useEffect(() => {
     let cancelled = false;
 
     const loadPESOPosts = async () => {

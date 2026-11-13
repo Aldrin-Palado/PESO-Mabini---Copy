@@ -692,15 +692,15 @@ export default function StaffDashboard() {
                       {module.icon}
                     </span>
 
-                    <span>
+                    <span className="relative inline-flex">
                       {module.name}
+                      {module.name === "Messages" && hasUnreadMessages && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute -right-2 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"
+                        />
+                      )}
                     </span>
-                    {module.name === "Messages" && hasUnreadMessages && (
-                      <span
-                        aria-hidden="true"
-                        className="ml-auto h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 ring-2 ring-white"
-                      />
-                    )}
 
                   </button>
                 );
@@ -749,8 +749,8 @@ export default function StaffDashboard() {
             className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-500"
           >
 
-            <span className="w-6 text-center">
-              ↪
+            <span className="flex w-6 justify-center">
+              <AppIcon name="logOut" className="h-5 w-5" />
             </span>
 
             <span>

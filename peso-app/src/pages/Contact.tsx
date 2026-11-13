@@ -39,7 +39,7 @@ const contactMethods: ContactMethod[] = [
   },
   {
     title: "Call Us",
-    detail: "(043) 754-XXXX\nMon to Fri • 8:00 AM – 5:00 PM",
+    detail: "043-2331298\n0917-1201369\nMon to Fri • 8:00 AM – 5:00 PM",
     accent: "bg-red-50 text-red-500",
     borderAccent: "bg-red-500",
     label: "Call Office",
