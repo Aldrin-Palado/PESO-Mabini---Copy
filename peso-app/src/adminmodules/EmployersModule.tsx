@@ -6,7 +6,6 @@ import ModuleScoreboard from "../components/ModuleScoreboard";
 import ProfileAvatar from "../components/ProfileAvatar";
 import { supabase } from "../services/supabase";
 import type {
-  EmployerDocumentStatus,
   EmployerVerificationDocument,
 } from "../services/employerRegistration";
 import { getEmployerRegistrationChecklist } from "../services/employerRegistration";
@@ -53,10 +52,6 @@ type Props = {
   onUpdateStatus: (
     employerId: string,
     status: EmployerVerificationStatus,
-  ) => Promise<void>;
-  onReviewDocuments: (
-    employerId: string,
-    documents: EmployerVerificationDocument[],
   ) => Promise<void>;
   onToggleActive: (employerId: string, isActive: boolean) => Promise<void>;
 
@@ -286,7 +281,6 @@ export default function EmployersModule({
   loading,
   onUpdate,
   onUpdateStatus,
-  onReviewDocuments,
   onToggleActive,
   LoadingMessage,
   EmptyMessage,
@@ -492,36 +486,34 @@ export default function EmployersModule({
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
-  const reviewVerificationDocument = async (
-    employer: Employer,
-    documentId: string,
-    status: EmployerDocumentStatus,
+  const downloadVerificationDocument = async (
+    document: EmployerVerificationDocument,
   ) => {
-    if (!employer.employer_id) return;
-    const currentDocuments = getVerificationDocuments(employer.verification_documents);
-    const documents = currentDocuments.map((document) =>
-      document.id === documentId
-        ? {
-            ...document,
-            status,
-            reviewed_at: new Date().toISOString(),
-          }
-        : document,
-    );
     setDocumentActionError("");
+    setOpeningDocumentId(document.id);
     try {
-      await onReviewDocuments(employer.employer_id, documents);
-      setDetailsEmployer((current) =>
-        current?.employer_id === employer.employer_id
-          ? { ...current, verification_documents: documents }
-          : current,
-      );
+      const { data, error } = await supabase.storage
+        .from("employer-verification-documents")
+        .createSignedUrl(document.storage_path, 60, {
+          download: document.file_name,
+        });
+
+      if (error) throw error;
+
+      const link = window.document.createElement("a");
+      link.href = data.signedUrl;
+      link.download = document.file_name;
+      link.rel = "noopener noreferrer";
+      link.click();
     } catch (error) {
+      console.error("Could not download employer verification document:", error);
       setDocumentActionError(
         error instanceof Error
-          ? error.message
-          : "Unable to update document review status.",
+          ? `Could not download ${document.file_name}: ${error.message}`
+          : `Could not download ${document.file_name}.`,
       );
+    } finally {
+      setOpeningDocumentId(null);
     }
   };
 
@@ -1114,7 +1106,7 @@ export default function EmployersModule({
                 Registration documents
               </h3>
               <p className="mt-1 text-xs text-slate-500">
-                Review each private file and record its PESO verification status.
+                Download the uploaded documents to your device.
               </p>
               {documentActionError && (
                 <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
@@ -1143,31 +1135,16 @@ export default function EmployersModule({
                           Uploaded {new Date(document.uploaded_at).toLocaleString()}
                         </p>
                       </div>
-                      <label className="shrink-0 text-xs font-semibold text-slate-600">
-                        Review status
-                        <select
-                          value={document.status}
-                          onChange={(event) => {
-                            const nextStatus = event.target.value;
-                            if (
-                              nextStatus === "pending" ||
-                              nextStatus === "approved" ||
-                              nextStatus === "rejected"
-                            ) {
-                              void reviewVerificationDocument(
-                                detailsEmployer,
-                                document.id,
-                                nextStatus,
-                              );
-                            }
-                          }}
-                          className="ml-2 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs"
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="approved">Approved</option>
-                          <option value="rejected">Rejected</option>
-                        </select>
-                      </label>
+                      <button
+                        type="button"
+                        onClick={() => void downloadVerificationDocument(document)}
+                        disabled={openingDocumentId === document.id}
+                        className="shrink-0 rounded-lg border border-blue-200 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-wait disabled:opacity-60"
+                      >
+                        {openingDocumentId === document.id
+                          ? "Preparing download..."
+                          : "Download"}
+                      </button>
                     </li>
                   ))}
                 </ul>

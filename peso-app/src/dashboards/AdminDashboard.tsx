@@ -30,10 +30,7 @@ import {
   decideApplication as submitApplicationDecision,
   type ApplicationDecisionResult,
 } from "../services/applicationDecisions";
-import {
-  getEmployerRegistrationChecklist,
-  type EmployerVerificationDocument,
-} from "../services/employerRegistration";
+import { getEmployerRegistrationChecklist } from "../services/employerRegistration";
 import { isJobSeekerProfileComplete } from "../services/jobSeekerProfile";
 import { useUnreadMessages } from "../services/useUnreadMessages";
 
@@ -1215,32 +1212,6 @@ export default function AdminDashboard() {
     );
   };
 
-  const reviewEmployerDocuments = async (
-    employerId: string,
-    documents: EmployerVerificationDocument[],
-  ) => {
-    const { data, error } = await supabase
-      .from("employer")
-      .update({ verification_documents: documents })
-      .eq("employer_id", employerId)
-      .select("*")
-      .maybeSingle();
-
-    if (error) {
-      console.error("Employer document review update error:", error);
-      throw new Error(`Document review status could not be saved: ${error.message}`);
-    }
-    if (!data) {
-      throw new Error("Document review status was not saved because the employer record no longer exists.");
-    }
-
-    setEmployers((current) =>
-      current.map((employer) =>
-        employer.employer_id === employerId ? data : employer,
-      ),
-    );
-  };
-
   const updateEmployerActiveStatus = async (
     employerId: string,
     isActive: boolean,
@@ -1852,7 +1823,6 @@ export default function AdminDashboard() {
             loading={moduleLoading}
             onUpdate={updateEmployer}
             onUpdateStatus={updateEmployerStatus}
-            onReviewDocuments={reviewEmployerDocuments}
             onToggleActive={updateEmployerActiveStatus}
             LoadingMessage={LoadingMessage}
             EmptyMessage={EmptyMessage}
