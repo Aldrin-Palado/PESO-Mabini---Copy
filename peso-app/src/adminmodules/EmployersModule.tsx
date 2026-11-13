@@ -79,6 +79,80 @@ type ActionsPosition = {
   left: number;
 };
 
+type EmployerDetailField = {
+  key: string;
+  label: string;
+  image?: boolean;
+};
+
+const employerDetailSections: {
+  section: string;
+  fields: EmployerDetailField[];
+}[] = [
+  {
+    section: "I. Company Profile",
+    fields: [
+      { key: "company_name", label: "Name of Establishment" },
+      { key: "industry", label: "Industry" },
+      { key: "company_description", label: "Company Description" },
+    ],
+  },
+  {
+    section: "II. Establishment Information",
+    fields: [
+      { key: "acronym", label: "Acronym" },
+      { key: "establishment_status", label: "Establishment Status" },
+      { key: "tin", label: "Company TIN" },
+      { key: "establishment_type", label: "Establishment Type" },
+      { key: "workforce", label: "Workforce" },
+    ],
+  },
+  {
+    section: "III. Employment Information",
+    fields: [
+      { key: "mabini_residents", label: "Mabini Residents" },
+      { key: "non_mabini_residents", label: "Non-Mabini Residents" },
+      { key: "total_employees", label: "Total Employees" },
+      { key: "industries", label: "Industries" },
+      { key: "other_industry", label: "Other Industry" },
+    ],
+  },
+  {
+    section: "IV. Contact Details",
+    fields: [
+      { key: "contact_person", label: "Contact Person" },
+      { key: "contact_no", label: "Contact Number" },
+      { key: "address", label: "Company Address" },
+      { key: "hr_manager_name", label: "HR Manager Name" },
+      { key: "hr_manager_position", label: "HR Manager Position" },
+      { key: "hr_manager_contact", label: "HR Manager Contact Number" },
+      { key: "hr_staff_name", label: "HR Staff Name" },
+      { key: "hr_staff_position", label: "HR Staff Position" },
+      { key: "address_house_street", label: "House / Building / Street" },
+      { key: "address_barangay", label: "Barangay" },
+      { key: "address_city", label: "City / Municipality" },
+      { key: "telephone", label: "Telephone Number" },
+      { key: "mobile", label: "Mobile Number" },
+      { key: "facebook_page", label: "Facebook Page" },
+      { key: "email", label: "Email Address" },
+      { key: "website", label: "Company Website" },
+      { key: "remarks", label: "Remarks" },
+    ],
+  },
+  {
+    section: "V. Certification and Consent",
+    fields: [
+      { key: "consent_accepted", label: "Consent Accepted" },
+      { key: "certification_date", label: "Date Signed" },
+      {
+        key: "authorized_representative_signature",
+        label: "Authorized Representative's Signature",
+        image: true,
+      },
+    ],
+  },
+];
+
 function getVerificationStatus(employer: Employer): EmployerVerificationStatus {
   if (employer.verification_status) return employer.verification_status;
   return employer.is_verified ? "verified" : "pending";
@@ -94,20 +168,59 @@ function isEmployerVerificationStatus(
   );
 }
 
-function formatDetailLabel(key: string): string {
-  return key
-    .replace(/_/g, " ")
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/\b\w/g, (character) => character.toUpperCase());
-}
-
 function formatDetailValue(value: unknown): string {
   if (value === null || value === undefined || value === "") {
     return "Not provided";
   }
+  if (Array.isArray(value)) {
+    return value.length > 0 ? value.join(", ") : "Not provided";
+  }
   if (typeof value === "boolean") return value ? "Yes" : "No";
   if (typeof value === "object") return JSON.stringify(value, null, 2);
   return String(value);
+}
+
+function EmployerScreeningField({
+  label,
+  value,
+  image = false,
+}: { label: string; value: unknown; image?: boolean }) {
+  const imageValue =
+    image && typeof value === "string" && value.startsWith("data:image/")
+      ? value
+      : null;
+  const externalUrl =
+    typeof value === "string" && /^https?:\/\//i.test(value);
+
+  return (
+    <div className="min-w-0">
+      <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+      {imageValue ? (
+        <img
+          src={imageValue}
+          alt={label}
+          className="mt-1 max-h-24 max-w-full rounded-lg border border-slate-200 bg-white p-2 object-contain"
+        />
+      ) : (
+        <p className="mt-1 break-words text-sm text-slate-700">
+          {externalUrl ? (
+            <a
+              href={value}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-blue-700 underline"
+            >
+              {value}
+            </a>
+          ) : (
+            formatDetailValue(value)
+          )}
+        </p>
+      )}
+    </div>
+  );
 }
 
 function getVerificationDocuments(value: unknown): EmployerVerificationDocument[] {
@@ -189,6 +302,45 @@ export default function EmployersModule({
     typeof detailsEmployer.registration_details === "object"
       ? detailsEmployer.registration_details as Record<string, unknown>
       : null;
+  const employerName = detailsEmployer
+    ? detailsEmployer.name ||
+      detailsEmployer.company_name ||
+      detailsEmployer.business_name ||
+      detailsEmployer.full_name ||
+      "Unnamed Employer"
+    : "";
+  const certificationDetails =
+    registrationDetails?.certification &&
+    typeof registrationDetails.certification === "object" &&
+    !Array.isArray(registrationDetails.certification)
+      ? registrationDetails.certification as Record<string, unknown>
+      : {};
+  const employerDetailValues: Record<string, unknown> = detailsEmployer
+    ? {
+        ...(registrationDetails ?? {}),
+        company_name: employerName,
+        industry: detailsEmployer.industry,
+        company_description: detailsEmployer.company_description,
+        contact_person: detailsEmployer.contact_person,
+        contact_no: detailsEmployer.contact_no || detailsEmployer.phone,
+        address: detailsEmployer.address,
+        email: registrationDetails?.email || detailsEmployer.email,
+        website: registrationDetails?.website || detailsEmployer.website,
+        consent_accepted: certificationDetails.consent_accepted,
+        certification_date: certificationDetails.certification_date,
+        authorized_representative_signature:
+          certificationDetails.authorized_representative_signature ||
+          registrationDetails?.authorized_representative_signature,
+      }
+    : {};
+  const employerDocuments = detailsEmployer
+    ? getVerificationDocuments(detailsEmployer.verification_documents)
+    : [];
+  const employerStatus =
+    detailsEmployer?.is_active === false ? "Inactive" : "Active";
+  const employerVerificationStatus = detailsEmployer
+    ? getVerificationStatus(detailsEmployer).replace(/_/g, " ")
+    : "";
   const startEditing = (employer: Employer) => {
     setActionError("");
     setEditingEmployer(employer);
@@ -803,87 +955,76 @@ export default function EmployersModule({
           onClick={() => setDetailsEmployer(null)}
         >
           <section
-            className="my-4 w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-xl"
+            className="my-4 w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-xl"
             onClick={(event) => event.stopPropagation()}
           >
             <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
-            <div className="flex min-w-0 items-center gap-3">
-              {detailsEmployer.user_id ? (
-                <ProfileAvatar
-                  key={detailsEmployer.user_id}
-                  userId={detailsEmployer.user_id}
-                  fullName={
-                    detailsEmployer.name ||
-                    detailsEmployer.company_name ||
-                    detailsEmployer.business_name ||
-                    detailsEmployer.full_name ||
-                    "Unnamed Employer"
-                  }
-                  size="small"
-                  showControls={false}
-                />
-              ) : null}
-              <div className="min-w-0">
-                <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#203F8B]">
-                  Employer Details
-                </p>
-                <h2
-                  id="employer-details-title"
-                  className="mt-1 truncate text-lg font-bold text-slate-900"
-                >
-                  {detailsEmployer.name ||
-                    detailsEmployer.company_name ||
-                    detailsEmployer.business_name ||
-                    detailsEmployer.full_name ||
-                    "Unnamed Employer"}
-                </h2>
+              <div className="flex min-w-0 items-center gap-3">
+                {detailsEmployer.user_id ? (
+                  <ProfileAvatar
+                    key={detailsEmployer.user_id}
+                    userId={detailsEmployer.user_id}
+                    fullName={employerName}
+                    size="small"
+                    showControls={false}
+                  />
+                ) : null}
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#203F8B]">
+                    Employer Screening
+                  </p>
+                  <h2
+                    id="employer-details-title"
+                    className="mt-1 truncate text-lg font-bold text-slate-900"
+                  >
+                    {employerName}
+                  </h2>
+                  <p className="mt-0.5 truncate text-sm text-slate-500">
+                    {detailsEmployer.email || "No email provided"}
+                  </p>
+                </div>
               </div>
-            </div>
               <div className="flex shrink-0 items-center gap-2">
                 <button
-                    type="button"
-                    onClick={() => setDetailsEmployer(null)}
-                    aria-label="Close employer details"
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                  type="button"
+                  onClick={() => setDetailsEmployer(null)}
+                  aria-label="Close employer details"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-100"
                 >
-                    Close
+                  <AppIcon name="x" className="h-5 w-5" />
                 </button>
               </div>
             </header>
-            <dl className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6">
-              {Object.entries(detailsEmployer)
-                .filter(([key]) => key !== "registration_details" && key !== "verification_documents")
-                .map(([key, value]) => {
-                const formattedValue = formatDetailValue(value);
-                const isExternalUrl =
-                  typeof value === "string" &&
-                  /^https?:\/\//i.test(value);
-
-                return (
-                  <div
-                    key={key}
-                    className="min-w-0 rounded-xl border border-slate-200 bg-slate-50/70 p-3"
-                  >
-                    <dt className="text-xs font-semibold text-slate-500">
-                      {formatDetailLabel(key)}
-                    </dt>
-                    <dd className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-800">
-                      {isExternalUrl ? (
-                        <a
-                          href={value}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-medium text-blue-700 underline"
-                        >
-                          {formattedValue}
-                        </a>
-                      ) : (
-                        formattedValue
-                      )}
-                    </dd>
-                  </div>
-                );
-              })}
+            <dl className="grid gap-4 rounded-xl bg-slate-50 p-4 sm:grid-cols-2 lg:grid-cols-3">
+              <EmployerScreeningField
+                label="Contact Number"
+                value={detailsEmployer.contact_no || detailsEmployer.phone}
+              />
+              <EmployerScreeningField
+                label="Address"
+                value={detailsEmployer.address}
+              />
+              <EmployerScreeningField label="Status" value={employerStatus} />
+              <EmployerScreeningField
+                label="Verification Status"
+                value={employerVerificationStatus}
+              />
+              <EmployerScreeningField
+                label="Registered On"
+                value={
+                  detailsEmployer.created_at
+                    ? new Date(detailsEmployer.created_at).toLocaleString()
+                    : null
+                }
+              />
+              <EmployerScreeningField
+                label="Registration Documents"
+                value={
+                  employerDocuments.length > 0
+                    ? `${employerDocuments.length} uploaded`
+                    : "Not uploaded"
+                }
+              />
             </dl>
             {(() => {
               if (getVerificationStatus(detailsEmployer) === "verified") return null;
@@ -929,62 +1070,23 @@ export default function EmployersModule({
                 </section>
               );
             })()}
-            {registrationDetails && (
-                <section className="border-t border-slate-200 px-5 py-5 sm:px-6">
-                  <h3 className="text-sm font-bold text-slate-900">
-                    Registration information
-                  </h3>
-                  <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-                    {Object.entries(registrationDetails)
-                      .filter(([key]) => key !== "certification")
-                      .map(([key, value]) => (
-                        <div key={key} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-                          <dt className="text-xs font-semibold text-slate-500">
-                            {formatDetailLabel(key)}
-                          </dt>
-                          <dd className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-800">
-                            {formatDetailValue(value)}
-                          </dd>
-                        </div>
-                      ))}
-                    {"certification" in registrationDetails && (
-                        <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 sm:col-span-2">
-                          <dt className="text-xs font-semibold text-slate-500">
-                            Certification
-                          </dt>
-                          <dd className="mt-1 space-y-3 text-sm text-slate-800">
-                            {registrationDetails.certification &&
-                            typeof registrationDetails.certification === "object" &&
-                            !Array.isArray(registrationDetails.certification) ? (
-                              Object.entries(
-                                registrationDetails.certification as Record<string, unknown>,
-                              ).map(([key, value]) => (
-                                <div key={key} className="break-words">
-                                  <span className="font-semibold">
-                                    {formatDetailLabel(key)}:{" "}
-                                  </span>
-                                  {key === "authorized_representative_signature" &&
-                                  typeof value === "string" &&
-                                  value.startsWith("data:image/") ? (
-                                    <img
-                                      src={value}
-                                      alt="Authorized representative's e-signature"
-                                      className="mt-2 max-h-24 max-w-full rounded-lg border border-slate-200 bg-white p-2 object-contain"
-                                    />
-                                  ) : (
-                                    formatDetailValue(value)
-                                  )}
-                                </div>
-                              ))
-                            ) : (
-                              formatDetailValue(registrationDetails.certification)
-                            )}
-                          </dd>
-                        </div>
-                      )}
-                  </dl>
-                </section>
-              )}
+            {employerDetailSections.map((group) => (
+              <section key={group.section} className="border-t border-slate-200 px-5 py-5 sm:px-6">
+                <h3 className="text-sm font-bold text-[#123B70]">
+                  {group.section}
+                </h3>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {group.fields.map((field) => (
+                    <EmployerScreeningField
+                      key={field.key}
+                      label={field.label}
+                      value={employerDetailValues[field.key]}
+                      image={field.image}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
             <section className="border-t border-slate-200 px-5 py-5 sm:px-6">
               <h3 className="text-sm font-bold text-slate-900">
                 Registration documents
@@ -997,13 +1099,13 @@ export default function EmployersModule({
                   {documentActionError}
                 </p>
               )}
-              {getVerificationDocuments(detailsEmployer.verification_documents).length === 0 ? (
+              {employerDocuments.length === 0 ? (
                 <p className="mt-3 rounded-lg bg-slate-50 p-4 text-sm text-slate-500">
                   No registration documents have been uploaded.
                 </p>
               ) : (
                 <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200">
-                  {getVerificationDocuments(detailsEmployer.verification_documents).map((document) => (
+                  {employerDocuments.map((document) => (
                     <li key={document.id} className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0">
                         <p className="text-xs font-semibold text-slate-500">{document.label}</p>
@@ -1059,12 +1161,44 @@ export default function EmployersModule({
                   .replace(/[^a-z0-9]+/g, "-")
                   .replace(/^-|-$/g, "")}-details`}
                 columns={["Field", "Value"]}
-                rows={Object.entries(detailsEmployer)
-                  .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-                  .map(([key, value]) => [
-                    formatDetailLabel(key),
-                    formatDetailValue(value),
-                  ])}
+                rows={[
+                  ["Company", employerName],
+                  ["Email", detailsEmployer.email],
+                  [
+                    "Contact Number",
+                    detailsEmployer.contact_no || detailsEmployer.phone,
+                  ],
+                  ["Address", detailsEmployer.address],
+                  ["Status", employerStatus],
+                  ["Verification Status", employerVerificationStatus],
+                  [
+                    "Registered On",
+                    detailsEmployer.created_at
+                      ? new Date(detailsEmployer.created_at).toLocaleString()
+                      : "Not provided",
+                  ],
+                  [
+                    "Registration Documents",
+                    employerDocuments.length > 0
+                      ? `${employerDocuments.length} uploaded`
+                      : "Not uploaded",
+                  ],
+                  ...employerDetailSections.flatMap((group) =>
+                    group.fields.map((field) => {
+                      const value = employerDetailValues[field.key];
+                      const signatureCaptured =
+                        field.image &&
+                        typeof value === "string" &&
+                        value.startsWith("data:image/");
+                      return [
+                        `${group.section} - ${field.label}`,
+                        signatureCaptured
+                          ? "E-signature captured"
+                          : formatDetailValue(value),
+                      ];
+                    }),
+                  ),
+                ]}
               />
             </footer>
           </section>

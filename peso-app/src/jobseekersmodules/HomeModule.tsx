@@ -367,9 +367,7 @@ export default function HomeModule({
                             src={imageUrl}
                             alt=""
                             loading="lazy"
-                            className={`w-full bg-slate-50 object-cover transition group-hover:scale-105 ${
-                              postImages.length === 1 ? "h-48" : "h-36"
-                            }`}
+                            className="h-52 w-full bg-slate-50 object-cover transition group-hover:scale-105"
                           />
                           {index === 3 && postImages.length > 4 && (
                             <span className="absolute inset-0 flex items-center justify-center bg-slate-950/60 text-lg font-bold text-white">
