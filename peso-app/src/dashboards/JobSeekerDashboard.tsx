@@ -1439,7 +1439,7 @@ export default function JobSeekerDashboard() {
         );
 
       case "AI Job Matches":
-        return <JobMatchesModule />;
+        return <JobMatchesModule seeker={seeker} />;
 
       case "AI Assistant":
         return <AIChatbotModule />;

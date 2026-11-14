@@ -1,5 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import AppIcon from "../components/AppIcon";
+import { supabase } from "../services/supabase";
 import { invokePesoAI } from "../services/pesoAi";
 
 const maxResumeBytes = 500_000;
@@ -23,15 +25,17 @@ type JobMatch = {
     location: string;
     type: string;
     salary: string;
-    description: string;
-    requirements: string;
   };
   match_score: number;
-  reasons: string[];
-  skill_gaps: string[];
 };
 
-export default function JobMatchesModule() {
+type Props = {
+  seeker: {
+    job_seeker_id: string;
+  };
+};
+
+export default function JobMatchesModule({ seeker }: Props) {
   const navigate = useNavigate();
   const [profileText, setProfileText] = useState("");
   const [resumeFile, setResumeFile] = useState<File | null>(null);
@@ -40,6 +44,79 @@ export default function JobMatchesModule() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
+  const [savedJobIds, setSavedJobIds] = useState<string[]>([]);
+  const [savingJobId, setSavingJobId] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    const loadSavedJobs = async () => {
+      const { data, error: savedJobsError } = await supabase
+        .from("saved_job")
+        .select("job_vacancy_id")
+        .eq("job_seeker_id", seeker.job_seeker_id);
+
+      if (!active) return;
+      if (savedJobsError) {
+        console.error("Could not load saved jobs for AI matches:", savedJobsError);
+        setSaveError("Could not load saved job status. Please refresh and try again.");
+        return;
+      }
+
+      setSavedJobIds((data ?? []).map((row) => row.job_vacancy_id));
+    };
+
+    void loadSavedJobs();
+    return () => {
+      active = false;
+    };
+  }, [seeker.job_seeker_id]);
+
+  const toggleSavedJob = async (jobId: string) => {
+    if (savingJobId) return;
+    setSavingJobId(jobId);
+    setSaveError("");
+
+    const isSaved = savedJobIds.includes(jobId);
+    try {
+      const { error: saveRequestError } = isSaved
+        ? await supabase
+            .from("saved_job")
+            .delete()
+            .eq("job_seeker_id", seeker.job_seeker_id)
+            .eq("job_vacancy_id", jobId)
+        : await supabase.from("saved_job").insert({
+            job_seeker_id: seeker.job_seeker_id,
+            job_vacancy_id: jobId,
+          });
+
+      if (saveRequestError) {
+        console.error("Could not update saved AI-matched job:", saveRequestError);
+        setSaveError(
+          `Unable to ${isSaved ? "remove this saved job" : "save this job"}: ${saveRequestError.message}`,
+        );
+        return;
+      }
+
+      setSavedJobIds((current) =>
+        isSaved
+          ? current.filter((savedId) => savedId !== jobId)
+          : current.includes(jobId)
+            ? current
+            : [...current, jobId],
+      );
+    } catch (requestError) {
+      console.error("Could not update saved AI-matched job:", requestError);
+      setSaveError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to update this saved job. Please try again.",
+      );
+    } finally {
+      setSavingJobId(null);
+    }
+  };
 
   const runMatching = async (
     profile: string,
@@ -215,68 +292,81 @@ export default function JobMatchesModule() {
         </p>
       )}
 
+      {saveError && (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          {saveError}
+        </p>
+      )}
+
       <div className="space-y-4">
         {matches.map((match) => (
           <article
             key={match.job.id}
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md sm:p-6"
           >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">{match.job.title}</h3>
-                <p className="mt-1 text-sm font-semibold text-[#0759AE]">{match.job.employer}</p>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg font-bold text-slate-900">
+                  {match.job.title}
+                </h3>
+                <p className="mt-1 text-sm font-semibold text-[#0759AE]">
+                  {match.job.employer}
+                </p>
+                <p className="mt-3 text-sm text-slate-600">
+                  {match.job.location} · {match.job.type} · {match.job.salary}
+                </p>
               </div>
-              <div className="rounded-full bg-blue-50 px-3 py-1.5 text-sm font-bold text-[#0759AE]">
+              <div
+                aria-label={`${match.match_score}% match`}
+                className="shrink-0 rounded-full bg-blue-50 px-3 py-1.5 text-sm font-bold text-[#0759AE]"
+              >
                 {match.match_score}% match
               </div>
             </div>
-            <p className="mt-3 text-sm text-slate-600">
-              {match.job.location} · {match.job.type} · {match.job.salary}
-            </p>
-            <div className="mt-4">
-              <h4 className="text-sm font-bold text-slate-800">Employer-provided requirements</h4>
-              {match.job.requirements.trim() ? (
-                <ul className="mt-1 list-inside list-disc space-y-1 text-sm text-slate-600">
-                  {match.job.requirements
-                    .split(/\r?\n/)
-                    .map((requirement) => requirement.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim())
-                    .filter(Boolean)
-                    .map((requirement, index) => <li key={index}>{requirement}</li>)}
-                </ul>
-              ) : (
-                <p className="mt-1 text-sm text-slate-500">
-                  The employer did not provide specific requirements for this vacancy.
-                </p>
-              )}
-            </div>
-            {match.reasons.length > 0 && (
-              <div className="mt-4">
-                <h4 className="text-sm font-bold text-slate-800">Why it may fit</h4>
-                <ul className="mt-1 list-inside list-disc space-y-1 text-sm text-slate-600">
-                  {match.reasons.map((reason, index) => <li key={index}>{reason}</li>)}
-                </ul>
-              </div>
-            )}
-            {match.skill_gaps.length > 0 && (
-              <div className="mt-3">
-                <h4 className="text-sm font-bold text-slate-800">Consider checking</h4>
-                <ul className="mt-1 list-inside list-disc space-y-1 text-sm text-slate-600">
-                  {match.skill_gaps.map((gap, index) => <li key={index}>{gap}</li>)}
-                </ul>
-              </div>
-            )}
             <div className="mt-5 flex justify-end border-t border-slate-100 pt-4">
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(
-                    `/jobseeker?job=${encodeURIComponent(match.job.id)}&apply=true`,
-                  )
-                }
-                className="inline-flex items-center justify-center rounded-lg bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#064A91]"
-              >
-                Apply
-              </button>
+              <div className="flex flex-wrap justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(`/jobseeker?job=${encodeURIComponent(match.job.id)}`)
+                  }
+                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+                >
+                  View Details
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void toggleSavedJob(match.job.id)}
+                  disabled={savingJobId !== null}
+                  aria-pressed={savedJobIds.includes(match.job.id)}
+                  className={`inline-flex items-center justify-center gap-1 rounded-full border px-4 py-2.5 text-sm font-semibold transition disabled:cursor-wait disabled:opacity-60 ${
+                    savedJobIds.includes(match.job.id)
+                      ? "border-yellow-300 bg-yellow-50 text-yellow-700"
+                      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
+                  }`}
+                >
+                  <AppIcon
+                    name="star"
+                    className={`h-4 w-4 ${savedJobIds.includes(match.job.id) ? "fill-current" : ""}`}
+                  />
+                  {savingJobId === match.job.id
+                    ? "Saving..."
+                    : savedJobIds.includes(match.job.id)
+                      ? "Saved"
+                      : "Save"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      `/jobseeker?job=${encodeURIComponent(match.job.id)}&apply=true`,
+                    )
+                  }
+                  className="inline-flex items-center justify-center rounded-full bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#064A91]"
+                >
+                  Apply
+                </button>
+              </div>
             </div>
           </article>
         ))}
