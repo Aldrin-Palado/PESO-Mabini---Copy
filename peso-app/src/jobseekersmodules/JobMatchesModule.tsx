@@ -133,7 +133,7 @@ export default function JobMatchesModule({ seeker }: Props) {
         throw new Error("Enter at least 10 characters about your skills or upload a PDF, DOC, or DOCX resume.");
       }
 
-      let encodedResume: { fileName: string; data: string } | undefined;
+      let encodedResume: File | undefined;
       if (resume) {
         if (!authorized) {
           throw new Error("Please authorize sending your resume for AI analysis.");
@@ -145,12 +145,7 @@ export default function JobMatchesModule({ seeker }: Props) {
         if (!isResumeFileTypeValid(resume, bytes)) {
           throw new Error("Choose a valid PDF, DOC, or DOCX resume.");
         }
-        let binary = "";
-        const chunkSize = 0x8000;
-        for (let index = 0; index < bytes.length; index += chunkSize) {
-          binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
-        }
-        encodedResume = { fileName: resume.name, data: btoa(binary) };
+        encodedResume = resume;
       }
 
       const result = await invokePesoAI<{ matches: JobMatch[] }>(
@@ -185,7 +180,7 @@ export default function JobMatchesModule({ seeker }: Props) {
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
           Upload a PDF, DOC, or DOCX resume or describe your skills to compare your profile with open
           vacancies and the requirements employers submitted. Resume files are sent to
-          Google Gemini for this analysis and are not stored. Recommendations are not hiring
+          Groq for this analysis and are not stored. Recommendations are not hiring
           decisions.
         </p>
       </header>
@@ -226,7 +221,7 @@ export default function JobMatchesModule({ seeker }: Props) {
                 className="mt-0.5 h-4 w-4 shrink-0 accent-[#0759AE]"
               />
               <span>
-                I authorize sending this resume to Google Gemini for AI-assisted job matching.
+                I authorize sending this resume to Groq for AI-assisted job matching.
                 I understand it will not be stored and the recommendations are advisory only.
               </span>
             </label>

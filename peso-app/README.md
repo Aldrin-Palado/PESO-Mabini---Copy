@@ -29,14 +29,14 @@ Staff profile photos appear in Admin Accounts when available. They remain privat
 the profile-photo migration grants signed-photo reads for other accounts to active
 admins only. Apply pending migrations with the same `supabase db push` command.
 
-## Gemini AI features
+## Groq AI features
 
 The public homepage chat and job-seeker AI assistant and job matching call the `peso-ai`
-Supabase Edge Function. Public chat is limited to 20 requests per IP per hour. The Gemini API key is used only in that function; do not put it in `.env`, a `VITE_*`
-variable, or React code. Gemini model settings are also Edge Function secrets; setting them
+Supabase Edge Function. Public chat is limited to 20 requests per IP per hour. The Groq API key is used only in that function; do not put it in `.env`, a `VITE_*`
+variable, or React code. Groq model settings are also Edge Function secrets; setting them
 in the frontend `.env` does not configure the deployed function.
 
-Apply the database migration and deploy the function. Keep `GEMINI_API_KEY` configured in
+Apply the database migration and deploy the function. Keep `GROQ_API_KEY` configured in
 Supabase Function Secrets; it does not need to be exposed to the client:
 
 ```sh
@@ -44,25 +44,21 @@ supabase db push
 supabase functions deploy peso-ai
 ```
 
-Set `GEMINI_MODEL` and `GEMINI_FALLBACK_MODEL` in Supabase Dashboard → Edge Functions →
-Secrets. Use `gemini-3.6-flash` as the primary model and `gemini-3.5-flash` as the fallback.
-Both are supported by the Gemini API key and respond well within the 20-second timeout;
-`gemini-3.8-flash` and `gemini-flash-latest` currently hang and trigger `DEADLINE_EXCEEDED`.
-The fallback must be different from the primary to provide a backup; the function warns in
-its logs if both settings resolve to the same model. The retired `gemini-2.5-flash` value is
-ignored for both settings. If the primary model returns
-not-found or a transient service error, the function switches to the fallback, with at most
-three Gemini calls per invocation. Each Gemini request has a 20-second timeout. The function
-sends up to six chat messages, uses a short cache for public vacancy data, and limits
-matching input to 12 recent vacancies, 4,000 profile characters, or a 500 KB PDF resume.
+Optionally set `GROQ_MODEL` in Supabase Dashboard → Edge Functions → Secrets. The default
+is `llama-3.3-70b-versatile`. Each Groq request has a 20-second timeout and transient errors
+are retried up to three times. The function sends up to six chat messages, uses a short cache
+for public vacancy data, and limits matching input to 12 recent vacancies, 4,000 profile
+characters, or a 500 KB resume.
 The chatbot also accepts an optional PDF, DOC, or DOCX resume attachment (up to 500 KB)
-and returns matching open jobs. It requires the user’s consent for each selected resume;
-Word documents are text-extracted server-side and attachments are not stored.
-The Supabase and Gemini SDKs are loaded only for requests that need them, allowing CORS
-preflight requests to return without initializing those clients.
+and returns matching open jobs. Resume files are sent as multipart binary uploads rather
+than base64-encoded JSON to avoid oversized function requests. PDF and Word documents are
+text-extracted server-side; the user’s consent is required for each selected resume, and
+attachments are not stored.
+The Supabase client is loaded only for requests that need it, allowing CORS preflight
+requests to return without initializing it.
 
 Job-seeker messages, profile summaries, and resumes submitted for chatbot or job matching
-are sent to Google Gemini for processing. Use these features only when authorized and with
+are sent to Groq for processing. Use these features only when authorized and with
 any required consent. AI recommendations may be incomplete or inaccurate. Homepage chat is
 available to visitors without signing in; do not include passwords or sensitive personal
 information in chat messages.
