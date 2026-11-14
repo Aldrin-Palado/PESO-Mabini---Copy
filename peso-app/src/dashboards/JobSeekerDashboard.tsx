@@ -848,13 +848,6 @@ export default function JobSeekerDashboard() {
     savedScreeningDetails.presentAddress =
       seeker.address || String(savedScreeningDetails.presentAddress || "");
 
-    const verificationLabel =
-      seeker.verification_status === "verified"
-        ? "Verified"
-        : seeker.verification_status === "not_approved"
-          ? "Not approved"
-          : "Pending review";
-
     return (
       <div className="mx-auto max-w-5xl space-y-6 pb-8">
         {profileSuccess && (
@@ -869,7 +862,7 @@ export default function JobSeekerDashboard() {
         )}
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <div className="grid gap-5 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.3fr)] md:items-center xl:grid-cols-[minmax(15rem,0.9fr)_minmax(18rem,1.3fr)_auto]">
+          <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center xl:grid-cols-[minmax(15rem,0.9fr)_minmax(20rem,1.3fr)_auto]">
             <div className="flex min-w-0 items-center gap-4">
               <div className="relative shrink-0">
                 <ProfileAvatar
@@ -917,29 +910,22 @@ export default function JobSeekerDashboard() {
                   <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-[#0759AE]">
                     Job Seeker
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
-                    <AppIcon name="check" className="h-3.5 w-3.5" />
-                    Active Account
-                  </span>
                 </div>
-                <p className="mt-2 text-xs text-slate-500">
-                  PESO status: {verificationLabel}
-                </p>
               </div>
             </div>
 
-            <div className="grid gap-3 border-t border-slate-100 pt-4 text-sm text-slate-700 sm:grid-cols-2 md:border-l md:border-t-0 md:pl-5 md:pt-0 lg:grid-cols-3">
+            <div className="grid gap-2 border-t border-slate-100 pt-4 text-sm text-slate-700 md:col-span-2 xl:col-span-1 xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0">
               <div className="flex min-w-0 items-center gap-2">
                 <AppIcon name="mail" className="h-4 w-4 shrink-0 text-[#0759AE]" />
-                <span className="truncate">{seeker.email || "Email not provided"}</span>
+                <span className="break-all">{seeker.email || "Email not provided"}</span>
               </div>
               <div className="flex min-w-0 items-center gap-2">
                 <AppIcon name="phone" className="h-4 w-4 shrink-0 text-[#0759AE]" />
-                <span className="truncate">{seeker.contact_no || "Phone not provided"}</span>
+                <span>{seeker.contact_no || "Phone not provided"}</span>
               </div>
-              <div className="flex min-w-0 items-center gap-2 sm:col-span-2 md:col-span-1">
+              <div className="flex min-w-0 items-center gap-2">
                 <AppIcon name="mapPin" className="h-4 w-4 shrink-0 text-[#0759AE]" />
-                <span className="truncate">{seeker.address || "Address not provided"}</span>
+                <span className="break-words">{seeker.address || "Address not provided"}</span>
               </div>
             </div>
 
@@ -949,7 +935,7 @@ export default function JobSeekerDashboard() {
                 setProfileSectionToFocus(JOB_SEEKER_PROFILE_SECTION_TITLES[0]);
                 startScreeningEdit();
               }}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-300 px-4 py-2.5 text-sm font-bold text-[#0759AE] transition hover:bg-blue-50"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-300 px-4 py-2.5 text-sm font-bold text-[#0759AE] transition hover:bg-blue-50 md:col-start-2 md:row-start-1 xl:col-auto"
             >
               <svg
                 aria-hidden="true"
@@ -1062,95 +1048,6 @@ export default function JobSeekerDashboard() {
                 );
               })}
             </div>
-          </div>
-
-          <div
-            id="job-seeker-resume"
-            className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50">
-                  <AppIcon name="file" className="h-6 w-6 text-[#0759AE]" />
-                </span>
-                <div className="min-w-0">
-                  <h3 className="text-base font-bold text-[#123B70]">Resume / CV</h3>
-                  <p className="mt-1 text-xs text-slate-600">
-                    {seeker.resume_url
-                      ? "Resume uploaded. Replace it with your latest version when needed."
-                      : `Upload your updated resume (${RESUME_FORMATS_LABEL}, up to 5 MB).`}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-                {seeker.resume_url && (
-                  <button
-                    type="button"
-                    onClick={() => void openResume()}
-                    disabled={openingResume}
-                    className="inline-flex items-center gap-2 rounded-xl border border-blue-300 px-4 py-2.5 text-sm font-semibold text-[#0759AE] hover:bg-blue-50 disabled:opacity-50"
-                  >
-                    {openingResume ? "Preparing..." : "View Resume"}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingResume((editing) => !editing);
-                    setResumeError("");
-                    setResumeSuccess("");
-                  }}
-                  aria-expanded={editingResume}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#0759AE] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#064A91]"
-                >
-                  {editingResume ? "Cancel" : seeker.resume_url ? "Replace Resume" : "Upload Resume"}
-                </button>
-              </div>
-            </div>
-            {resumeError && (
-              <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                {resumeError}
-              </p>
-            )}
-            {resumeSuccess && (
-              <p role="status" className="mt-3 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">
-                {resumeSuccess}
-              </p>
-            )}
-            {editingResume && (
-              <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
-                <p className="text-sm text-slate-500">
-                  {seeker.resume_url
-                    ? "Choose a replacement file. Your current resume remains available until the upload succeeds."
-                    : `Upload a ${RESUME_FORMATS_LABEL} file up to 5 MB. Your resume is stored privately.`}
-                </p>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <input
-                    type="file"
-                    accept={RESUME_ACCEPT}
-                    onChange={(event) => {
-                      setResumeFile(event.target.files?.[0] ?? null);
-                      event.currentTarget.value = "";
-                      setResumeError("");
-                      setResumeSuccess("");
-                    }}
-                    disabled={uploadingResume}
-                    className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:font-semibold file:text-blue-700"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => void saveResume()}
-                    disabled={!resumeFile || uploadingResume}
-                    className="rounded-xl bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#064A91] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {uploadingResume ? "Uploading..." : "Save Resume"}
-                  </button>
-                </div>
-                {resumeFile && (
-                  <p className="text-xs text-slate-600">Selected: {resumeFile.name}</p>
-                )}
-              </div>
-            )}
           </div>
 
           {/* Existing screening form, fields, consent, signature and save logic */}
@@ -1433,6 +1330,95 @@ export default function JobSeekerDashboard() {
             </div>
           )}
         </form>}
+
+          <div
+            id="job-seeker-resume"
+            className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50">
+                  <AppIcon name="file" className="h-6 w-6 text-[#0759AE]" />
+                </span>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-[#123B70]">Resume / CV</h3>
+                  <p className="mt-1 text-xs text-slate-600">
+                    {seeker.resume_url
+                      ? "Resume uploaded. Replace it with your latest version when needed."
+                      : `Upload your updated resume (${RESUME_FORMATS_LABEL}, up to 5 MB).`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+                {seeker.resume_url && (
+                  <button
+                    type="button"
+                    onClick={() => void openResume()}
+                    disabled={openingResume}
+                    className="inline-flex items-center gap-2 rounded-xl border border-blue-300 px-4 py-2.5 text-sm font-semibold text-[#0759AE] hover:bg-blue-50 disabled:opacity-50"
+                  >
+                    {openingResume ? "Preparing..." : "View Resume"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingResume((editing) => !editing);
+                    setResumeError("");
+                    setResumeSuccess("");
+                  }}
+                  aria-expanded={editingResume}
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#0759AE] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#064A91]"
+                >
+                  {editingResume ? "Cancel" : seeker.resume_url ? "Replace Resume" : "Upload Resume"}
+                </button>
+              </div>
+            </div>
+            {resumeError && (
+              <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                {resumeError}
+              </p>
+            )}
+            {resumeSuccess && (
+              <p role="status" className="mt-3 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+                {resumeSuccess}
+              </p>
+            )}
+            {editingResume && (
+              <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
+                <p className="text-sm text-slate-500">
+                  {seeker.resume_url
+                    ? "Choose a replacement file. Your current resume remains available until the upload succeeds."
+                    : `Upload a ${RESUME_FORMATS_LABEL} file up to 5 MB. Your resume is stored privately.`}
+                </p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <input
+                    type="file"
+                    accept={RESUME_ACCEPT}
+                    onChange={(event) => {
+                      setResumeFile(event.target.files?.[0] ?? null);
+                      event.currentTarget.value = "";
+                      setResumeError("");
+                      setResumeSuccess("");
+                    }}
+                    disabled={uploadingResume}
+                    className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:font-semibold file:text-blue-700"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void saveResume()}
+                    disabled={!resumeFile || uploadingResume}
+                    className="rounded-xl bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#064A91] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {uploadingResume ? "Uploading..." : "Save Resume"}
+                  </button>
+                </div>
+                {resumeFile && (
+                  <p className="text-xs text-slate-600">Selected: {resumeFile.name}</p>
+                )}
+              </div>
+            )}
+          </div>
         </section>
       </div>
     );
