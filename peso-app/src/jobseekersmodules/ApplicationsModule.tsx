@@ -20,6 +20,12 @@ type ApplicationDocument = {
   path: string;
 };
 
+type ApplicationEmployerProfile = {
+  application_id: string;
+  employer_name: string | null;
+  employer_logo_url: string | null;
+};
+
 type Application = {
   id: string;
   job: string;
@@ -106,11 +112,7 @@ export default function ApplicationsModule({
           applicant_contact_no,
           applicant_address,
           applicant_resume_url,
-          applicant_qualification_files,
-          employer (
-            name,
-            logo_url
-          )
+          applicant_qualification_files
         `)
         .eq("job_seeker_id", seeker.job_seeker_id)
         .order("date_applied", { ascending: false });
@@ -125,17 +127,45 @@ export default function ApplicationsModule({
         return;
       }
 
+      const { data: employerProfileData, error: employerProfilesError } =
+        await supabase.rpc("get_my_application_employer_profiles");
+
+      if (!active) return;
+
+      if (employerProfilesError) {
+        console.error(
+          "Error loading employer profiles for applications:",
+          employerProfilesError,
+        );
+        setLoadError(
+          `Unable to load employer profiles: ${employerProfilesError.message}`,
+        );
+        setApplications([]);
+        setLoading(false);
+        return;
+      }
+
+      const employerProfiles =
+        employerProfileData as ApplicationEmployerProfile[] | null;
+      const employerProfilesByApplicationId = new Map<
+        string,
+        ApplicationEmployerProfile
+      >();
+      for (const profile of employerProfiles ?? []) {
+        employerProfilesByApplicationId.set(profile.application_id, profile);
+      }
+
       setApplications(
         (data ?? []).map((row) => {
-          const employer = Array.isArray(row.employer)
-            ? row.employer[0]
-            : row.employer;
+          const employerProfile = employerProfilesByApplicationId.get(
+            row.application_id,
+          );
 
           return {
             id: row.application_id,
             job: row.position_title || "Position not specified",
-            company: employer?.name || "Employer",
-            companyLogoUrl: employer?.logo_url ?? null,
+            company: employerProfile?.employer_name || "Employer",
+            companyLogoUrl: employerProfile?.employer_logo_url ?? null,
             date: new Date(row.date_applied).toLocaleDateString("en-PH", {
               year: "numeric",
               month: "long",
