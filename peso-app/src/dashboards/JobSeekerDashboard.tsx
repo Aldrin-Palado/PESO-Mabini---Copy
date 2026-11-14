@@ -825,15 +825,14 @@ export default function JobSeekerDashboard() {
           : "Pending review";
 
     return (
-      <div className="mx-auto max-w-5xl space-y-6 pb-8">
-        {/* PAGE TITLE */}
-        <header>
-          <p className="text-xs font-bold uppercase tracking-wider text-[#0759AE]">
-            Job Seeker Account
-          </p>
-          <h1 className="mt-1 text-3xl font-black text-[#123B70]">My Profile</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Manage your account information and PESO employment registration.
+      <div className="mx-auto w-full max-w-[1500px] space-y-6 pb-8">
+        {/* Profile page heading - the dashboard header and sidebar are not modified. */}
+        <header className="px-1 pt-1">
+          <h1 className="text-3xl font-extrabold tracking-tight text-[#123B70] sm:text-4xl">
+            My Profile
+          </h1>
+          <p className="mt-1 text-sm text-slate-600 sm:text-base">
+            Manage your account and PESO registration details.
           </p>
         </header>
 
@@ -848,229 +847,212 @@ export default function JobSeekerDashboard() {
           </p>
         )}
 
-        {/* 1. COMPACT ACCOUNT PROFILE */}
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/80 p-5 sm:flex-row sm:items-center sm:p-6">
-            <ProfileAvatar
-              userId={seeker.user_id}
-              fullName={seeker.full_name}
-              size="large"
-              showControls={editingProfilePhoto}
-              onPhotoStatusChange={setHasProfilePhoto}
-            />
-            <div className="min-w-0 flex-1">
-              <h2 className="text-xl font-black text-[#123B70]">
+        <div className="grid items-start gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
+          {/* LEFT PROFILE CARD */}
+          <aside className="overflow-hidden rounded-[24px] border border-blue-100 bg-white shadow-[0_12px_35px_rgba(30,85,150,0.10)]">
+            <div className="relative flex min-h-[150px] items-start justify-center overflow-hidden bg-gradient-to-br from-[#064A9B] via-[#1768C1] to-[#2D8CE0] px-5 pt-8">
+              <div aria-hidden="true" className="absolute -right-10 -top-16 h-52 w-52 rounded-full border-[26px] border-white/10" />
+              <div aria-hidden="true" className="absolute -left-12 top-20 h-32 w-72 -rotate-12 rounded-[50%] bg-white/10" />
+              <div className="relative z-10 translate-y-10 rounded-full border-[7px] border-white bg-white shadow-lg">
+                <ProfileAvatar
+                  userId={seeker.user_id}
+                  fullName={seeker.full_name}
+                  size="large"
+                  showControls={editingProfilePhoto}
+                  onPhotoStatusChange={setHasProfilePhoto}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingProfilePhoto((editing) => !editing)}
+                aria-expanded={editingProfilePhoto}
+                aria-label={editingProfilePhoto ? "Finish editing profile photo" : "Edit profile photo"}
+                className="absolute bottom-3 right-[calc(50%-76px)] z-20 rounded-full border-2 border-white bg-white p-2 text-[#0759AE] shadow-md transition hover:bg-blue-50"
+              >
+                <span aria-hidden="true" className="text-lg leading-none">✎</span>
+              </button>
+            </div>
+
+            <div className="px-5 pb-6 pt-14 text-center">
+              <h2 className="text-2xl font-extrabold tracking-tight text-[#123B70]">
                 {seeker.full_name || "Job Seeker"}
               </h2>
-              <p className="mt-1 text-sm font-medium text-slate-600">Job Seeker</p>
-              <p className="mt-1 break-all text-sm text-slate-500">
-                {seeker.email || "Not provided"}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setEditingProfilePhoto((editing) => !editing)}
-              aria-expanded={editingProfilePhoto}
-              className="self-start rounded-xl bg-[#0446A7] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#123B70] sm:self-auto"
-            >
-              {editingProfilePhoto ? "Done" : "Edit Profile Photo"}
-            </button>
-          </div>
-
-          <div className="p-5 sm:p-6">
-            <h3 className="text-base font-bold text-[#123B70]">Account Information</h3>
-            <p className="mt-1 text-xs text-slate-500">
-              Your basic account details are separate from PESO screening information.
-            </p>
-            <dl className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl bg-slate-50 p-4">
-                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Full Name</dt>
-                <dd className="mt-2 break-words text-sm font-semibold text-slate-800">
-                  {seeker.full_name || "Not provided"}
-                </dd>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-4">
-                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Account Role</dt>
-                <dd className="mt-2 text-sm font-semibold text-slate-800">Job Seeker</dd>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-4">
-                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Email Address</dt>
-                <dd className="mt-2 break-all text-sm font-semibold text-slate-800">
-                  {seeker.email || "Not provided"}
-                </dd>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-4">
-                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Account Status</dt>
-                <dd className="mt-2 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
-                  Active
-                </dd>
-              </div>
-            </dl>
-          </div>
-        </section>
-
-        {/* 2. PESO REGISTRATION AND SCREENING */}
-        <section className="space-y-5" aria-labelledby="peso-registration-title">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-[#0759AE]">
-                PESO Registration
-              </p>
-              <h2 id="peso-registration-title" className="mt-1 text-2xl font-black text-[#123B70]">
-                Job Seeker Registration Details
-              </h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Complete your employment information for PESO screening and job applications.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                if (screeningDetailsOpen && editingScreening) setEditingScreening(false);
-                setScreeningDetailsOpen((open) => !open);
-              }}
-              aria-expanded={screeningDetailsOpen}
-              aria-controls="job-seeker-registration-details"
-              className="self-start shrink-0 rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-bold text-[#0759AE] transition hover:bg-blue-50 sm:self-auto"
-            >
-              {screeningDetailsOpen ? "Hide PESO Details" : "Show PESO Details"}
-            </button>
-          </div>
-
-          {/* Registration progress stays visible even when screening form is collapsed */}
-          <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 sm:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h3 className="text-base font-bold text-[#123B70]">Registration Progress</h3>
-                <p className="mt-1 text-xs text-slate-600">
-                  Complete all sections and upload your resume before applying for jobs.
-                </p>
-              </div>
-              <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[#123B70]">
-                {completedTaskCount}/{registrationTasks.length} complete
+              <span className="mt-2 inline-flex rounded-full border border-blue-100 bg-blue-50 px-4 py-1.5 text-sm font-semibold text-[#0759AE]">
+                Job Seeker
               </span>
-            </div>
-            <div
-              role="progressbar"
-              aria-label="PESO registration completion"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={completionPercentage}
-              className="mt-4 h-2.5 overflow-hidden rounded-full bg-blue-100"
-            >
-              <div
-                className="h-full rounded-full bg-[#0759AE] transition-all duration-300"
-                style={{ width: `${completionPercentage}%` }}
-              />
-            </div>
-            <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {registrationTasks.map((task) => {
-                const complete = !incompleteTasks.includes(task);
-                return (
-                  <li
-                    key={task}
-                    className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-xs font-medium ${
-                      complete
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-white text-slate-600"
-                    }`}
-                  >
-                    <span aria-hidden="true" className="text-base leading-none">
-                      {complete ? "✓" : "○"}
-                    </span>
-                    <span>{task}</span>
-                  </li>
-                );
-              })}
-            </ul>
-            {incompleteTasks.length === 0 && (
-              <p role="status" className="mt-4 rounded-xl bg-emerald-100 p-3 text-sm font-semibold text-emerald-800">
-                Your registration information is complete and ready for job applications.
-              </p>
-            )}
-          </div>
-
-          {/* Resume belongs to the employment registration, not account details */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h3 className="text-base font-bold text-[#123B70]">Resume / CV</h3>
-                <p className="mt-1 text-sm text-slate-600">
-                  {seeker.resume_url ? "Resume uploaded" : "No resume uploaded"}
-                </p>
+              <div className="mt-3 flex justify-center">
+                <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-1.5 text-sm font-bold text-emerald-800">
+                  <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-xs text-white">✓</span>
+                  Active Account
+                </span>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {seeker.resume_url && (
-                  <button
-                    type="button"
-                    onClick={() => void openResume()}
-                    disabled={openingResume}
-                    className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    {openingResume ? "Preparing..." : "View Resume"}
-                  </button>
-                )}
+              <p className="mt-2 text-xs text-slate-500">Verification: {verificationLabel}</p>
+
+              <div className="mt-6 space-y-4 border-b border-slate-200 pb-6 text-left">
+                <div className="flex items-start gap-3 text-sm text-slate-700">
+                  <span className="w-6 shrink-0 text-center text-lg text-slate-500" aria-hidden="true">✉</span>
+                  <span className="min-w-0 break-all font-medium">{seeker.email || "Email not provided"}</span>
+                </div>
+                <div className="flex items-start gap-3 text-sm text-slate-700">
+                  <span className="w-6 shrink-0 text-center text-lg text-slate-500" aria-hidden="true">☎</span>
+                  <span className="min-w-0 break-words font-medium">{seeker.contact_no || "Contact number not provided"}</span>
+                </div>
+                <div className="flex items-start gap-3 text-sm text-slate-700">
+                  <span className="w-6 shrink-0 text-center text-lg text-slate-500" aria-hidden="true">⌖</span>
+                  <span className="min-w-0 break-words font-medium">{seeker.address || "Address not provided"}</span>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2 text-left">
+                <div className="flex items-center gap-3 rounded-xl bg-blue-50 px-4 py-3 font-semibold text-[#064AAB]">
+                  <span aria-hidden="true" className="text-lg">♙</span>
+                  <span>Profile Overview</span>
+                </div>
                 <button
                   type="button"
                   onClick={() => {
-                    setEditingResume((editing) => !editing);
-                    setResumeError("");
-                    setResumeSuccess("");
+                    setScreeningDetailsOpen(true);
+                    document.getElementById("job-seeker-registration-details")?.scrollIntoView({ behavior: "smooth", block: "start" });
                   }}
-                  aria-expanded={editingResume}
-                  className="rounded-xl bg-[#0759AE] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#064A91]"
+                  className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-slate-700 transition hover:bg-blue-50 hover:text-[#064AAB]"
                 >
-                  {editingResume ? "Cancel" : seeker.resume_url ? "Replace Resume" : "Upload Resume"}
+                  <span aria-hidden="true" className="text-lg">▤</span>
+                  <span>PESO Registration</span>
                 </button>
               </div>
             </div>
-            {resumeError && (
-              <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                {resumeError}
-              </p>
-            )}
-            {resumeSuccess && (
-              <p role="status" className="mt-3 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">
-                {resumeSuccess}
-              </p>
-            )}
-            {editingResume && (
-              <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
-                <p className="text-sm text-slate-500">
-                  {seeker.resume_url
-                    ? "Choose a replacement file. Your current resume remains available until the upload succeeds."
-                    : `Upload a ${RESUME_FORMATS_LABEL} file up to 5 MB. Your resume is stored privately.`}
-                </p>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <input
-                    type="file"
-                    accept={RESUME_ACCEPT}
-                    onChange={(event) => {
-                      setResumeFile(event.target.files?.[0] ?? null);
-                      event.currentTarget.value = "";
-                      setResumeError("");
-                      setResumeSuccess("");
-                    }}
-                    disabled={uploadingResume}
-                    className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:font-semibold file:text-blue-700"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => void saveResume()}
-                    disabled={!resumeFile || uploadingResume}
-                    className="rounded-xl bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#064A91] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {uploadingResume ? "Uploading..." : "Save Resume"}
-                  </button>
-                </div>
-                {resumeFile && (
-                  <p className="text-xs text-slate-600">Selected: {resumeFile.name}</p>
-                )}
-              </div>
-            )}
-          </div>
+          </aside>
 
-          {/* Existing screening form, fields, consent, signature and save logic */}
+          {/* RIGHT CONTENT COLUMN */}
+          <div className="min-w-0 space-y-4">
+            {/* REGISTRATION PROGRESS */}
+            <section className="rounded-[22px] border border-blue-100 bg-white p-5 shadow-[0_8px_25px_rgba(30,85,150,0.08)] sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex min-w-0 items-start gap-4">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-2xl text-[#0759AE]" aria-hidden="true">☑</div>
+                  <div>
+                    <h2 className="text-xl font-extrabold text-[#123B70] sm:text-2xl">Registration Progress</h2>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Complete your PESO registration to be eligible for employment services.
+                    </p>
+                  </div>
+                </div>
+                <span className="shrink-0 rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-sm font-extrabold text-[#0759AE]">
+                  {completedTaskCount}/{registrationTasks.length} Complete
+                </span>
+              </div>
+              <div className="mt-5 flex items-center gap-4">
+                <div
+                  role="progressbar"
+                  aria-label="PESO registration completion"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={completionPercentage}
+                  className="h-4 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-200"
+                >
+                  <div className="h-full rounded-full bg-gradient-to-r from-[#0759AE] to-[#3994E8] transition-all duration-300" style={{ width: `${completionPercentage}%` }} />
+                </div>
+                <span className="w-10 text-right text-sm font-extrabold text-[#123B70]">{completionPercentage}%</span>
+              </div>
+            </section>
+
+            {/* PESO REGISTRATION SECTIONS */}
+            <section className="rounded-[22px] border border-blue-100 bg-white p-5 shadow-[0_8px_25px_rgba(30,85,150,0.08)] sm:p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-2xl text-[#0759AE]" aria-hidden="true">▤</div>
+                <div>
+                  <h2 className="text-xl font-extrabold text-[#123B70] sm:text-2xl">PESO Registration Details</h2>
+                  <p className="mt-1 text-sm text-slate-600">Complete the following sections and upload your resume.</p>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-2 sm:grid-cols-2">
+                {registrationTasks.map((task) => {
+                  const complete = !incompleteTasks.includes(task);
+                  const isResume = task === "Resume / CV";
+                  const open = isResume ? editingResume : screeningDetailsOpen;
+                  return (
+                    <button
+                      key={task}
+                      type="button"
+                      onClick={() => {
+                        if (isResume) {
+                          setEditingResume(true);
+                          setResumeError("");
+                          setResumeSuccess("");
+                        } else {
+                          setScreeningDetailsOpen(true);
+                          document.getElementById("job-seeker-registration-details")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }
+                      }}
+                      className={`flex min-h-[52px] items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition ${open ? "border-blue-300 bg-blue-50 text-[#064AAB]" : "border-slate-200 bg-white text-slate-800 hover:border-blue-200 hover:bg-blue-50/60"}`}
+                    >
+                      <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${complete ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-400 text-transparent"}`} aria-label={complete ? "Completed" : "Incomplete"}>{complete ? "✓" : "•"}</span>
+                      <span className="min-w-0 flex-1 font-semibold">{task}</span>
+                      <span aria-hidden="true" className="text-xl text-slate-500">›</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-6 border-t border-blue-100 pt-5">
+                {/* Resume uploader is part of PESO registration. Existing upload actions are preserved. */}
+                <div className="rounded-2xl border border-dashed border-blue-300 bg-blue-50/60 p-4 sm:p-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-3xl text-[#0759AE] shadow-sm" aria-hidden="true">⇧</div>
+                      <div>
+                        <h3 className="text-lg font-extrabold text-[#123B70]">Resume / CV</h3>
+                        <p className="mt-1 text-sm text-slate-600">Upload your updated resume (PDF, DOC, or DOCX, up to 5 MB).</p>
+                        <p className="mt-1 text-xs font-medium text-slate-500">{seeker.resume_url ? "A resume is already uploaded." : "No resume uploaded yet."}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 sm:shrink-0">
+                      {seeker.resume_url && (
+                        <button type="button" onClick={() => void openResume()} disabled={openingResume} className="rounded-xl border border-blue-300 bg-white px-4 py-2.5 text-sm font-bold text-[#0759AE] hover:bg-blue-50 disabled:opacity-50">
+                          {openingResume ? "Preparing..." : "View Resume"}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingResume((editing) => !editing);
+                          setResumeError("");
+                          setResumeSuccess("");
+                        }}
+                        aria-expanded={editingResume}
+                        className="rounded-xl border border-[#0759AE] bg-white px-5 py-2.5 text-sm font-extrabold text-[#0759AE] transition hover:bg-blue-100"
+                      >
+                        {editingResume ? "Cancel Upload" : seeker.resume_url ? "Replace Resume" : "Upload Resume"}
+                      </button>
+                    </div>
+                  </div>
+                  {resumeError && <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{resumeError}</p>}
+                  {resumeSuccess && <p role="status" className="mt-3 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">{resumeSuccess}</p>}
+                  {editingResume && (
+                    <div className="mt-4 space-y-3 border-t border-blue-200 pt-4">
+                      <p className="text-sm text-slate-600">
+                        {seeker.resume_url ? "Choose a replacement file. Your current resume remains available until the upload succeeds." : `Upload a ${RESUME_FORMATS_LABEL} file up to 5 MB. Your resume is stored privately.`}
+                      </p>
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <input type="file" accept={RESUME_ACCEPT} onChange={(event) => {
+                          setResumeFile(event.target.files?.[0] ?? null);
+                          event.currentTarget.value = "";
+                          setResumeError("");
+                          setResumeSuccess("");
+                        }} disabled={uploadingResume} className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:font-semibold file:text-blue-700" />
+                        <button type="button" onClick={() => void saveResume()} disabled={!resumeFile || uploadingResume} className="rounded-xl bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#064A91] disabled:cursor-not-allowed disabled:opacity-50">
+                          {uploadingResume ? "Uploading..." : "Save Resume"}
+                        </button>
+                      </div>
+                      {resumeFile && <p className="text-xs text-slate-600">Selected: {resumeFile.name}</p>}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* Existing screening form and save process. */}
         {screeningDetailsOpen && <form
           id="job-seeker-registration-details"
           onSubmit={saveScreening}
@@ -1346,7 +1328,8 @@ export default function JobSeekerDashboard() {
             </div>
           )}
         </form>}
-        </section>
+          </div>
+        </div>
       </div>
     );
   };
