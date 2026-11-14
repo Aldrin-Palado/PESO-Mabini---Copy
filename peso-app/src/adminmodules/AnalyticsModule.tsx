@@ -19,6 +19,7 @@ type JobPost = {
   title?: string;
   job_title?: string;
   position?: string;
+  status?: string | null;
   [key: string]: any;
 };
 
@@ -67,7 +68,12 @@ type DashboardCounts = {
   jobSeekers: number;
 };
 
-type InsightCategory = "month" | "job title" | "company" | "status";
+type InsightCategory =
+  | "month"
+  | "job title"
+  | "company"
+  | "status"
+  | "job post status";
 
 type SelectedInsight = {
   category: InsightCategory;
@@ -220,16 +226,16 @@ export default function AnalyticsModule({
     }
   ).length;
 
-  const approvedApplications = applications.filter(
-    (application) => {
-      const status =
-        application.status ||
-        application.application_status ||
-        "";
+  const underReviewApplications = applications.filter(
+  (application) => {
+    const status =
+      application.status ||
+      application.application_status ||
+      "";
 
-      return status.toLowerCase() === "approved";
-    }
-  ).length;
+    return status.toLowerCase() === "under_review";
+  }
+).length;
 
   const rejectedApplications = applications.filter(
     (application) => {
@@ -286,19 +292,37 @@ export default function AnalyticsModule({
           String(application.applicant_name || seeker?.full_name || ""),
         );
         const history = application.application_status_history || [];
-        const statuses = new Set(
-          history.map((entry) =>
-            String(entry.status || "")
-              .trim()
-              .toLowerCase()
-              .replace(/\s+/g, "_"),
-          ),
-        );
+        const confirmedHistory = history.filter(
+  (entry) => entry.is_backfill === false
+);
+
+const statuses = new Set(
+  confirmedHistory.map((entry) =>
+    String(entry.status || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "_"),
+  ),
+);
         const hiredEvent = history
-          .filter((entry) => String(entry.status || "").toLowerCase() === "hired")
-          .sort((first, second) =>
-            first.changed_at.localeCompare(second.changed_at),
-          )[0];
+  .filter(
+    (entry) =>
+      String(entry.status || "").toLowerCase() === "hired" &&
+      entry.is_backfill === false
+  )
+  .sort((first, second) =>
+    first.changed_at.localeCompare(second.changed_at),
+  )[0];
+
+  const hasIncompleteHistory =
+  history.length === 0 ||
+  history.some((entry) => entry.is_backfill !== false);
+
+const getStageResult = (wasReached: boolean): string => {
+  if (wasReached) return "Yes";
+
+  return hasIncompleteHistory ? "Not Recorded" : "No";
+};
 
         return [
           index + 1,
@@ -309,12 +333,16 @@ export default function AnalyticsModule({
           registration.sex || seeker?.sex || "—",
           application.applicant_contact_no || seeker?.contact_no || "—",
           application.position_title || "—",
-          statuses.has("qualified") ? "Yes" : "No",
-          statuses.has("interviewed") || statuses.has("interview")
-            ? "Yes"
-            : "No",
-          statuses.has("hired") ? "Yes" : "No",
-          formatReportDate(hiredEvent?.changed_at),
+          getStageResult(statuses.has("qualified")),
+getStageResult(
+  statuses.has("interviewed") || statuses.has("interview")
+),
+getStageResult(statuses.has("hired")),
+hiredEvent
+  ? formatReportDate(hiredEvent.changed_at)
+  : hasIncompleteHistory
+    ? "Not Recorded"
+    : "-",
         ];
       }),
     [placementApplications],
@@ -328,15 +356,20 @@ export default function AnalyticsModule({
 
   const analyticsData = useMemo(() => {
     const statuses = [
-      { key: "pending", label: "Pending" },
-      { key: "under_review", label: "Under Review" },
-      { key: "shortlisted", label: "Shortlisted" },
-      { key: "qualified", label: "Qualified" },
-      { key: "interviewed", label: "Interviewed" },
-      { key: "withdrawn", label: "Withdrawn" },
-      { key: "hired", label: "You're Hired" },
-      { key: "rejected", label: "Rejected" },
-    ];
+  { key: "pending", label: "Pending", values: ["pending"] },
+  { key: "under_review", label: "Under Review", values: ["under_review"] },
+  { key: "shortlisted", label: "Shortlisted", values: ["shortlisted"] },
+  { key: "qualified", label: "Qualified", values: ["qualified"] },
+  {
+    key: "interviewed",
+    label: "Interviewed",
+    values: ["interview", "interviewed"],
+  },
+  { key: "withdrawn", label: "Withdrawn", values: ["withdrawn"] },
+  { key: "cancelled", label: "Cancelled", values: ["cancelled"] },
+  { key: "hired", label: "You're Hired", values: ["hired"] },
+  { key: "rejected", label: "Rejected", values: ["rejected"] },
+];
 
     // LAST SIX MONTHS
 
@@ -373,6 +406,41 @@ export default function AnalyticsModule({
     const statusCounts = new Map<string, number>(
       statuses.map((status) => [status.key, 0] as const)
     );
+
+    // JOB POST STATUS COUNTS
+
+const jobPostStatusCounts = new Map<
+  string,
+  { label: string; value: number }
+>();
+
+jobPosts.forEach((job) => {
+  const rawStatus = String(job.status ?? "").trim();
+
+  const normalizedStatus = rawStatus
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const label = normalizedStatus
+    ? normalizedStatus.replace(/\b\w/g, (char) =>
+        char.toUpperCase()
+      )
+    : "Unknown";
+
+  const existingStatus =
+    jobPostStatusCounts.get(normalizedStatus || "unknown");
+
+  if (existingStatus) {
+    existingStatus.value++;
+  } else {
+    jobPostStatusCounts.set(normalizedStatus || "unknown", {
+      label,
+      value: 1,
+    });
+  }
+});
 
     // EMPLOYER LOOKUP
 
@@ -428,17 +496,22 @@ export default function AnalyticsModule({
       );
 
       const status = String(
-        application.status ||
-        application.application_status ||
-        ""
-      ).toLowerCase();
+  application.status ||
+  application.application_status ||
+  ""
+)
+  .trim()
+  .toLowerCase();
 
-      if (statusCounts.has(status)) {
-        statusCounts.set(
-          status,
-          (statusCounts.get(status) || 0) + 1
-        );
-      }
+const normalizedStatus =
+  status === "interview" ? "interviewed" : status;
+
+if (statusCounts.has(normalizedStatus)) {
+  statusCounts.set(
+    normalizedStatus,
+    (statusCounts.get(normalizedStatus) || 0) + 1
+  );
+}
     });
 
     return {
@@ -458,6 +531,14 @@ export default function AnalyticsModule({
         label: status.label,
         value: statusCounts.get(status.key) || 0,
       })),
+
+      jobPostStatusBreakdown: Array.from(
+  jobPostStatusCounts.values()
+).sort(
+  (first, second) =>
+    second.value - first.value ||
+    first.label.localeCompare(second.label)
+),
 
       availableJobs: jobPosts.filter(
         (job) =>
@@ -549,11 +630,17 @@ export default function AnalyticsModule({
                 ? "application was"
                 : "applications were"
             } submitted to ${selectedInsight.label}.`
-          : `${selectedInsight.value} ${
-              selectedInsight.value === 1
-                ? "application currently has"
-                : "applications currently have"
-            } the status ${selectedInsight.label}.`;
+          : selectedInsight.category === "job post status"
+            ? `${selectedInsight.value} ${
+                selectedInsight.value === 1
+                  ? "job post is"
+                  : "job posts are"
+              } currently marked as ${selectedInsight.label}.`
+            : `${selectedInsight.value} ${
+                selectedInsight.value === 1
+                  ? "application currently has"
+                  : "applications currently have"
+              } the status ${selectedInsight.label}.`;
 
   // RECOMMENDED ACTION
 
@@ -567,7 +654,9 @@ export default function AnalyticsModule({
         ? "Review the qualifications and skills associated with this position when planning job matching activities."
         : selectedInsight.category === "company"
           ? "Review this employer's active vacancies and applicant volume to assess recruitment demand."
-          : "Review applications under this status and follow up on records requiring action.";
+          : selectedInsight.category === "job post status"
+            ? "Review the current job post status mix and adjust hiring or posting strategies if a status is overrepresented or stalled."
+            : "Review applications under this status and follow up on records requiring action.";
 
   return (
     <div className="space-y-6">
@@ -715,9 +804,7 @@ export default function AnalyticsModule({
               )}
             </div>
             <p className="px-5 pb-3 text-xs text-slate-500">
-              Status progression is tracked from the status-history migration
-              forward. Older applications only have their latest known status;
-              their hired date uses the last available update timestamp.
+              Qualified, Interviewed, and Hired show Yes or No based on the available status history. For applications with backfilled history, No means the stage is absent from the available records; it does not confirm whether the stage occurred before tracking began. Date Hired displays a date only when a confirmed, non-backfilled Hired transition exists. If history is incomplete and no confirmed transition exists, it displays Not Recorded.
             </p>
             {placementApplications.length === 0 ? (
               <p className="border-t border-slate-100 px-5 py-10 text-center text-sm text-slate-500">
@@ -1241,6 +1328,118 @@ export default function AnalyticsModule({
 
           </div>
 
+          {/* JOB POST STATUS BREAKDOWN */}
+
+          <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:col-span-2">
+
+            <div className="mb-5">
+              <h3 className="text-lg font-bold text-slate-800">
+                Job Post Status Breakdown
+              </h3>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Distribution of active job posts by current status.
+              </p>
+            </div>
+
+            {analyticsData.jobPostStatusBreakdown.length === 0 ? (
+
+              <p className="py-8 text-center text-sm text-slate-500">
+                No job post status data available yet.
+              </p>
+
+            ) : (
+
+              <div className="h-[260px] w-full">
+
+                <ResponsiveContainer width="100%" height="100%">
+
+                  <BarChart
+                    data={analyticsData.jobPostStatusBreakdown}
+                    layout="vertical"
+                    margin={{
+                      top: 5,
+                      right: 35,
+                      left: 5,
+                      bottom: 5,
+                    }}
+                  >
+
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      horizontal={false}
+                      stroke="#E2E8F0"
+                    />
+
+                    <XAxis
+                      type="number"
+                      allowDecimals={false}
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fill: "#64748B", fontSize: 11 }}
+                    />
+
+                    <YAxis
+                      type="category"
+                      dataKey="label"
+                      width={105}
+                      interval={0}
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fill: "#475569", fontSize: 11 }}
+                    />
+
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      cursor={{ fill: "#F1F5F9" }}
+                    />
+
+                    <Bar
+                      dataKey="value"
+                      name="Job Posts"
+                      radius={[0, 6, 6, 0]}
+                      barSize={19}
+                      onClick={(data: any) =>
+                        handleChartSelect("job post status", data)
+                      }
+                      className="cursor-pointer"
+                    >
+
+                      {analyticsData.jobPostStatusBreakdown.map((status) => (
+                        <Cell
+                          key={status.label}
+                          fill={
+                            selectedInsight?.category === "job post status" &&
+                            selectedInsight.label === status.label
+                              ? RED
+                              : BLUE
+                          }
+                        />
+                      ))}
+
+                      <LabelList
+                        dataKey="value"
+                        position="right"
+                        fill="#475569"
+                        fontSize={11}
+                      />
+
+                    </Bar>
+
+                  </BarChart>
+
+                </ResponsiveContainer>
+
+              </div>
+
+            )}
+
+            <p className="mt-3 text-xs text-slate-500">
+              Select a job post status to view its insights.
+            </p>
+
+          </div>
+
         </div>
 
         {/* RIGHT: SHARED INSIGHT PANEL */}
@@ -1426,8 +1625,8 @@ export default function AnalyticsModule({
             />
 
             <AnalyticsCard
-              title="Approved"
-              value={approvedApplications}
+            title="Under Review"
+            value={underReviewApplications}
             />
 
             <AnalyticsCard
@@ -1482,8 +1681,8 @@ export default function AnalyticsModule({
             />
 
             <SummaryRow
-              label="Available Job Posts"
-              value={jobPosts.length}
+            label="Available Job Posts"
+            value={analyticsData.availableJobs}
             />
 
             <SummaryRow

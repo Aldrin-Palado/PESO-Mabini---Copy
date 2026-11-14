@@ -204,6 +204,8 @@ export default function AdminDashboard() {
   >([]);
   const [dashboardStatsError, setDashboardStatsError] = useState("");
   const [dashboardStatsLoading, setDashboardStatsLoading] = useState(false);
+  const [dashboardRealtimeUnavailable, setDashboardRealtimeUnavailable] =
+    useState(false);
 
   const isSuperadmin =
     account?.role === "superadmin";
@@ -736,7 +738,7 @@ export default function AdminDashboard() {
      DASHBOARD COUNTS
   ============================================================ */
 
-  const loadDashboardCounts = async () => {
+  const loadDashboardCounts = useCallback(async () => {
     if (!account) return;
 
     setDashboardStatsLoading(true);
@@ -799,7 +801,6 @@ export default function AdminDashboard() {
           (async () => {
             const statuses = [
               ["pending", "Pending"],
-              ["approved", "Approved"],
               ["under_review", "Under Review"],
               ["shortlisted", "Shortlisted"],
               ["qualified", "Qualified"],
@@ -970,7 +971,73 @@ export default function AdminDashboard() {
     } finally {
       setDashboardStatsLoading(false);
     }
-  };
+  }, [account, permissions]);
+
+  useEffect(() => {
+    if (
+      !account ||
+      activePage !== "Dashboard" ||
+      (account.role !== "superadmin" && !permissions.includes("Applications"))
+    ) {
+      return;
+    }
+
+    let active = true;
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    let fallbackPoll: ReturnType<typeof setInterval> | null = null;
+    const channel = supabase
+      .channel(`admin-dashboard-applications-${account.user_id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "application",
+        },
+        () => {
+          if (refreshTimer) clearTimeout(refreshTimer);
+          refreshTimer = setTimeout(() => {
+            void loadDashboardCounts();
+          }, 150);
+        },
+      )
+      .subscribe((status, subscriptionError) => {
+        if (status === "SUBSCRIBED") {
+          if (fallbackPoll) {
+            clearInterval(fallbackPoll);
+            fallbackPoll = null;
+          }
+          if (active) {
+            setDashboardRealtimeUnavailable(false);
+            void loadDashboardCounts();
+          }
+        } else if (
+          status === "CHANNEL_ERROR" ||
+          status === "TIMED_OUT" ||
+          status === "CLOSED"
+        ) {
+          console.error("Admin dashboard application realtime subscription failed:", {
+            status,
+            error: subscriptionError,
+          });
+          if (active) {
+            setDashboardRealtimeUnavailable(true);
+            if (!fallbackPoll) {
+              fallbackPoll = setInterval(() => {
+                void loadDashboardCounts();
+              }, 5000);
+            }
+          }
+        }
+      });
+
+    return () => {
+      active = false;
+      if (refreshTimer) clearTimeout(refreshTimer);
+      if (fallbackPoll) clearInterval(fallbackPoll);
+      void supabase.removeChannel(channel);
+    };
+  }, [account, activePage, loadDashboardCounts, permissions]);
 
   const loadAnalyticsData = async () => {
   setAnalyticsLoading(true);
@@ -1957,11 +2024,12 @@ export default function AdminDashboard() {
             monthlyApplicationTrend={monthlyApplicationTrend}
             permissions={permissions}
             statsError={dashboardStatsError}
-                statsLoading={dashboardStatsLoading}
-                account={account}
-                logs={auditLogs}
-                auditLogError={auditLogError}
-                onNavigate={setActivePage}
+            statsLoading={dashboardStatsLoading}
+            realtimeUnavailable={dashboardRealtimeUnavailable}
+            account={account}
+            logs={auditLogs}
+            auditLogError={auditLogError}
+            onNavigate={setActivePage}
           />
         );
 

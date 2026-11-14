@@ -47,6 +47,7 @@ type Props = {
   permissions: AdminModule[];
   statsError?: string;
   statsLoading: boolean;
+  realtimeUnavailable?: boolean;
   account: Account | null;
   logs: ActivityLog[];
   auditLogError?: string;
@@ -66,6 +67,7 @@ export default function DashboardModule({
   permissions,
   statsError,
   statsLoading,
+  realtimeUnavailable = false,
   account,
   logs,
   auditLogError,
@@ -91,53 +93,40 @@ const canViewApplications =
     { module: "Job Seekers", label: "Job Seekers", icon: "users" },
   ] as const;
 
-  const applicationStatusSeries = [
-    {
-      name: "Pending",
-      value:
-        stats.Applications?.find((item) => item.label.toLowerCase() === "pending")
-          ?.value ?? 0,
-      color: "#F59E0B",
-    },
-    {
-      name: "Approved",
-      value:
-        stats.Applications?.find((item) => item.label.toLowerCase() === "approved")
-          ?.value ?? 0,
-      color: "#2563EB",
-    },
-    {
-      name: "Rejected",
-      value:
-        stats.Applications?.find((item) => item.label.toLowerCase() === "rejected")
-          ?.value ?? 0,
-      color: "#DC2626",
-    },
-    {
-      name: "Hired",
-      value:
-        stats.Applications?.find(
-          (item) =>
-            item.label.toLowerCase() === "hired" ||
-            item.label.toLowerCase() === "you're hired",
-        )
-          ?.value ?? 0,
-      color: "#059669",
-    },
-  ];
+  const applicationStatusColors: Record<string, string> = {
+    pending: "#F59E0B",
+    "under review": "#2563EB",
+    shortlisted: "#7C3AED",
+    qualified: "#0891B2",
+    interviewed: "#4F46E5",
+    hired: "#059669",
+    rejected: "#DC2626",
+    withdrawn: "#64748B",
+  };
+  const applicationStatusSeries = (stats.Applications ?? [])
+    .filter((item) => item.label !== "Total applications")
+    .map((item, index) => ({
+      name: item.label,
+      value: item.value,
+      color:
+        applicationStatusColors[item.label.toLowerCase()] ??
+        ["#F59E0B", "#2563EB", "#7C3AED", "#0891B2", "#4F46E5", "#059669"][
+          index % 6
+        ],
+    }));
 
   const hasApplicationData = Boolean(stats.Applications);
   const hasApplications = applicationStatusSeries.some((item) => item.value > 0);
-  const displayedApplicationTotal = applicationStatusSeries.reduce(
-    (total, item) => total + item.value,
-    0,
-  );
+  const displayedApplicationTotal =
+    stats.Applications?.find((item) => item.label === "Total applications")
+      ?.value ??
+    applicationStatusSeries.reduce((total, item) => total + item.value, 0);
 
   return (
     <div className="space-y-7">
       {canViewApplications && (
         <section aria-labelledby="application-overview-heading" className="space-y-4">
-          <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
+          <div className="border-b border-slate-200 pb-4">
             <div>
               <h2 id="application-overview-heading" className="text-lg font-bold text-[#203F8B]">
                 Application overview
@@ -145,10 +134,12 @@ const canViewApplications =
               <p className="mt-1 text-sm text-slate-500">
                 Application status and volume over the last six months.
               </p>
+              {realtimeUnavailable && (
+                <p role="status" className="mt-2 text-xs text-amber-700">
+                  Live updates are reconnecting. This dashboard will refresh automatically.
+                </p>
+              )}
             </div>
-            <span className="hidden rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-[#203F8B] sm:inline-flex">
-              Operational snapshot
-            </span>
           </div>
 
           <div className="grid min-w-0 gap-5 xl:grid-cols-2">
