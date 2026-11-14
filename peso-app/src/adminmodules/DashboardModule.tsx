@@ -1,5 +1,16 @@
 import type { AdminModule } from "../components/AdminSidebar";
 import AppIcon, { type AppIconName } from "../components/AppIcon";
+import {
+  Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 type Account = {
   id: string;
@@ -18,6 +29,12 @@ type DashboardMetric = {
 
 type DashboardStats = Partial<Record<AdminModule, DashboardMetric[]>>;
 
+type MonthlyApplicationPoint = {
+  key: string;
+  label: string;
+  value: number;
+};
+
 type ActivityLog = {
   log_id: string;
   action: string;
@@ -32,6 +49,8 @@ type Props = {
   statsLoading: boolean;
   account: Account | null;
   logs: ActivityLog[];
+  auditLogError?: string;
+  monthlyApplicationTrend: MonthlyApplicationPoint[];
   onNavigate: (page: AdminModule) => void;
 };
 
@@ -49,17 +68,232 @@ export default function DashboardModule({
   statsLoading,
   account,
   logs,
+  auditLogError,
+  monthlyApplicationTrend,
   onNavigate,
 }: Props) {
   const isAdmin = account?.role === "superadmin";
+  const pendingEmployerCount =
+  stats.Employers?.find((item) => item.label === "Pending")?.value ?? 0;
+
+const pendingApplicationCount =
+  stats.Applications?.find((item) => item.label === "Pending")?.value ?? 0;
+
+const canViewEmployers =
+  isAdmin || permissions.includes("Employers");
+
+const canViewApplications =
+  isAdmin || permissions.includes("Applications");
   const overallMetrics = [
     { module: "Job Post", label: "Job Posts", icon: "briefcase" },
     { module: "Applications", label: "Applications", icon: "file" },
     { module: "Employers", label: "Employers", icon: "building" },
     { module: "Job Seekers", label: "Job Seekers", icon: "users" },
   ] as const;
+
+  const applicationStatusSeries = [
+    {
+      name: "Pending",
+      value:
+        stats.Applications?.find((item) => item.label.toLowerCase() === "pending")
+          ?.value ?? 0,
+      color: "#F59E0B",
+    },
+    {
+      name: "Approved",
+      value:
+        stats.Applications?.find((item) => item.label.toLowerCase() === "approved")
+          ?.value ?? 0,
+      color: "#2563EB",
+    },
+    {
+      name: "Rejected",
+      value:
+        stats.Applications?.find((item) => item.label.toLowerCase() === "rejected")
+          ?.value ?? 0,
+      color: "#DC2626",
+    },
+    {
+      name: "Hired",
+      value:
+        stats.Applications?.find(
+          (item) =>
+            item.label.toLowerCase() === "hired" ||
+            item.label.toLowerCase() === "you're hired",
+        )
+          ?.value ?? 0,
+      color: "#059669",
+    },
+  ];
+
+  const hasApplicationData = Boolean(stats.Applications);
+  const hasApplications = applicationStatusSeries.some((item) => item.value > 0);
+  const displayedApplicationTotal = applicationStatusSeries.reduce(
+    (total, item) => total + item.value,
+    0,
+  );
+
   return (
     <div className="space-y-7">
+      {canViewApplications && (
+        <section aria-labelledby="application-overview-heading" className="space-y-4">
+          <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
+            <div>
+              <h2 id="application-overview-heading" className="text-lg font-bold text-[#203F8B]">
+                Application overview
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Application status and volume over the last six months.
+              </p>
+            </div>
+            <span className="hidden rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-[#203F8B] sm:inline-flex">
+              Operational snapshot
+            </span>
+          </div>
+
+          <div className="grid min-w-0 gap-5 xl:grid-cols-2">
+            <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="mb-4">
+                <h3 className="text-base font-bold text-slate-800">
+                  Application status
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Current applications by status.
+                </p>
+              </div>
+
+              {statsLoading ? (
+                <p className="py-12 text-center text-sm text-slate-500">
+                  Loading application status...
+                </p>
+              ) : !hasApplicationData ? (
+                <p className="py-12 text-center text-sm text-slate-500">
+                  Application status data is unavailable.
+                </p>
+              ) : (
+                <div className="grid items-center gap-4 sm:grid-cols-[minmax(150px,1fr)_minmax(0,1.2fr)]">
+                  <div className="relative h-48 min-w-0">
+                    {hasApplications ? (
+                      <>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={applicationStatusSeries}
+                              dataKey="value"
+                              nameKey="name"
+                              innerRadius={52}
+                              outerRadius={78}
+                              paddingAngle={3}
+                            >
+                              {applicationStatusSeries.map((entry) => (
+                                <Cell key={entry.name} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: "#FFFFFF",
+                                border: "1px solid #E2E8F0",
+                                borderRadius: 10,
+                                fontSize: 12,
+                              }}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-2xl font-bold text-slate-800">
+                            {displayedApplicationTotal}
+                          </span>
+                          <span className="text-xs text-slate-500">Applications</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex h-full items-center justify-center rounded-lg bg-slate-50 text-sm text-slate-500">
+                        No applications in these statuses yet.
+                      </div>
+                    )}
+                  </div>
+
+                  <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                    {applicationStatusSeries.map((item) => (
+                      <li key={item.name} className="flex items-center justify-between gap-3">
+                        <span className="flex min-w-0 items-center gap-2 text-sm text-slate-600">
+                          <span
+                            aria-hidden="true"
+                            className="h-2.5 w-2.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: item.color }}
+                          />
+                          <span className="truncate">{item.name}</span>
+                        </span>
+                        <span className="text-sm font-semibold text-slate-800">
+                          {item.value}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </article>
+
+            <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="mb-4">
+                <h3 className="text-base font-bold text-slate-800">
+                  Monthly applications
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Applications received during the last six months.
+                </p>
+              </div>
+
+              {statsLoading ? (
+                <p className="py-12 text-center text-sm text-slate-500">
+                  Loading monthly applications...
+                </p>
+              ) : !hasApplicationData ? (
+                <p className="py-12 text-center text-sm text-slate-500">
+                  Monthly application data is unavailable.
+                </p>
+              ) : (
+                <div className="h-48 min-w-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={monthlyApplicationTrend} margin={{ top: 8, right: 12, left: -20, bottom: 0 }}>
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fill: "#64748B", fontSize: 12 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        allowDecimals={false}
+                        width={36}
+                        tick={{ fill: "#64748B", fontSize: 12 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#FFFFFF",
+                          border: "1px solid #E2E8F0",
+                          borderRadius: 10,
+                          fontSize: 12,
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="value"
+                        name="Applications"
+                        stroke="#203F8B"
+                        strokeWidth={3}
+                        dot={{ r: 4, fill: "#203F8B" }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </article>
+          </div>
+        </section>
+      )}
       {statsError && (
         <p
           role="alert"
@@ -111,6 +345,63 @@ export default function DashboardModule({
         </div>
       </section>
 
+      {!statsLoading &&
+  ((canViewEmployers && pendingEmployerCount > 0) ||
+    (canViewApplications && pendingApplicationCount > 0)) && (
+    <section className="rounded-xl border border-amber-200 bg-amber-50/60 p-5">
+      <div className="mb-4">
+        <h2 className="text-lg font-bold text-slate-900">
+          Needs Attention
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Items awaiting review or follow-up.
+        </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {canViewEmployers && pendingEmployerCount > 0 && (
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-amber-100 bg-white p-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-800">
+                Employers awaiting verification
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                {pendingEmployerCount} pending
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate("Employers")}
+              className="shrink-0 rounded-md border border-blue-200 bg-white px-3 py-2 text-sm font-semibold text-[#244FE8] hover:bg-blue-50"
+            >
+              Review
+            </button>
+          </div>
+        )}
+
+        {canViewApplications && pendingApplicationCount > 0 && (
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-amber-100 bg-white p-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-800">
+                Applications pending review
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                {pendingApplicationCount} pending
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate("Applications")}
+              className="shrink-0 rounded-md border border-blue-200 bg-white px-3 py-2 text-sm font-semibold text-[#244FE8] hover:bg-blue-50"
+            >
+              Review
+            </button>
+          </div>
+        )}
+      </div>
+    </section>
+  )}
+
       {account?.role === "superadmin" && (
         <section className="flex flex-col gap-5 rounded-xl border border-blue-100 bg-blue-50/70 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div className="flex items-start gap-4">
@@ -156,26 +447,64 @@ export default function DashboardModule({
             </button>
           </div>
 
-          {logs.length ? (
-            <ul className="divide-y divide-slate-100">
-              {logs.slice(0, 4).map((log) => (
-                <li key={log.log_id} className="flex items-center gap-4 px-5 py-4 sm:px-6">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#3156A2]">
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="m5 12 4 4L19 6" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                    </svg>
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-slate-800">{log.action}</p>
-                    <p className="mt-1 text-xs text-slate-500">{formatActivityDate(log.created_at)}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="px-5 py-8 text-sm text-slate-500 sm:px-6">
-              No recent account activity has been recorded.
+          {auditLogError && logs.length === 0 ? (
+            <p
+              role="alert"
+              className="px-5 py-8 text-sm text-red-700 sm:px-6"
+            >
+              {auditLogError}
             </p>
+          ) : (
+            <>
+              {auditLogError && (
+                <p
+                  role="status"
+                  className="px-5 py-3 text-sm text-amber-700 sm:px-6"
+                >
+                  {auditLogError}
+                </p>
+              )}
+
+              {logs.length ? (
+                <ul className="divide-y divide-slate-100">
+                  {logs.slice(0, 4).map((log) => (
+                    <li
+                      key={log.log_id}
+                      className="flex items-center gap-4 px-5 py-4 sm:px-6"
+                    >
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#3156A2]">
+                        <svg
+                          className="h-5 w-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="m5 12 4 4L19 6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                          />
+                        </svg>
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-slate-800">
+                          {log.action}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {formatActivityDate(log.created_at)}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="px-5 py-8 text-sm text-slate-500 sm:px-6">
+                  No recent account activity has been recorded.
+                </p>
+              )}
+            </>
           )}
         </section>
       )}

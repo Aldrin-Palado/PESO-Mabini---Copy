@@ -11,6 +11,10 @@ import type {
   EmployerDocumentStatus,
   EmployerVerificationDocument,
 } from "../services/employerRegistration";
+import {
+  parseJobPostEmployerSummaries,
+  parseStaffDashboardOverviewCounts,
+} from "../services/adminDashboardData";
 import MessagesModule from "../adminmodules/MessagesModule";
 import PESOPosts from "../adminmodules/PESOPosts";
 import { useUnreadMessages } from "../services/useUnreadMessages";
@@ -310,7 +314,7 @@ export default function StaffDashboard() {
                 "job_vacancy_id, employer_id, position_title, description, job_qualifications, requirements, location, employment_type, salary_min, salary_max, vacancies_available, status, date_posted, deadline",
               )
               .order("date_posted", { ascending: false }),
-            supabase.from("employer").select("employer_id, name, logo_url"),
+            supabase.rpc("get_job_post_employer_summaries"),
           ]);
 
           if (jobsResult.error) throw jobsResult.error;
@@ -324,7 +328,7 @@ export default function StaffDashboard() {
           }
 
           const employerNames = new Map(
-            (employersResult.data ?? []).map((employer) => [
+            parseJobPostEmployerSummaries(employersResult.data).map((employer) => [
               employer.employer_id,
               { name: employer.name, logo_url: employer.logo_url },
             ]),
@@ -509,7 +513,23 @@ export default function StaffDashboard() {
     switch (activePage) {
 
       case "Dashboard Overview":
-        return <DashboardOverview />;
+        return (
+          <DashboardOverview
+            permissions={
+              permissions ?? {
+                dashboard_overview: false,
+                analytics: false,
+                job_posts: false,
+                job_application: false,
+                employers: false,
+                job_seekers: false,
+                messages: false,
+                notifications: false,
+                peso_posts: false,
+              }
+            }
+          />
+        );
 
       case "Analytics":
         return <Analytics />;
@@ -810,68 +830,82 @@ export default function StaffDashboard() {
    DASHBOARD OVERVIEW
 ========================================================= */
 
-function DashboardOverview() {
+function DashboardOverview({
+  permissions,
+}: {
+  permissions: StaffPermission;
+}) {
 
   const [counts, setCounts] = useState({
-    jobs: 0,
-    applications: 0,
-    employers: 0,
-    seekers: 0,
+    jobs: null as number | null,
+    applications: null as number | null,
+    employers: null as number | null,
+    seekers: null as number | null,
   });
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
-    loadCounts();
+    let active = true;
+
+    const loadCounts = async () => {
+      setLoading(true);
+      setLoadError("");
+      try {
+        const { data, error } = await supabase.rpc(
+          "get_staff_dashboard_overview_counts",
+        );
+        if (error) throw error;
+
+        const result = parseStaffDashboardOverviewCounts(data);
+
+        if (active) {
+          setCounts({
+            jobs: result.job_posts,
+            applications: result.applications,
+            employers: result.employers,
+            seekers: result.job_seekers,
+          });
+        }
+      } catch (error) {
+        console.error("Staff dashboard counts could not be loaded:", error);
+        if (active) {
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : error &&
+                  typeof error === "object" &&
+                  "message" in error &&
+                  typeof error.message === "string"
+                ? error.message
+                : "Unable to load dashboard counts.",
+          );
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    void loadCounts();
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const loadCounts = async () => {
-
-    const [
-      jobs,
-      applications,
-      employers,
-      seekers,
-    ] = await Promise.all([
-
-      supabase
-        .from("job_vacancy")
-        .select("*", {
-          count: "exact",
-          head: true,
-        }),
-
-      supabase
-        .from("application")
-        .select("*", {
-          count: "exact",
-          head: true,
-        }),
-
-      supabase
-        .from("employer")
-        .select("*", {
-          count: "exact",
-          head: true,
-        }),
-
-      supabase
-        .from("job_seeker")
-        .select("*", {
-          count: "exact",
-          head: true,
-        }),
-
-    ]);
-
-    setCounts({
-      jobs: jobs.count || 0,
-      applications:
-        applications.count || 0,
-      employers:
-        employers.count || 0,
-      seekers:
-        seekers.count || 0,
-    });
-  };
+  const metrics = [
+    permissions.job_posts
+      ? { title: "Job Posts", value: counts.jobs, icon: "briefcase" as const }
+      : null,
+    permissions.job_application
+      ? { title: "Applications", value: counts.applications, icon: "file" as const }
+      : null,
+    permissions.employers
+      ? { title: "Employers", value: counts.employers, icon: "building" as const }
+      : null,
+    permissions.job_seekers
+      ? { title: "Job Seekers", value: counts.seekers, icon: "users" as const }
+      : null,
+  ].filter((metric) => metric !== null);
 
   return (
     <div className="space-y-8">
@@ -888,32 +922,33 @@ function DashboardOverview() {
 
       </div>
 
+      {loadError && (
+        <p
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+        >
+          Dashboard counts could not be loaded: {loadError}
+        </p>
+      )}
+
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-
-        <StatCard
-          title="Job Posts"
-          value={counts.jobs}
-          icon="briefcase"
-        />
-
-        <StatCard
-          title="Applications"
-          value={counts.applications}
-          icon="file"
-        />
-
-        <StatCard
-          title="Employers"
-          value={counts.employers}
-          icon="building"
-        />
-
-        <StatCard
-          title="Job Seekers"
-          value={counts.seekers}
-          icon="users"
-        />
-
+        {loading ? (
+          <p className="text-sm text-slate-500">Loading dashboard counts...</p>
+        ) : (
+          metrics.map((metric) => (
+            <StatCard
+              key={metric.title}
+              title={metric.title}
+              value={metric.value ?? 0}
+              icon={metric.icon}
+            />
+          ))
+        )}
+        {!loading && metrics.length === 0 && (
+          <p className="text-sm text-slate-500">
+            No dashboard statistics are assigned to your account.
+          </p>
+        )}
       </div>
 
     </div>

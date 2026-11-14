@@ -33,6 +33,10 @@ import {
 import { getEmployerRegistrationChecklist } from "../services/employerRegistration";
 import { isJobSeekerProfileComplete } from "../services/jobSeekerProfile";
 import { useUnreadMessages } from "../services/useUnreadMessages";
+import {
+  parseJobPostEmployerSummaries,
+  parseJobSeekerApplicationCounts,
+} from "../services/adminDashboardData";
 
 /* ============================================================
    TYPES
@@ -147,6 +151,12 @@ type DashboardMetric = {
   value: number;
 };
 
+type MonthlyApplicationPoint = {
+  key: string;
+  label: string;
+  value: number;
+};
+
 type DashboardStats = Partial<Record<AdminModule, DashboardMetric[]>>;
 
 async function getDashboardCount(
@@ -189,6 +199,9 @@ export default function AdminDashboard() {
     jobSeekers: 0,
   });
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>({});
+  const [monthlyApplicationTrend, setMonthlyApplicationTrend] = useState<
+    MonthlyApplicationPoint[]
+  >([]);
   const [dashboardStatsError, setDashboardStatsError] = useState("");
   const [dashboardStatsLoading, setDashboardStatsLoading] = useState(false);
 
@@ -728,6 +741,7 @@ export default function AdminDashboard() {
 
     setDashboardStatsLoading(true);
     setDashboardStatsError("");
+    setMonthlyApplicationTrend([]);
     try {
       const accessibleModules =
         account.role === "superadmin"
@@ -739,6 +753,7 @@ export default function AdminDashboard() {
             ]
           : permissions;
       const nextStats: DashboardStats = {};
+      let nextMonthlyApplicationTrend: MonthlyApplicationPoint[] = [];
       const statTasks: Promise<void>[] = [];
 
       if (accessibleModules.includes("Job Post")) {
@@ -784,15 +799,34 @@ export default function AdminDashboard() {
           (async () => {
             const statuses = [
               ["pending", "Pending"],
+              ["approved", "Approved"],
               ["under_review", "Under Review"],
               ["shortlisted", "Shortlisted"],
               ["qualified", "Qualified"],
               ["interviewed", "Interviewed"],
               ["withdrawn", "Withdrawn"],
-              ["hired", "You're Hired"],
+              ["hired", "Hired"],
               ["rejected", "Rejected"],
             ] as const;
-            const [total, ...statusCounts] = await Promise.all([
+            const monthRanges = Array.from({ length: 6 }, (_, index) => {
+              const now = new Date();
+              const start = new Date(
+                Date.UTC(now.getFullYear(), now.getMonth() - (5 - index), 1),
+              );
+              const end = new Date(
+                Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1),
+              );
+              return {
+                key: start.toISOString().slice(0, 7),
+                label: start.toLocaleDateString("en-US", {
+                  month: "short",
+                  timeZone: "UTC",
+                }),
+                start: start.toISOString().slice(0, 10),
+                end: end.toISOString().slice(0, 10),
+              };
+            });
+            const [total, ...counts] = await Promise.all([
               getDashboardCount(
                 supabase
                   .from("application")
@@ -806,7 +840,22 @@ export default function AdminDashboard() {
                     .eq("status", status),
                 ),
               ),
+              ...monthRanges.map(({ start, end }) =>
+                getDashboardCount(
+                  supabase
+                    .from("application")
+                    .select("*", { count: "exact", head: true })
+                    .gte("date_applied", start)
+                    .lt("date_applied", end),
+                ),
+              ),
             ]);
+            const statusCounts = counts.slice(0, statuses.length);
+            nextMonthlyApplicationTrend = monthRanges.map((month, index) => ({
+              key: month.key,
+              label: month.label,
+              value: counts[statuses.length + index],
+            }));
             nextStats.Applications = [
               { label: "Total applications", value: total },
               ...statuses.map(([_, label], index) => ({
@@ -821,7 +870,7 @@ export default function AdminDashboard() {
       if (accessibleModules.includes("Employers")) {
         statTasks.push(
           (async () => {
-            const [total, verified, notApproved] = await Promise.all([
+            const [total, verified, pending, notApproved] = await Promise.all([
               getDashboardCount(
                 supabase
                   .from("employer")
@@ -835,6 +884,12 @@ export default function AdminDashboard() {
               ),
               getDashboardCount(
                 supabase
+                .from("employer")
+                .select("*", { count: "exact", head: true })
+                .eq("verification_status", "pending"),
+              ),
+              getDashboardCount(
+                supabase
                   .from("employer")
                   .select("*", { count: "exact", head: true })
                   .eq("verification_status", "not_approved"),
@@ -843,7 +898,7 @@ export default function AdminDashboard() {
             nextStats.Employers = [
               { label: "Total employers", value: total },
               { label: "Verified", value: verified },
-              { label: "Pending", value: Math.max(0, total - verified - notApproved) },
+              { label: "Pending", value: pending },
               { label: "Not approved", value: notApproved },
             ];
           })(),
@@ -853,24 +908,27 @@ export default function AdminDashboard() {
       if (accessibleModules.includes("Job Seekers")) {
         statTasks.push(
           (async () => {
-            const [total, inactive, applications] = await Promise.all([
-              getDashboardCount(
-                supabase
-                  .from("job_seeker")
-                  .select("*", { count: "exact", head: true }),
-              ),
-              getDashboardCount(
-                supabase
-                  .from("job_seeker")
-                  .select("*", { count: "exact", head: true })
-                  .eq("is_active", false),
-              ),
-              getDashboardCount(
-                supabase
-                  .from("application")
-                  .select("*", { count: "exact", head: true }),
-              ),
-            ]);
+            const [total, inactive, applicationCountsResult] =
+              await Promise.all([
+                getDashboardCount(
+                  supabase
+                    .from("job_seeker")
+                    .select("*", { count: "exact", head: true }),
+                ),
+                getDashboardCount(
+                  supabase
+                    .from("job_seeker")
+                    .select("*", { count: "exact", head: true })
+                    .eq("is_active", false),
+                ),
+                supabase.rpc("get_job_seeker_application_counts"),
+              ]);
+            if (applicationCountsResult.error) {
+              throw new Error(applicationCountsResult.error.message);
+            }
+            const applications = parseJobSeekerApplicationCounts(
+              applicationCountsResult.data,
+            ).reduce((sum, item) => sum + item.application_count, 0);
             nextStats["Job Seekers"] = [
               { label: "Registered job seekers", value: total },
               { label: "Active", value: Math.max(0, total - inactive) },
@@ -889,6 +947,7 @@ export default function AdminDashboard() {
         console.error("A dashboard scoreboard could not be loaded:", error);
       }
       setDashboardStats(nextStats);
+      setMonthlyApplicationTrend(nextMonthlyApplicationTrend);
       setDashboardStatsError(
         failures.length
           ? failures
@@ -924,25 +983,129 @@ export default function AdminDashboard() {
       employersResult,
       seekersResult,
     ] = await Promise.all([
-      supabase
-        .from("application")
-        .select(
-          "application_id, employer_id, job_seeker_id, position_title, status, date_applied, applicant_name, applicant_contact_no, job_seeker(job_seeker_id, full_name, birth_date, contact_no, registration_details), application_status_history(status, changed_at, is_backfill)"
-        ),
 
-      supabase
-        .from("job_vacancy")
-        .select(
-          "job_vacancy_id, employer_id, position_title, status, date_posted, created_at"
-        ),
+(async () => {
+  const pageSize = 1000;
+  const allApplications: unknown[] = [];
+  let from = 0;
 
-      supabase
-        .from("employer")
-        .select("employer_id, name, created_at"),
+  while (true) {
+    const { data, error } = await supabase
+      .from("application")
+      .select(
+        "application_id, employer_id, job_seeker_id, position_title, status, date_applied, applicant_name, applicant_contact_no, job_seeker(job_seeker_id, full_name, birth_date, contact_no, registration_details), application_status_history(status, changed_at, is_backfill)"
+      )
+      .order("application_id", { ascending: true })
+      .range(from, from + pageSize - 1);
 
-      supabase
-        .from("job_seeker")
-        .select("job_seeker_id, full_name, created_at"),
+    if (error) {
+      return { data: null, error };
+    }
+
+    const page = data ?? [];
+    allApplications.push(...page);
+
+    if (page.length === 0) {
+      break;
+    }
+
+    from += page.length;
+  }
+
+  return { data: allApplications, error: null };
+})(),
+
+
+
+(async () => {
+  const pageSize = 1000;
+  const allJobs: unknown[] = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("job_vacancy")
+      .select(
+        "job_vacancy_id, employer_id, position_title, status, date_posted, created_at"
+      )
+      .order("job_vacancy_id", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    const page = data ?? [];
+    allJobs.push(...page);
+
+    if (page.length === 0) {
+      break;
+    }
+
+    from += page.length;
+  }
+
+  return { data: allJobs, error: null };
+})(),
+
+
+      (async () => {
+  const pageSize = 1000;
+  const allEmployers: unknown[] = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("employer")
+      .select("employer_id, name, created_at")
+      .order("employer_id", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    const page = data ?? [];
+    allEmployers.push(...page);
+
+    if (page.length === 0) {
+      break;
+    }
+
+    from += page.length;
+  }
+
+  return { data: allEmployers, error: null };
+})(),
+
+      (async () => {
+  const pageSize = 1000;
+  const allSeekers: unknown[] = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("job_seeker")
+      .select("job_seeker_id, full_name, created_at")
+      .order("job_seeker_id", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    const page = data ?? [];
+    allSeekers.push(...page);
+
+    if (page.length === 0) {
+      break;
+    }
+
+    from += page.length;
+  }
+
+  return { data: allSeekers, error: null };
+})(),
     ]);
 
     const errors = [
@@ -1003,9 +1166,7 @@ export default function AdminDashboard() {
         .order("created_at", {
           ascending: false,
         }),
-        supabase
-          .from("employer")
-          .select("employer_id, name, logo_url"),
+        supabase.rpc("get_job_post_employer_summaries"),
       ]);
 
       if (jobsResult.error) {
@@ -1026,7 +1187,7 @@ export default function AdminDashboard() {
       }
 
       const employersById = new Map(
-        (employersResult.data ?? []).map((employer) => [
+        parseJobPostEmployerSummaries(employersResult.data).map((employer) => [
           employer.employer_id,
           { name: employer.name, logo_url: employer.logo_url },
         ]),
@@ -1038,6 +1199,14 @@ export default function AdminDashboard() {
           employer_logo_url:
             employersById.get(job.employer_id)?.logo_url || null,
         })),
+      );
+    } catch (error) {
+      console.error("Job posts could not be loaded:", error);
+      setJobPosts([]);
+      setModuleError(
+        error instanceof Error
+          ? `Job posts could not be loaded: ${error.message}`
+          : "Job posts could not be loaded.",
       );
     } finally {
       setModuleLoading(false);
@@ -1085,12 +1254,12 @@ export default function AdminDashboard() {
     setModuleError("");
 
     try {
-      const [seekersResult, applicationsResult] = await Promise.all([
+      const [seekersResult, applicationCountsResult] = await Promise.all([
         supabase
           .from("job_seeker")
           .select("*")
           .order("created_at", { ascending: false }),
-        supabase.from("application").select("job_seeker_id"),
+        supabase.rpc("get_job_seeker_application_counts"),
       ]);
 
       if (seekersResult.error) {
@@ -1104,21 +1273,34 @@ export default function AdminDashboard() {
       }
 
       setJobSeekers(seekersResult.data ?? []);
-      if (applicationsResult.error) {
-        console.error("Job seeker application counts error:", applicationsResult.error);
+      if (applicationCountsResult.error) {
+        console.error(
+          "Job seeker application counts error:",
+          applicationCountsResult.error,
+        );
         setJobSeekerApplicationCounts({});
         setModuleError(
-          `Job seekers loaded, but application counts could not be loaded: ${applicationsResult.error.message}`,
+          `Job seekers loaded, but application counts could not be loaded: ${applicationCountsResult.error.message}`,
         );
         return;
       }
 
       const counts: Record<string, number> = {};
-      for (const application of applicationsResult.data ?? []) {
-        counts[application.job_seeker_id] =
-          (counts[application.job_seeker_id] ?? 0) + 1;
+      for (const result of parseJobSeekerApplicationCounts(
+        applicationCountsResult.data,
+      )) {
+        counts[result.job_seeker_id] = Number(result.application_count);
       }
       setJobSeekerApplicationCounts(counts);
+    } catch (error) {
+      console.error("Job seeker records could not be loaded:", error);
+      setJobSeekers([]);
+      setJobSeekerApplicationCounts({});
+      setModuleError(
+        error instanceof Error
+          ? error.message
+          : "Unable to load job seeker records.",
+      );
     } finally {
       if (showLoading) setModuleLoading(false);
     }
@@ -1772,11 +1954,13 @@ export default function AdminDashboard() {
         return (
           <DashboardModule
             stats={dashboardStats}
+            monthlyApplicationTrend={monthlyApplicationTrend}
             permissions={permissions}
             statsError={dashboardStatsError}
                 statsLoading={dashboardStatsLoading}
                 account={account}
                 logs={auditLogs}
+                auditLogError={auditLogError}
                 onNavigate={setActivePage}
           />
         );
