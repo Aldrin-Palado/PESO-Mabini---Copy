@@ -269,9 +269,9 @@ export default function JobMatchesModule() {
               <button
                 type="button"
                 onClick={() =>
-                  navigate("/jobseeker", {
-                    state: { page: "Jobs", jobId: match.job.id },
-                  })
+                  navigate(
+                    `/jobseeker?job=${encodeURIComponent(match.job.id)}&apply=true`,
+                  )
                 }
                 className="inline-flex items-center justify-center rounded-lg bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#064A91]"
               >

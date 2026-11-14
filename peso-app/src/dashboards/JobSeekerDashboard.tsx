@@ -301,6 +301,14 @@ function parseScreeningDetails(value: unknown): ScreeningDetails {
 export default function JobSeekerDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [pendingApplicationJobId, setPendingApplicationJobId] = useState<
+    string | undefined
+  >(() => {
+    const searchParams = new URLSearchParams(location.search);
+    return searchParams.get("apply") === "true"
+      ? searchParams.get("job") ?? undefined
+      : undefined;
+  });
 
   const [activePage, setActivePage] = useState<JobSeekerPage>(() => {
     const state = location.state;
@@ -315,10 +323,16 @@ export default function JobSeekerDashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
-    if (new URLSearchParams(location.search).has("job")) {
-      setActivePage("Jobs");
+    const searchParams = new URLSearchParams(location.search);
+    const jobId = searchParams.get("job");
+    if (!jobId) return;
+
+    setActivePage("Jobs");
+    if (searchParams.get("apply") === "true") {
+      setPendingApplicationJobId(jobId);
+      navigate("/jobseeker", { replace: true });
     }
-  }, [location.search]);
+  }, [location.search, navigate]);
 
   const [seeker, setSeeker] = useState<Seeker | null>(null);
   const [hasProfilePhoto, setHasProfilePhoto] = useState<boolean | null>(null);
@@ -1358,7 +1372,15 @@ export default function JobSeekerDashboard() {
               "jobId" in location.state &&
               typeof location.state.jobId === "string"
                 ? location.state.jobId
-                : new URLSearchParams(location.search).get("job") ?? undefined
+                : new URLSearchParams(location.search).get("apply") === "true"
+                  ? undefined
+                  : new URLSearchParams(location.search).get("job") ?? undefined
+            }
+            initialApplicationJobId={pendingApplicationJobId}
+            onInitialApplicationHandled={(jobId) =>
+              setPendingApplicationJobId((current) =>
+                current === jobId ? undefined : current,
+              )
             }
             profileComplete={isJobSeekerProfileComplete(
               seeker.registration_details,

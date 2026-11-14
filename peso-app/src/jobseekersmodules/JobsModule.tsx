@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { supabase } from "../services/supabase";
 import AppIcon from "../components/AppIcon";
 import {
@@ -74,6 +81,8 @@ type Props = {
   profileComplete: boolean;
   isVerified: boolean;
   initialJobId?: string;
+  initialApplicationJobId?: string;
+  onInitialApplicationHandled: (jobId: string) => void;
   onNavigate: (page: JobSeekerPage) => void;
 };
 
@@ -82,6 +91,8 @@ export default function JobsModule({
   profileComplete,
   isVerified,
   initialJobId,
+  initialApplicationJobId,
+  onInitialApplicationHandled,
   onNavigate,
 }: Props) {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -106,6 +117,7 @@ export default function JobsModule({
   const [applicationResumeFile, setApplicationResumeFile] = useState<File | null>(null);
   const [applicationQualificationFiles, setApplicationQualificationFiles] =
     useState<File[]>([]);
+  const handledInitialApplicationId = useRef<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -313,7 +325,7 @@ export default function JobsModule({
     );
   };
 
-  const openApplicationForm = (job: Job) => {
+  const openApplicationForm = useCallback((job: Job) => {
     if (!profileComplete) {
       window.alert(PROFILE_SETUP_REQUIRED_MESSAGE);
       return;
@@ -335,7 +347,40 @@ export default function JobsModule({
     setApplicationResumeFile(null);
     setApplicationQualificationFiles([]);
     setApplicationJob(job);
-  };
+  }, [
+    isVerified,
+    profileComplete,
+    seeker.address,
+    seeker.contact_no,
+    seeker.email,
+    seeker.full_name,
+  ]);
+
+  useEffect(() => {
+    if (
+      loading ||
+      !initialApplicationJobId ||
+      handledInitialApplicationId.current === initialApplicationJobId
+    ) {
+      return;
+    }
+
+    const job = jobs.find(({ id }) => id === initialApplicationJobId);
+    handledInitialApplicationId.current = initialApplicationJobId;
+    onInitialApplicationHandled(initialApplicationJobId);
+    if (job) {
+      openApplicationForm(job);
+    } else if (!loadError) {
+      window.alert("This job is no longer available for applications.");
+    }
+  }, [
+    initialApplicationJobId,
+    jobs,
+    loading,
+    loadError,
+    onInitialApplicationHandled,
+    openApplicationForm,
+  ]);
 
   const submitApplication = async (
     event: FormEvent<HTMLFormElement>,
