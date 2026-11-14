@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { invokePesoAI } from "../services/pesoAi";
 
@@ -31,6 +31,17 @@ type JobMatch = {
   skill_gaps: string[];
 };
 
+// Documents are verification requirements, not skills to improve.
+const employmentDocumentPattern = /\b(?:NBI(?:\s+clearance)?|SSS|PhilHealth|TIN|Pag[- ]?IBIG|police clearance|barangay clearance|government[- ]issued ID|birth certificate)\b/i;
+
+function isJobMatch(value: unknown): value is JobMatch {
+  if (!value || typeof value !== "object") return false;
+  const match = value as Partial<JobMatch>;
+  return Boolean(match.job && typeof match.job.id === "string" && match.job.id &&
+    typeof match.job.title === "string" && typeof match.match_score === "number" &&
+    Number.isFinite(match.match_score));
+}
+
 export default function JobMatchesModule() {
   const navigate = useNavigate();
   const [profileText, setProfileText] = useState("");
@@ -40,14 +51,19 @@ export default function JobMatchesModule() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
+  const [emptyReason, setEmptyReason] = useState("");
+  const pendingRef = useRef(false);
 
   const runMatching = async (
     profile: string,
     resume: File | null,
     authorized = resumeAuthorized,
   ) => {
-    if (loading) return;
+    if (pendingRef.current) return;
+    pendingRef.current = true;
     setLoading(true);
+    setMatches([]);
+    setEmptyReason("");
     setError("");
     setHasSearched(false);
 
@@ -80,7 +96,22 @@ export default function JobMatchesModule() {
         "job-matches",
         encodedResume ? { resume: encodedResume } : { profileText: profile },
       );
-      setMatches(result.matches);
+      if (!result || !Array.isArray(result.matches)) {
+        throw new Error("The AI service returned an invalid matching response. Please try again.");
+      }
+      const validMatches = result.matches.filter(isJobMatch).map((match) => ({
+        ...match,
+        match_score: Math.max(0, Math.min(100, match.match_score)),
+        reasons: Array.isArray(match.reasons) ? match.reasons.filter((r): r is string => typeof r === "string") : [],
+        skill_gaps: Array.isArray(match.skill_gaps) ? match.skill_gaps.filter((g): g is string => typeof g === "string") : [],
+      })).sort((a, b) => b.match_score - a.match_score);
+      if (result.matches.length > 0 && validMatches.length === 0) {
+        throw new Error("AI recommendations were returned in an unexpected format. Please try again.");
+      }
+      setMatches(validMatches);
+      setEmptyReason(validMatches.length === 0
+        ? "No recommendations were returned for this search. This does not necessarily mean there are no open jobs. Try adding more relevant skills or experience, or try again."
+        : "");
       setHasSearched(true);
     } catch (requestError) {
       setError(
@@ -89,6 +120,7 @@ export default function JobMatchesModule() {
           : "Unable to find job matches right now.",
       );
     } finally {
+      pendingRef.current = false;
       setLoading(false);
     }
   };
@@ -108,7 +140,7 @@ export default function JobMatchesModule() {
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
           Upload a PDF, DOC, or DOCX resume or describe your skills to compare your profile with open
           vacancies and the requirements employers submitted. Resume files are sent to
-          Google Gemini for this analysis and are not stored. Recommendations are not hiring
+          Groq AI for this analysis and are not stored. Recommendations are not hiring
           decisions.
         </p>
       </header>
@@ -128,6 +160,7 @@ export default function JobMatchesModule() {
             setResumeAuthorized(false);
             setMatches([]);
             setHasSearched(false);
+            setEmptyReason("");
             setError("");
           }}
           className="mt-2 block w-full rounded-xl border border-slate-300 bg-white text-sm file:mr-3 file:border-0 file:bg-slate-100 file:px-3 file:py-2.5 file:font-semibold file:text-slate-700"
@@ -141,15 +174,13 @@ export default function JobMatchesModule() {
                 onChange={(event) => {
                   const authorized = event.target.checked;
                   setResumeAuthorized(authorized);
-                  if (authorized && resumeFile) {
-                    void runMatching(profileText, resumeFile, true);
-                  }
+
                 }}
                 disabled={loading}
                 className="mt-0.5 h-4 w-4 shrink-0 accent-[#0759AE]"
               />
               <span>
-                I authorize sending this resume to Google Gemini for AI-assisted job matching.
+                I authorize sending this resume to Groq AI for AI-assisted job matching.
                 I understand it will not be stored and the recommendations are advisory only.
               </span>
             </label>
@@ -158,7 +189,7 @@ export default function JobMatchesModule() {
                 ? "AI is scanning your resume against employer-submitted job requirements..."
                 : hasSearched && resumeAuthorized
                   ? "Resume scan complete. Review the matching jobs and their employer requirements below."
-                  : "Your resume will be scanned automatically after you authorize AI analysis."}
+                  : "After authorizing, click Scan resume to start AI analysis."}
             </p>
           </div>
         )}
@@ -197,7 +228,7 @@ export default function JobMatchesModule() {
             }
             className="shrink-0 rounded-xl bg-[#0759AE] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#064A91] disabled:cursor-wait disabled:opacity-50"
           >
-            {loading ? "Scanning..." : resumeFile ? "Scan resume again" : "Find my matches"}
+            {loading ? "Scanning..." : resumeFile ? "Scan resume" : "Find my matches"}
           </button>
         </div>
       </form>
@@ -210,14 +241,15 @@ export default function JobMatchesModule() {
 
       {hasSearched && matches.length === 0 && (
         <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
-          No suitable open vacancies were found from the information provided. Try adding
-          more detail about your skills or experience, or review the employer-posted requirements.
+          {emptyReason}
         </p>
       )}
 
       <div className="space-y-4">
         {matches.map((match, rank) => {
           const score = match.match_score;
+          const skillGaps = match.skill_gaps.filter((gap) => !employmentDocumentPattern.test(gap));
+          const documentsToVerify = match.skill_gaps.filter((gap) => employmentDocumentPattern.test(gap));
           const scoreColor =
             score >= 75
               ? { bar: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Strong match" }
@@ -311,16 +343,16 @@ export default function JobMatchesModule() {
                 )}
 
                 {/* Skill gaps */}
-                {match.skill_gaps.length > 0 && (
+                {skillGaps.length > 0 && (
                   <div className="mt-3 rounded-xl bg-amber-50 border border-amber-100 p-3.5">
                     <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-amber-700">
                       <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      Requirements to Improve
+                      Qualifications to Improve
                     </h4>
                     <ul className="mt-2 space-y-1">
-                      {match.skill_gaps.map((gap, index) => (
+                      {skillGaps.map((gap, index) => (
                         <li key={index} className="flex items-start gap-2 text-sm text-amber-800">
                           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
                           {gap}
