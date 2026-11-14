@@ -11,6 +11,7 @@ type Props = {
   onChange: (value: string) => void;
   ariaLabel: string;
   className?: string;
+  disabled?: boolean;
 };
 
 export default function FilterDropdown({
@@ -19,6 +20,7 @@ export default function FilterDropdown({
   onChange,
   ariaLabel,
   className = "",
+  disabled = false,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownId = useId();
@@ -92,6 +94,7 @@ export default function FilterDropdown({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-controls={dropdownId}
+        disabled={disabled}
         onClick={() => setIsOpen((open) => !open)}
         onKeyDown={(event) => {
           if (!isOpen && ["ArrowDown", "ArrowUp"].includes(event.key)) {
@@ -99,7 +102,7 @@ export default function FilterDropdown({
             setIsOpen(true);
           }
         }}
-        className={`flex w-full items-center justify-between gap-3 text-left ${className}`}
+        className={`flex w-full items-center justify-between gap-3 text-left disabled:cursor-not-allowed disabled:opacity-70 ${className}`}
       >
         <span className="min-w-0 truncate">
           {selectedOption?.label ?? options[0]?.label ?? ""}

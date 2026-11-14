@@ -20,11 +20,15 @@ interface CompanyProfileModuleProps {
     updatedProfile: CompanyProfile,
     logoFile: File | null,
   ) => Promise<string | null>;
+  onEditProfile: () => void;
+  onCancelEdit: () => void;
 }
 
 export default function CompanyProfileModule({
   profile,
   onSave,
+  onEditProfile,
+  onCancelEdit,
 }: CompanyProfileModuleProps) {
   const [formData, setFormData] = useState<CompanyProfile>(profile);
   const [isEditing, setIsEditing] = useState(false);
@@ -71,6 +75,7 @@ export default function CompanyProfileModule({
     setIsEditing(false);
     setError("");
     setSuccess("");
+    onCancelEdit();
   };
 
   const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -221,6 +226,7 @@ export default function CompanyProfileModule({
                 setError("");
                 setSuccess("");
                 setIsEditing(true);
+                onEditProfile();
               }}
               className="rounded-xl bg-[#0446A7] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#123B70] sm:ml-auto"
             >

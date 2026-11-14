@@ -237,6 +237,8 @@ export default function EmployerDashboard() {
   const navigateToRoute = useNavigate();
   const [activeMenu, setActiveMenu] =
     useState<MenuName>("Dashboard");
+  const [isEmployerProfileEditing, setIsEmployerProfileEditing] =
+    useState(false);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState<EmployerNotification[]>([]);
@@ -551,6 +553,9 @@ export default function EmployerDashboard() {
   const navigate = (menu: string) => {
     if (menuItems.some((item) => item.name === menu)) {
       setActiveMenu(menu as MenuName);
+      if (menu !== "Company Profile") {
+        setIsEmployerProfileEditing(false);
+      }
     }
 
     setIsSidebarOpen(false);
@@ -945,6 +950,8 @@ export default function EmployerDashboard() {
             <CompanyProfileModule
               profile={companyProfile}
               onSave={handleSaveCompanyProfile}
+              onEditProfile={() => setIsEmployerProfileEditing(true)}
+              onCancelEdit={() => setIsEmployerProfileEditing(false)}
             />
             <EmployerRegistrationProfileModule
               profile={{
@@ -961,6 +968,8 @@ export default function EmployerDashboard() {
               registrationDetails={profile.registration_details}
               verificationDocuments={profile.verification_documents}
               onSave={handleSaveRegistrationDetails}
+              isEditing={isEmployerProfileEditing}
+              onEditComplete={() => setIsEmployerProfileEditing(false)}
               onDocumentsSaved={(documents: EmployerVerificationDocument[]) =>
                 setProfile((current) =>
                   current ? { ...current, verification_documents: documents } : current,
