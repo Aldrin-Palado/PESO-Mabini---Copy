@@ -6,8 +6,19 @@ export async function invokePesoAI<T>(
   action: AIAction,
   payload: Record<string, unknown>,
 ): Promise<T> {
+  const resumeFile = payload.resume;
+  const body = typeof File !== "undefined" && resumeFile instanceof File
+    ? new FormData()
+    : { action, ...payload };
+  if (body instanceof FormData) {
+    body.append("action", action);
+    for (const [key, value] of Object.entries(payload)) {
+      body.append(key, value instanceof File ? value : JSON.stringify(value));
+    }
+  }
+
   const invoke = () => supabase.functions.invoke("peso-ai", {
-    body: { action, ...payload },
+    body,
   });
   let result = await invoke();
 
@@ -21,6 +32,13 @@ export async function invokePesoAI<T>(
 
   if (error) {
     console.error(`PESO AI ${action} request failed:`, error);
+    if (error.context instanceof Response && error.context.status === 413) {
+      throw new Error(
+        typeof File !== "undefined" && resumeFile instanceof File
+          ? "The resume upload was rejected as too large. Try a smaller file (500 KB maximum) or describe your skills instead."
+          : "The AI request was rejected as too large. Shorten your message and try again.",
+      );
+    }
     if (error.name === "FunctionsFetchError") {
       throw new Error(
         "Could not reach the PESO AI Edge Function. Check the Supabase function logs. If the OPTIONS request shows HTTP 546 or WORKER_RESOURCE_LIMIT, this is a Supabase runtime resource issue, not a Groq model setting; contact Supabase Support with the execution ID.",

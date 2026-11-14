@@ -56,7 +56,7 @@ export default function JobMatchesModule() {
         throw new Error("Enter at least 10 characters about your skills or upload a PDF, DOC, or DOCX resume.");
       }
 
-      let encodedResume: { fileName: string; data: string } | undefined;
+      let encodedResume: File | undefined;
       if (resume) {
         if (!authorized) {
           throw new Error("Please authorize sending your resume for AI analysis.");
@@ -68,12 +68,7 @@ export default function JobMatchesModule() {
         if (!isResumeFileTypeValid(resume, bytes)) {
           throw new Error("Choose a valid PDF, DOC, or DOCX resume.");
         }
-        let binary = "";
-        const chunkSize = 0x8000;
-        for (let index = 0; index < bytes.length; index += chunkSize) {
-          binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
-        }
-        encodedResume = { fileName: resume.name, data: btoa(binary) };
+        encodedResume = resume;
       }
 
       const result = await invokePesoAI<{ matches: JobMatch[] }>(

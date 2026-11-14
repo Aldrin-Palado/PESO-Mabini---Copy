@@ -352,7 +352,16 @@ function asksForAvailableJobs(message: string) {
   return mentionsJobs && asksAvailability;
 }
 
-function decodeChatResume(value: unknown): ChatResume {
+async function decodeChatResume(value: unknown): Promise<ChatResume> {
+  let fileName: string;
+  let bytes: Uint8Array;
+  if (value instanceof File) {
+    fileName = value.name;
+    if (value.size > maxChatResumeBytes) {
+      throw new Error("Resume files must be 500 KB or smaller.");
+    }
+    return decodeChatResumeBytes(fileName, new Uint8Array(await value.arrayBuffer()));
+  }
   if (!value || typeof value !== "object") {
     throw new Error("Choose a PDF, DOC, or DOCX resume to upload.");
   }
@@ -363,10 +372,6 @@ function decodeChatResume(value: unknown): ChatResume {
     typeof resume.data !== "string"
   ) {
     throw new Error("The uploaded resume is invalid.");
-  }
-  const extension = resume.fileName.split(".").pop()?.toLowerCase();
-  if (!["pdf", "doc", "docx"].includes(extension ?? "")) {
-    throw new Error("Upload a PDF, DOC, or DOCX resume.");
   }
   if (
     !resume.data ||
@@ -385,7 +390,22 @@ function decodeChatResume(value: unknown): ChatResume {
   if (binary.length > maxChatResumeBytes) {
     throw new Error("Resume files must be 500 KB or smaller.");
   }
-  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  fileName = resume.fileName;
+  return decodeChatResumeBytes(fileName, bytes);
+}
+
+function decodeChatResumeBytes(fileName: string, bytes: Uint8Array): ChatResume {
+  if (fileName.length > 255 || bytes.length === 0) {
+    throw new Error("The uploaded resume is invalid.");
+  }
+  const extension = fileName.split(".").pop()?.toLowerCase();
+  if (!["pdf", "doc", "docx"].includes(extension ?? "")) {
+    throw new Error("Upload a PDF, DOC, or DOCX resume.");
+  }
+  if (bytes.length > maxChatResumeBytes) {
+    throw new Error("Resume files must be 500 KB or smaller.");
+  }
   const pdf = new TextDecoder().decode(bytes.subarray(0, 5)) === "%PDF-";
   const doc = bytes.subarray(0, 8).join(",") === "208,207,17,224,161,177,26,225";
   const docx = bytes[0] === 0x50 && bytes[1] === 0x4b;
@@ -403,7 +423,7 @@ function decodeChatResume(value: unknown): ChatResume {
     : extension === "doc"
     ? "application/msword"
     : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-  return { fileName: resume.fileName, data: resume.data, bytes, mimeType };
+  return { fileName, bytes, mimeType };
 }
 
 async function extractWordResumeText(resume: ChatResume) {
@@ -492,7 +512,7 @@ async function handleChat(
 
   const resume = body.resume === undefined
     ? null
-    : decodeChatResume(body.resume);
+    : await decodeChatResume(body.resume);
   if (resume) {
     console.info("PESO AI chat resume received:", {
       format: resume.mimeType,
@@ -554,7 +574,7 @@ async function handleJobMatches(
   await requireJobSeeker(supabase, userId);
 
   const resume =
-    body.resume === undefined ? null : decodeChatResume(body.resume);
+    body.resume === undefined ? null : await decodeChatResume(body.resume);
   const resumeText = resume ? await extractResumeText(resume) : null;
 
   let profileText = "";
@@ -618,6 +638,31 @@ async function handleJobMatches(
   return { matches };
 }
 
+async function parseRequestBody(request: Request) {
+  const contentType = request.headers.get("content-type")?.toLowerCase() ?? "";
+  if (!contentType.startsWith("multipart/form-data")) {
+    return await request.json() as Record<string, unknown>;
+  }
+
+  const formData = await request.formData();
+  const body: Record<string, unknown> = {};
+  for (const [key, value] of formData.entries()) {
+    if (key === "resume" && value instanceof File) {
+      body.resume = value;
+      continue;
+    }
+    if (typeof value !== "string") {
+      throw new Error("The AI request form is invalid.");
+    }
+    try {
+      body[key] = key === "action" ? value : JSON.parse(value);
+    } catch {
+      throw new Error(`The AI request field "${key}" is invalid.`);
+    }
+  }
+  return body;
+}
+
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -625,7 +670,7 @@ Deno.serve(async (request: Request) => {
   if (request.method !== "POST") return jsonResponse({ error: "Method not allowed." }, 405);
 
   try {
-    const body = await request.json() as Record<string, unknown>;
+    const body = await parseRequestBody(request);
     switch (body.action) {
       case "chat": {
         const rateLimitResponse = await enforcePublicChatLimit(request);

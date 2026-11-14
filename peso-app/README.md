@@ -50,8 +50,10 @@ are retried up to three times. The function sends up to six chat messages, uses 
 for public vacancy data, and limits matching input to 12 recent vacancies, 4,000 profile
 characters, or a 500 KB resume.
 The chatbot also accepts an optional PDF, DOC, or DOCX resume attachment (up to 500 KB)
-and returns matching open jobs. PDF and Word documents are text-extracted server-side; it
-requires the user’s consent for each selected resume, and attachments are not stored.
+and returns matching open jobs. Resume files are sent as multipart binary uploads rather
+than base64-encoded JSON to avoid oversized function requests. PDF and Word documents are
+text-extracted server-side; the user’s consent is required for each selected resume, and
+attachments are not stored.
 The Supabase client is loaded only for requests that need it, allowing CORS preflight
 requests to return without initializing it.
 
