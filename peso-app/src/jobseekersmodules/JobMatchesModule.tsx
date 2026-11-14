@@ -108,7 +108,7 @@ export default function JobMatchesModule() {
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
           Upload a PDF, DOC, or DOCX resume or describe your skills to compare your profile with open
           vacancies and the requirements employers submitted. Resume files are sent to
-          Google Gemini for this analysis and are not stored. Recommendations are not hiring
+          Groq for this analysis and are not stored. Recommendations are not hiring
           decisions.
         </p>
       </header>
@@ -149,7 +149,7 @@ export default function JobMatchesModule() {
                 className="mt-0.5 h-4 w-4 shrink-0 accent-[#0759AE]"
               />
               <span>
-                I authorize sending this resume to Google Gemini for AI-assisted job matching.
+                I authorize sending this resume to Groq for AI-assisted job matching.
                 I understand it will not be stored and the recommendations are advisory only.
               </span>
             </label>

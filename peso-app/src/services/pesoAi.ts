@@ -23,7 +23,7 @@ export async function invokePesoAI<T>(
     console.error(`PESO AI ${action} request failed:`, error);
     if (error.name === "FunctionsFetchError") {
       throw new Error(
-        "Could not reach the PESO AI Edge Function. Check the Supabase function logs. If the OPTIONS request shows HTTP 546 or WORKER_RESOURCE_LIMIT, this is a Supabase runtime resource issue, not a Gemini model setting; contact Supabase Support with the execution ID.",
+        "Could not reach the PESO AI Edge Function. Check the Supabase function logs. If the OPTIONS request shows HTTP 546 or WORKER_RESOURCE_LIMIT, this is a Supabase runtime resource issue, not a Groq model setting; contact Supabase Support with the execution ID.",
       );
     }
 
