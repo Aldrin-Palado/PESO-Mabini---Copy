@@ -12,6 +12,7 @@ type ProfileAvatarProps = {
   fullName: string;
   size?: "small" | "large";
   showControls?: boolean;
+  editable?: boolean;
   onPhotoStatusChange?: (hasPhoto: boolean) => void;
 };
 
@@ -29,6 +30,7 @@ export default function ProfileAvatar({
   fullName,
   size = "large",
   showControls = true,
+  editable = false,
   onPhotoStatusChange,
 }: ProfileAvatarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -168,6 +170,59 @@ export default function ProfileAvatar({
     </div>
   );
 
+  const fileInput = (
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept={ACCEPTED_TYPES.join(",")}
+      onChange={handleFileChange}
+      disabled={loading}
+      className="sr-only"
+      aria-label="Choose a profile picture"
+    />
+  );
+
+  if (editable) {
+    return (
+      <div className="flex flex-col items-start gap-2">
+        {fileInput}
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={loading}
+          aria-label={loading ? "Saving profile picture" : "Change profile picture"}
+          className="relative rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123B70] disabled:cursor-wait disabled:opacity-70"
+        >
+          {avatar}
+          <span className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-[#0759AE] text-white shadow">
+            {loading ? (
+              <span aria-hidden="true" className="text-xs font-bold">...</span>
+            ) : (
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+              >
+                <path d="m15 5 4 4M4 20l4-.8L19 8a2.1 2.1 0 0 0-3-3L5 16z" />
+              </svg>
+            )}
+          </span>
+        </button>
+        {loading && <span className="text-xs text-slate-500">Saving photo...</span>}
+        {errorMessage && (
+          <p role="alert" className="max-w-40 text-xs text-red-700">
+            {errorMessage}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   if (!showControls) {
     return avatar;
   }
@@ -180,15 +235,7 @@ export default function ProfileAvatar({
         <p className="mt-1 text-sm text-slate-500">
           JPG, PNG, or WebP, up to 5 MB.
         </p>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={ACCEPTED_TYPES.join(",")}
-          onChange={handleFileChange}
-          disabled={loading}
-          className="sr-only"
-          aria-label="Choose a profile picture"
-        />
+        {fileInput}
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}

@@ -351,7 +351,6 @@ export default function JobSeekerDashboard() {
   const [loading, setLoading] = useState(true);
 
   const [error, setError] = useState<string | null>(null);
-  const [editingProfilePhoto, setEditingProfilePhoto] = useState(false);
   const [editingResume, setEditingResume] = useState(false);
   const [screeningDetailsOpen, setScreeningDetailsOpen] = useState(false);
   const [editingScreening, setEditingScreening] = useState(false);
@@ -863,59 +862,27 @@ export default function JobSeekerDashboard() {
         )}
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center xl:grid-cols-[minmax(15rem,0.9fr)_minmax(20rem,1.3fr)_auto]">
-            <div className="flex min-w-0 items-center gap-4">
-              <div className="relative shrink-0">
-                <ProfileAvatar
-                  userId={seeker.user_id}
-                  fullName={seeker.full_name}
-                  size="large"
-                  showControls={editingProfilePhoto}
-                  onPhotoStatusChange={setHasProfilePhoto}
-                />
-                {!editingProfilePhoto ? (
-                  <button
-                    type="button"
-                    onClick={() => setEditingProfilePhoto(true)}
-                    aria-label="Edit profile photo"
-                    className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-[#0759AE] text-white shadow transition hover:bg-[#064A91]"
-                  >
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 24 24"
-                      className="h-4 w-4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                    >
-                      <path d="m15 5 4 4M4 20l4-.8L19 8a2.1 2.1 0 0 0-3-3L5 16z" />
-                    </svg>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setEditingProfilePhoto(false)}
-                    className="absolute -bottom-8 left-0 text-xs font-semibold text-[#0759AE] hover:underline"
-                  >
-                    Done
-                  </button>
-                )}
-              </div>
-              <div className="min-w-0">
-                <h2 className="truncate text-xl font-black text-[#123B70] sm:text-2xl">
-                  {seeker.full_name || "Job Seeker"}
-                </h2>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-[#0759AE]">
-                    Job Seeker
-                  </span>
-                </div>
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-5 md:items-center xl:grid-cols-[auto_minmax(0,1fr)_minmax(15rem,auto)]">
+            <ProfileAvatar
+              userId={seeker.user_id}
+              fullName={seeker.full_name}
+              size="large"
+              editable
+              onPhotoStatusChange={setHasProfilePhoto}
+            />
+
+            <div className="min-w-0">
+              <h2 className="truncate text-xl font-black text-[#123B70] sm:text-2xl">
+                {seeker.full_name || "Job Seeker"}
+              </h2>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-[#0759AE]">
+                  Job Seeker
+                </span>
               </div>
             </div>
 
-            <div className="grid gap-2 border-t border-slate-100 pt-4 text-sm text-slate-700 md:col-span-2 xl:col-span-1 xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0">
+            <div className="col-span-2 grid gap-2 border-t border-slate-100 pt-4 text-sm text-slate-700 md:grid-cols-3 md:border-t-0 md:pt-0 xl:col-span-1 xl:grid-cols-1 xl:border-l xl:border-t-0 xl:pl-5">
               <div className="flex min-w-0 items-center gap-2">
                 <AppIcon name="mail" className="h-4 w-4 shrink-0 text-[#0759AE]" />
                 <span className="break-all">{seeker.email || "Email not provided"}</span>
@@ -929,29 +896,6 @@ export default function JobSeekerDashboard() {
                 <span className="break-words">{seeker.address || "Address not provided"}</span>
               </div>
             </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setProfileSectionToFocus(JOB_SEEKER_PROFILE_SECTION_TITLES[0]);
-                startScreeningEdit();
-              }}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-300 px-4 py-2.5 text-sm font-bold text-[#0759AE] transition hover:bg-blue-50 md:col-start-2 md:row-start-1 xl:col-auto"
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-              >
-                <path d="m15 5 4 4M4 20l4-.8L19 8a2.1 2.1 0 0 0-3-3L5 16z" />
-              </svg>
-              Edit Profile
-            </button>
           </div>
         </section>
 
