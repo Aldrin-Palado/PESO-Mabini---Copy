@@ -56,7 +56,7 @@ export default function JobMatchesModule() {
         throw new Error("Enter at least 10 characters about your skills or upload a PDF, DOC, or DOCX resume.");
       }
 
-      let encodedResume: File | undefined;
+      let encodedResume: { fileName: string; data: string } | undefined;
       if (resume) {
         if (!authorized) {
           throw new Error("Please authorize sending your resume for AI analysis.");
@@ -68,7 +68,12 @@ export default function JobMatchesModule() {
         if (!isResumeFileTypeValid(resume, bytes)) {
           throw new Error("Choose a valid PDF, DOC, or DOCX resume.");
         }
-        encodedResume = resume;
+        let binary = "";
+        const chunkSize = 0x8000;
+        for (let index = 0; index < bytes.length; index += chunkSize) {
+          binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+        }
+        encodedResume = { fileName: resume.name, data: btoa(binary) };
       }
 
       const result = await invokePesoAI<{ matches: JobMatch[] }>(
@@ -103,7 +108,7 @@ export default function JobMatchesModule() {
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
           Upload a PDF, DOC, or DOCX resume or describe your skills to compare your profile with open
           vacancies and the requirements employers submitted. Resume files are sent to
-          Groq for this analysis and are not stored. Recommendations are not hiring
+          Google Gemini for this analysis and are not stored. Recommendations are not hiring
           decisions.
         </p>
       </header>
@@ -144,7 +149,7 @@ export default function JobMatchesModule() {
                 className="mt-0.5 h-4 w-4 shrink-0 accent-[#0759AE]"
               />
               <span>
-                I authorize sending this resume to Groq for AI-assisted job matching.
+                I authorize sending this resume to Google Gemini for AI-assisted job matching.
                 I understand it will not be stored and the recommendations are advisory only.
               </span>
             </label>
@@ -211,70 +216,159 @@ export default function JobMatchesModule() {
       )}
 
       <div className="space-y-4">
-        {matches.map((match) => (
-          <article
-            key={match.job.id}
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">{match.job.title}</h3>
-                <p className="mt-1 text-sm font-semibold text-[#0759AE]">{match.job.employer}</p>
+        {matches.map((match, rank) => {
+          const score = match.match_score;
+          const scoreColor =
+            score >= 75
+              ? { bar: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Strong match" }
+              : score >= 50
+              ? { bar: "bg-[#0759AE]", badge: "bg-blue-50 text-[#0759AE] border-blue-200", label: "Good match" }
+              : score >= 25
+              ? { bar: "bg-amber-400", badge: "bg-amber-50 text-amber-700 border-amber-200", label: "Partial match" }
+              : { bar: "bg-slate-400", badge: "bg-slate-50 text-slate-600 border-slate-200", label: "Low match" };
+
+          return (
+            <article
+              key={match.job.id}
+              className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden"
+            >
+              {/* Score header bar */}
+              <div className="h-1.5 w-full bg-slate-100">
+                <div
+                  className={`h-full transition-all duration-700 ${scoreColor.bar}`}
+                  style={{ width: `${score}%` }}
+                />
               </div>
-              <div className="rounded-full bg-blue-50 px-3 py-1.5 text-sm font-bold text-[#0759AE]">
-                {match.match_score}% match
+
+              <div className="p-5 sm:p-6">
+                {/* Title row */}
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {rank === 0 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[#0759AE] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                          ★ Best Match
+                        </span>
+                      )}
+                      <h3 className="text-lg font-bold text-slate-900 truncate">{match.job.title}</h3>
+                    </div>
+                    <p className="mt-1 text-sm font-semibold text-[#0759AE]">{match.job.employer}</p>
+                  </div>
+
+                  {/* Score badge */}
+                  <div className={`flex flex-col items-center rounded-2xl border px-4 py-2 ${scoreColor.badge}`}>
+                    <span className="text-2xl font-black leading-none">{score}%</span>
+                    <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide">{scoreColor.label}</span>
+                  </div>
+                </div>
+
+                {/* Score bar with label */}
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold text-slate-500">Qualification match</span>
+                    <span className="text-xs font-bold text-slate-700">{score} / 100</span>
+                  </div>
+                  <div className="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${scoreColor.bar}`}
+                      style={{ width: `${score}%` }}
+                    />
+                  </div>
+                  <div className="mt-1 flex justify-between text-[10px] text-slate-400">
+                    <span>0%</span>
+                    <span>50%</span>
+                    <span>100%</span>
+                  </div>
+                </div>
+
+                {/* Job meta */}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {[match.job.location, match.job.type, match.job.salary].map((tag, i) => (
+                    <span key={i} className="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Why it fits */}
+                {match.reasons.length > 0 && (
+                  <div className="mt-4 rounded-xl bg-emerald-50 border border-emerald-100 p-3.5">
+                    <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-emerald-700">
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Why you qualify
+                    </h4>
+                    <ul className="mt-2 space-y-1">
+                      {match.reasons.map((reason, index) => (
+                        <li key={index} className="flex items-start gap-2 text-sm text-emerald-800">
+                          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+                          {reason}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Skill gaps */}
+                {match.skill_gaps.length > 0 && (
+                  <div className="mt-3 rounded-xl bg-amber-50 border border-amber-100 p-3.5">
+                    <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-amber-700">
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Areas to strengthen
+                    </h4>
+                    <ul className="mt-2 space-y-1">
+                      {match.skill_gaps.map((gap, index) => (
+                        <li key={index} className="flex items-start gap-2 text-sm text-amber-800">
+                          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
+                          {gap}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Requirements */}
+                {match.job.requirements.trim() && (
+                  <details className="mt-3 group">
+                    <summary className="cursor-pointer text-xs font-semibold text-slate-500 hover:text-slate-700 select-none list-none flex items-center gap-1">
+                      <svg className="h-3.5 w-3.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                      Employer requirements
+                    </summary>
+                    <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-slate-600 pl-1">
+                      {match.job.requirements
+                        .split(/\r?\n/)
+                        .map((r) => r.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim())
+                        .filter(Boolean)
+                        .map((r, i) => <li key={i}>{r}</li>)}
+                    </ul>
+                  </details>
+                )}
+
+                {/* Apply button */}
+                <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+                  <p className="text-xs text-slate-400">AI estimate · not a hiring decision</p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(`/jobseeker?job=${encodeURIComponent(match.job.id)}&apply=true`)
+                    }
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#064A91] active:scale-95"
+                  >
+                    Apply now
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-            </div>
-            <p className="mt-3 text-sm text-slate-600">
-              {match.job.location} · {match.job.type} · {match.job.salary}
-            </p>
-            <div className="mt-4">
-              <h4 className="text-sm font-bold text-slate-800">Employer-provided requirements</h4>
-              {match.job.requirements.trim() ? (
-                <ul className="mt-1 list-inside list-disc space-y-1 text-sm text-slate-600">
-                  {match.job.requirements
-                    .split(/\r?\n/)
-                    .map((requirement) => requirement.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim())
-                    .filter(Boolean)
-                    .map((requirement, index) => <li key={index}>{requirement}</li>)}
-                </ul>
-              ) : (
-                <p className="mt-1 text-sm text-slate-500">
-                  The employer did not provide specific requirements for this vacancy.
-                </p>
-              )}
-            </div>
-            {match.reasons.length > 0 && (
-              <div className="mt-4">
-                <h4 className="text-sm font-bold text-slate-800">Why it may fit</h4>
-                <ul className="mt-1 list-inside list-disc space-y-1 text-sm text-slate-600">
-                  {match.reasons.map((reason, index) => <li key={index}>{reason}</li>)}
-                </ul>
-              </div>
-            )}
-            {match.skill_gaps.length > 0 && (
-              <div className="mt-3">
-                <h4 className="text-sm font-bold text-slate-800">Consider checking</h4>
-                <ul className="mt-1 list-inside list-disc space-y-1 text-sm text-slate-600">
-                  {match.skill_gaps.map((gap, index) => <li key={index}>{gap}</li>)}
-                </ul>
-              </div>
-            )}
-            <div className="mt-5 flex justify-end border-t border-slate-100 pt-4">
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(
-                    `/jobseeker?job=${encodeURIComponent(match.job.id)}&apply=true`,
-                  )
-                }
-                className="inline-flex items-center justify-center rounded-lg bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#064A91]"
-              >
-                Apply
-              </button>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
 
       <p className="text-xs leading-5 text-slate-500">

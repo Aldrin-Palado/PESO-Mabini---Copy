@@ -62,11 +62,11 @@ export default function AIChatbotModule({
     const typedContent = input.trim();
     if ((!typedContent && !resumeFile) || loading) return;
     if (resumeFile && !resumeAuthorized) {
-      setError("Authorize sending the resume to Groq before continuing.");
+      setError("Authorize sending the resume to Gemini before continuing.");
       return;
     }
 
-    let resume: File | undefined;
+    let resume: { fileName: string; data: string } | undefined;
     if (resumeFile) {
       if (resumeFile.size > maxResumeBytes) {
         setError("Resume files must be 500 KB or smaller.");
@@ -84,7 +84,12 @@ export default function AIChatbotModule({
           setError("The file contents do not match a valid PDF, DOC, or DOCX resume.");
           return;
         }
-        resume = resumeFile;
+        let binary = "";
+        const chunkSize = 0x8000;
+        for (let index = 0; index < bytes.length; index += chunkSize) {
+          binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+        }
+        resume = { fileName: resumeFile.name, data: btoa(binary) };
       } catch (requestError) {
         console.error("Could not read the selected resume:", requestError);
         setError("Could not read the selected resume. Please choose the file again.");
@@ -210,7 +215,7 @@ export default function AIChatbotModule({
               <li>What should I include in my resume?</li>
             </ul>
             <p className="mt-3 text-xs text-slate-500">
-              Messages are sent to Groq. Don&apos;t share passwords or sensitive
+              Messages are sent to Google Gemini. Don&apos;t share passwords or sensitive
               personal information. Confirm official requirements with PESO Mabini staff.
             </p>
           </div>
@@ -364,7 +369,7 @@ export default function AIChatbotModule({
               className="mt-0.5 h-4 w-4 shrink-0 accent-[#0759AE]"
             />
             <span>
-              I authorize sending this resume to Groq to find matching open jobs.
+              I authorize sending this resume to Google Gemini to find matching open jobs.
               The file is not stored by PESO-Hub.
             </span>
           </label>
