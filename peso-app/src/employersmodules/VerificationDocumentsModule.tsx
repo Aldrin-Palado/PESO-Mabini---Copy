@@ -235,9 +235,11 @@ export default function VerificationDocumentsModule({
                       >
                         {existing.file_name}
                       </button>
-                      <span className={`rounded-full px-2 py-1 font-semibold capitalize ${statusClass(existing.status)}`}>
-                        {existing.status}
-                      </span>
+                      {existing.status !== "pending" && (
+                        <span className={`rounded-full px-2 py-1 font-semibold capitalize ${statusClass(existing.status)}`}>
+                          {existing.status}
+                        </span>
+                      )}
                     </div>
                   ) : (
                     <p className="mt-1 text-xs text-amber-700">Not uploaded</p>
@@ -307,9 +309,11 @@ export default function VerificationDocumentsModule({
                   >
                     {document.file_name}
                   </button>
-                  <span className={`rounded-full px-2 py-1 font-semibold capitalize ${statusClass(document.status)}`}>
-                    {document.status}
-                  </span>
+                  {document.status !== "pending" && (
+                    <span className={`rounded-full px-2 py-1 font-semibold capitalize ${statusClass(document.status)}`}>
+                      {document.status}
+                    </span>
+                  )}
                 </li>
               ))}
           </ul>
