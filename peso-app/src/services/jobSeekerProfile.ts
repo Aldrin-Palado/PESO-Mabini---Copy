@@ -9,8 +9,8 @@ export const JOB_SEEKER_PROFILE_SECTION_TITLES = [
   "VI. Eligibility / Professional License",
   "VII. Work Experience",
   "VIII. Other Skills Acquired Without Certificate",
-  "XI. History of SPES / GIP Engagement",
-  "Certification / Authorization",
+  "IX. History of SPES / GIP Engagement",
+  "X. Certification / Authorization",
 ] as const;
 
 function parseRegistrationDetails(value: unknown): RegistrationDetails {

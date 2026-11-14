@@ -118,6 +118,11 @@ function splitFullName(fullName: string): [string, string] {
   return [firstName, lastNameParts.join(" ")];
 }
 
+function getScreeningSectionId(title: string): string {
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return `job-seeker-section-${slug}`;
+}
+
 type ScreeningField = {
   key: string;
   label: string;
@@ -224,7 +229,7 @@ const screeningSections: {
     ],
   },
   {
-    title: "XI. History of SPES / GIP Engagement",
+    title: "IX. History of SPES / GIP Engagement",
     fields: [
       { key: "spesGipHistory", label: "Participated in SPES / GIP?", type: "select", options: ["Yes", "No"], required: true },
       { key: "engagementPeriod", label: "Period of Engagement", required: true },
@@ -232,7 +237,7 @@ const screeningSections: {
     ],
   },
   {
-    title: "Certification / Authorization",
+    title: "X. Certification / Authorization",
     fields: [
       { key: "signature", label: "E-Signature", required: true },
       { key: "signatureDate", label: "Date Signed", type: "date", required: true },
@@ -349,6 +354,7 @@ export default function JobSeekerDashboard() {
   const [editingResume, setEditingResume] = useState(false);
   const [screeningDetailsOpen, setScreeningDetailsOpen] = useState(false);
   const [editingScreening, setEditingScreening] = useState(false);
+  const [profileSectionToFocus, setProfileSectionToFocus] = useState<string | null>(null);
   const [savingScreening, setSavingScreening] = useState(false);
   const [screeningForm, setScreeningForm] = useState<ScreeningDetails>({});
   const [profileError, setProfileError] = useState("");
@@ -376,6 +382,19 @@ export default function JobSeekerDashboard() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isSidebarOpen]);
+
+  useEffect(() => {
+    if (!screeningDetailsOpen || !profileSectionToFocus) return;
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      document
+        .getElementById(getScreeningSectionId(profileSectionToFocus))
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setProfileSectionToFocus(null);
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [profileSectionToFocus, screeningDetailsOpen]);
 
   useEffect(() => {
     if (!seeker?.user_id) return;
@@ -563,6 +582,18 @@ export default function JobSeekerDashboard() {
     setProfileSuccess("");
     setScreeningDetailsOpen(true);
     setEditingScreening(true);
+  };
+
+  const openRegistrationTask = (task: string) => {
+    if (task === "Resume / CV") {
+      document
+        .getElementById("job-seeker-resume")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    setProfileSectionToFocus(task);
+    setScreeningDetailsOpen(true);
   };
 
   const saveScreening = async (event: FormEvent<HTMLFormElement>) => {
@@ -826,17 +857,6 @@ export default function JobSeekerDashboard() {
 
     return (
       <div className="mx-auto max-w-5xl space-y-6 pb-8">
-        {/* PAGE TITLE */}
-        <header>
-          <p className="text-xs font-bold uppercase tracking-wider text-[#0759AE]">
-            Job Seeker Account
-          </p>
-          <h1 className="mt-1 text-3xl font-black text-[#123B70]">My Profile</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Manage your account information and PESO employment registration.
-          </p>
-        </header>
-
         {profileSuccess && (
           <p role="status" className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">
             {profileSuccess}
@@ -848,70 +868,108 @@ export default function JobSeekerDashboard() {
           </p>
         )}
 
-        {/* 1. COMPACT ACCOUNT PROFILE */}
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/80 p-5 sm:flex-row sm:items-center sm:p-6">
-            <ProfileAvatar
-              userId={seeker.user_id}
-              fullName={seeker.full_name}
-              size="large"
-              showControls={editingProfilePhoto}
-              onPhotoStatusChange={setHasProfilePhoto}
-            />
-            <div className="min-w-0 flex-1">
-              <h2 className="text-xl font-black text-[#123B70]">
-                {seeker.full_name || "Job Seeker"}
-              </h2>
-              <p className="mt-1 text-sm font-medium text-slate-600">Job Seeker</p>
-              <p className="mt-1 break-all text-sm text-slate-500">
-                {seeker.email || "Not provided"}
-              </p>
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="grid gap-5 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.3fr)] md:items-center xl:grid-cols-[minmax(15rem,0.9fr)_minmax(18rem,1.3fr)_auto]">
+            <div className="flex min-w-0 items-center gap-4">
+              <div className="relative shrink-0">
+                <ProfileAvatar
+                  userId={seeker.user_id}
+                  fullName={seeker.full_name}
+                  size="large"
+                  showControls={editingProfilePhoto}
+                  onPhotoStatusChange={setHasProfilePhoto}
+                />
+                {!editingProfilePhoto ? (
+                  <button
+                    type="button"
+                    onClick={() => setEditingProfilePhoto(true)}
+                    aria-label="Edit profile photo"
+                    className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-[#0759AE] text-white shadow transition hover:bg-[#064A91]"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                    >
+                      <path d="m15 5 4 4M4 20l4-.8L19 8a2.1 2.1 0 0 0-3-3L5 16z" />
+                    </svg>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setEditingProfilePhoto(false)}
+                    className="absolute -bottom-8 left-0 text-xs font-semibold text-[#0759AE] hover:underline"
+                  >
+                    Done
+                  </button>
+                )}
+              </div>
+              <div className="min-w-0">
+                <h2 className="truncate text-xl font-black text-[#123B70] sm:text-2xl">
+                  {seeker.full_name || "Job Seeker"}
+                </h2>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-[#0759AE]">
+                    Job Seeker
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
+                    <AppIcon name="check" className="h-3.5 w-3.5" />
+                    Active Account
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-slate-500">
+                  PESO status: {verificationLabel}
+                </p>
+              </div>
             </div>
+
+            <div className="grid gap-3 border-t border-slate-100 pt-4 text-sm text-slate-700 sm:grid-cols-2 md:border-l md:border-t-0 md:pl-5 md:pt-0 lg:grid-cols-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <AppIcon name="mail" className="h-4 w-4 shrink-0 text-[#0759AE]" />
+                <span className="truncate">{seeker.email || "Email not provided"}</span>
+              </div>
+              <div className="flex min-w-0 items-center gap-2">
+                <AppIcon name="phone" className="h-4 w-4 shrink-0 text-[#0759AE]" />
+                <span className="truncate">{seeker.contact_no || "Phone not provided"}</span>
+              </div>
+              <div className="flex min-w-0 items-center gap-2 sm:col-span-2 md:col-span-1">
+                <AppIcon name="mapPin" className="h-4 w-4 shrink-0 text-[#0759AE]" />
+                <span className="truncate">{seeker.address || "Address not provided"}</span>
+              </div>
+            </div>
+
             <button
               type="button"
-              onClick={() => setEditingProfilePhoto((editing) => !editing)}
-              aria-expanded={editingProfilePhoto}
-              className="self-start rounded-xl bg-[#0446A7] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#123B70] sm:self-auto"
+              onClick={() => {
+                setProfileSectionToFocus(JOB_SEEKER_PROFILE_SECTION_TITLES[0]);
+                startScreeningEdit();
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-300 px-4 py-2.5 text-sm font-bold text-[#0759AE] transition hover:bg-blue-50"
             >
-              {editingProfilePhoto ? "Done" : "Edit Profile Photo"}
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+              >
+                <path d="m15 5 4 4M4 20l4-.8L19 8a2.1 2.1 0 0 0-3-3L5 16z" />
+              </svg>
+              Edit Profile
             </button>
-          </div>
-
-          <div className="p-5 sm:p-6">
-            <h3 className="text-base font-bold text-[#123B70]">Account Information</h3>
-            <p className="mt-1 text-xs text-slate-500">
-              Your basic account details are separate from PESO screening information.
-            </p>
-            <dl className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl bg-slate-50 p-4">
-                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Full Name</dt>
-                <dd className="mt-2 break-words text-sm font-semibold text-slate-800">
-                  {seeker.full_name || "Not provided"}
-                </dd>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-4">
-                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Account Role</dt>
-                <dd className="mt-2 text-sm font-semibold text-slate-800">Job Seeker</dd>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-4">
-                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Email Address</dt>
-                <dd className="mt-2 break-all text-sm font-semibold text-slate-800">
-                  {seeker.email || "Not provided"}
-                </dd>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-4">
-                <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Account Status</dt>
-                <dd className="mt-2 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
-                  Active
-                </dd>
-              </div>
-            </dl>
           </div>
         </section>
 
-        {/* 2. PESO REGISTRATION AND SCREENING */}
         <section className="space-y-5" aria-labelledby="peso-registration-title">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-[#0759AE]">
                 PESO Registration
@@ -919,7 +977,7 @@ export default function JobSeekerDashboard() {
               <h2 id="peso-registration-title" className="mt-1 text-2xl font-black text-[#123B70]">
                 Job Seeker Registration Details
               </h2>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-slate-600">
                 Complete your employment information for PESO screening and job applications.
               </p>
             </div>
@@ -931,81 +989,106 @@ export default function JobSeekerDashboard() {
               }}
               aria-expanded={screeningDetailsOpen}
               aria-controls="job-seeker-registration-details"
-              className="self-start shrink-0 rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-bold text-[#0759AE] transition hover:bg-blue-50 sm:self-auto"
+              className="self-start shrink-0 rounded-xl border border-blue-300 bg-white px-4 py-2.5 text-sm font-bold text-[#0759AE] transition hover:bg-blue-50 sm:self-auto"
             >
-              {screeningDetailsOpen ? "Hide PESO Details" : "Show PESO Details"}
+              {screeningDetailsOpen ? "Hide PESO Details" : "View PESO Details"}
             </button>
           </div>
 
-          {/* Registration progress stays visible even when screening form is collapsed */}
-          <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 sm:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="text-base font-bold text-[#123B70]">Registration Progress</h3>
                 <p className="mt-1 text-xs text-slate-600">
                   Complete all sections and upload your resume before applying for jobs.
                 </p>
               </div>
-              <span className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[#123B70]">
-                {completedTaskCount}/{registrationTasks.length} complete
+              <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-[#0759AE]">
+                {completedTaskCount}/{registrationTasks.length} Complete
               </span>
             </div>
-            <div
-              role="progressbar"
-              aria-label="PESO registration completion"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={completionPercentage}
-              className="mt-4 h-2.5 overflow-hidden rounded-full bg-blue-100"
-            >
+            <div className="mt-3 flex items-center gap-3">
               <div
-                className="h-full rounded-full bg-[#0759AE] transition-all duration-300"
-                style={{ width: `${completionPercentage}%` }}
-              />
+                role="progressbar"
+                aria-label="PESO registration completion"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={completionPercentage}
+                className="h-3 flex-1 overflow-hidden rounded-full bg-blue-100"
+              >
+                <div
+                  className="h-full rounded-full bg-[#0759AE] transition-all duration-300"
+                  style={{ width: `${completionPercentage}%` }}
+                />
+              </div>
+              <span className="min-w-12 text-right text-lg font-black text-[#123B70]">
+                {completionPercentage}%
+              </span>
             </div>
-            <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {registrationTasks.map((task) => {
-                const complete = !incompleteTasks.includes(task);
-                return (
-                  <li
-                    key={task}
-                    className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-xs font-medium ${
-                      complete
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-white text-slate-600"
-                    }`}
-                  >
-                    <span aria-hidden="true" className="text-base leading-none">
-                      {complete ? "✓" : "○"}
-                    </span>
-                    <span>{task}</span>
-                  </li>
-                );
-              })}
-            </ul>
             {incompleteTasks.length === 0 && (
-              <p role="status" className="mt-4 rounded-xl bg-emerald-100 p-3 text-sm font-semibold text-emerald-800">
+              <p role="status" className="mt-3 text-sm font-semibold text-emerald-700">
                 Your registration information is complete and ready for job applications.
               </p>
             )}
           </div>
 
-          {/* Resume belongs to the employment registration, not account details */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h3 className="text-base font-bold text-[#123B70]">Resume / CV</h3>
-                <p className="mt-1 text-sm text-slate-600">
-                  {seeker.resume_url ? "Resume uploaded" : "No resume uploaded"}
-                </p>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <h3 className="text-base font-bold text-[#123B70]">Registration Sections</h3>
+            <p className="mt-1 text-xs text-slate-600">
+              Click a section to review or update your information.
+            </p>
+            <div className="mt-3 grid gap-2 md:grid-flow-col md:grid-cols-2 md:grid-rows-6">
+              {registrationTasks.map((task) => {
+                const complete = !incompleteTasks.includes(task);
+                const title = task === "Resume / CV" ? "XI. Resume / CV" : task;
+                return (
+                  <button
+                    key={task}
+                    type="button"
+                    onClick={() => openRegistrationTask(task)}
+                    aria-label={`Open ${title}`}
+                    className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 text-left text-xs font-semibold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50"
+                  >
+                    {complete ? (
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
+                        <AppIcon name="check" className="h-3 w-3" />
+                      </span>
+                    ) : (
+                      <span aria-hidden="true" className="h-4 w-4 shrink-0 rounded-full border-2 border-slate-400" />
+                    )}
+                    <span className="min-w-0 flex-1">{title}</span>
+                    <AppIcon name="chevronRight" className="h-4 w-4 shrink-0 text-[#123B70]" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div
+            id="job-seeker-resume"
+            className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50">
+                  <AppIcon name="file" className="h-6 w-6 text-[#0759AE]" />
+                </span>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-[#123B70]">Resume / CV</h3>
+                  <p className="mt-1 text-xs text-slate-600">
+                    {seeker.resume_url
+                      ? "Resume uploaded. Replace it with your latest version when needed."
+                      : `Upload your updated resume (${RESUME_FORMATS_LABEL}, up to 5 MB).`}
+                  </p>
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
                 {seeker.resume_url && (
                   <button
                     type="button"
                     onClick={() => void openResume()}
                     disabled={openingResume}
-                    className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-xl border border-blue-300 px-4 py-2.5 text-sm font-semibold text-[#0759AE] hover:bg-blue-50 disabled:opacity-50"
                   >
                     {openingResume ? "Preparing..." : "View Resume"}
                   </button>
@@ -1018,7 +1101,7 @@ export default function JobSeekerDashboard() {
                     setResumeSuccess("");
                   }}
                   aria-expanded={editingResume}
-                  className="rounded-xl bg-[#0759AE] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#064A91]"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#0759AE] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#064A91]"
                 >
                   {editingResume ? "Cancel" : seeker.resume_url ? "Replace Resume" : "Upload Resume"}
                 </button>
@@ -1096,7 +1179,11 @@ export default function JobSeekerDashboard() {
 
           <div className="space-y-6">
             {screeningSections.map((section) => (
-              <section key={section.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <section
+                id={getScreeningSectionId(section.title)}
+                key={section.title}
+                className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+              >
                 <h3 className="font-bold text-slate-900">
                   {section.title}
                 </h3>
@@ -1137,7 +1224,7 @@ export default function JobSeekerDashboard() {
                     </p>
                   </div>
                 )}
-                {section.title === "Certification / Authorization" && (
+                {section.title === "X. Certification / Authorization" && (
                   <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
                     I certify that the information I provided is true and correct
                     to the best of my knowledge. I authorize PESO Mabini to
