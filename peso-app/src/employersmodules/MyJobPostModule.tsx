@@ -18,8 +18,6 @@ type JobPost = {
   location: string;
   employment_type: string;
   job_classification: "local" | "international";
-  salary_min: number | null;
-  salary_max: number | null;
   vacancies_available: number;
   status: string;
   date_posted: string;
@@ -48,8 +46,6 @@ type JobForm = {
   location: string;
   employment_type: string;
   job_classification: "local" | "international";
-  salary_min: string;
-  salary_max: string;
   vacancies_available: string;
   deadline: string;
 };
@@ -62,8 +58,6 @@ const emptyForm: JobForm = {
   location: "",
   employment_type: "Full-time",
   job_classification: "local",
-  salary_min: "",
-  salary_max: "",
   vacancies_available: "1",
   deadline: "",
 };
@@ -146,10 +140,6 @@ export default function MyJobPostModule({
       location: job.location ?? "",
       employment_type: job.employment_type ?? "Full-time",
       job_classification: job.job_classification ?? "local",
-      salary_min:
-        job.salary_min === null ? "" : String(job.salary_min),
-      salary_max:
-        job.salary_max === null ? "" : String(job.salary_max),
       vacancies_available: String(job.vacancies_available || 1),
       deadline: job.deadline ? job.deadline.slice(0, 10) : "",
     });
@@ -336,15 +326,6 @@ export default function MyJobPostModule({
     }
 
     if (
-      form.salary_min !== "" &&
-      form.salary_max !== "" &&
-      Number(form.salary_min) > Number(form.salary_max)
-    ) {
-      setMessage("Minimum salary cannot exceed maximum salary.");
-      return;
-    }
-
-    if (
       form.deadline &&
       form.deadline < new Date().toISOString().slice(0, 10)
     ) {
@@ -376,14 +357,8 @@ export default function MyJobPostModule({
             location: form.location.trim(),
             employment_type: form.employment_type,
             job_classification: form.job_classification,
-            salary_min:
-              form.salary_min === ""
-                ? null
-                : Number(form.salary_min),
-            salary_max:
-              form.salary_max === ""
-                ? null
-                : Number(form.salary_max),
+            salary_min: null,
+            salary_max: null,
             vacancies_available: Math.max(
               1,
               Number(form.vacancies_available) || 1
@@ -414,14 +389,8 @@ export default function MyJobPostModule({
             location: form.location.trim(),
             employment_type: form.employment_type,
             job_classification: form.job_classification,
-            salary_min:
-              form.salary_min === ""
-                ? null
-                : Number(form.salary_min),
-            salary_max:
-              form.salary_max === ""
-                ? null
-                : Number(form.salary_max),
+            salary_min: null,
+            salary_max: null,
             vacancies_available: Math.max(
               1,
               Number(form.vacancies_available) || 1
@@ -561,26 +530,6 @@ export default function MyJobPostModule({
     setMessage("Job status updated successfully.");
 
     await onRefresh();
-  };
-
-  // FORMAT SALARY
-
-  const formatSalary = (job: JobPost) => {
-    if (job.salary_min === null && job.salary_max === null) {
-      return "Not specified";
-    }
-
-    const minimum =
-      job.salary_min === null
-        ? "Not specified"
-        : `₱${job.salary_min.toLocaleString()}`;
-
-    const maximum =
-      job.salary_max === null
-        ? "Not specified"
-        : `₱${job.salary_max.toLocaleString()}`;
-
-    return `${minimum} - ${maximum}`;
   };
 
   // FORMAT DATE
@@ -788,40 +737,6 @@ export default function MyJobPostModule({
               />
             </label>
 
-            {/* MIN SALARY */}
-
-            <label className="text-sm font-semibold text-slate-700">
-              Minimum Salary
-
-              <input
-                type="number"
-                min="0"
-                value={form.salary_min}
-                onChange={(event) =>
-                  updateField("salary_min", event.target.value)
-                }
-                placeholder="₱"
-                className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal"
-              />
-            </label>
-
-            {/* MAX SALARY */}
-
-            <label className="text-sm font-semibold text-slate-700">
-              Maximum Salary
-
-              <input
-                type="number"
-                min="0"
-                value={form.salary_max}
-                onChange={(event) =>
-                  updateField("salary_max", event.target.value)
-                }
-                placeholder="₱"
-                className="mt-2 w-full rounded-xl border border-slate-200 p-3 font-normal"
-              />
-            </label>
-
             {/* DESCRIPTION */}
 
             <label className="text-sm font-semibold text-slate-700 md:col-span-2">
@@ -972,10 +887,6 @@ export default function MyJobPostModule({
                   <span className="capitalize">{job.job_classification}</span>
                   {" · "}
                   {job.employment_type}
-                </p>
-                <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-slate-700">
-                  <span className="text-amber-500" aria-hidden="true">₱</span>
-                  {formatSalary(job)}
                 </p>
                 <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-600">
                   <span className="font-semibold text-slate-700">Application requirements: </span>
