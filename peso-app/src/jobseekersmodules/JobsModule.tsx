@@ -8,6 +8,7 @@ import {
 } from "react";
 import { supabase } from "../services/supabase";
 import AppIcon from "../components/AppIcon";
+import FilterDropdown from "../components/FilterDropdown";
 import {
   RESUME_ACCEPT,
   RESUME_BUCKET,
@@ -614,26 +615,30 @@ export default function JobsModule({
 
           </div>
 
-          <select
+          <FilterDropdown
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            onChange={setLocation}
+            ariaLabel="Filter jobs by location"
+            options={[
+              { value: "All", label: "All Locations" },
+              { value: "Batangas", label: "Batangas" },
+              { value: "Mabini", label: "Mabini" },
+              { value: "Lipa", label: "Lipa City" },
+            ]}
             className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-blue-500"
-          >
-            <option value="All">All Locations</option>
-            <option value="Batangas">Batangas</option>
-            <option value="Mabini">Mabini</option>
-            <option value="Lipa">Lipa City</option>
-          </select>
+          />
 
-          <select
+          <FilterDropdown
             value={type}
-            onChange={(e) => setType(e.target.value)}
+            onChange={setType}
+            ariaLabel="Filter jobs by employment type"
+            options={[
+              { value: "All", label: "All Types" },
+              { value: "Full-time", label: "Full-time" },
+              { value: "Part-time", label: "Part-time" },
+            ]}
             className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-blue-500"
-          >
-            <option value="All">All Types</option>
-            <option value="Full-time">Full-time</option>
-            <option value="Part-time">Part-time</option>
-          </select>
+          />
 
         </div>
       </div>

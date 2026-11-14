@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import AppIcon from "../components/AppIcon";
+import FilterDropdown from "../components/FilterDropdown";
 import ModuleScoreboard from "../components/ModuleScoreboard";
 
 type JobPost = {
@@ -140,17 +141,18 @@ export default function JobPostsModule({
           </label>
           <label className="block text-xs font-semibold text-slate-600">
             Posting status
-            <select
+            <FilterDropdown
               value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-              aria-label="Filter job posts by status"
+              onChange={setStatusFilter}
+              ariaLabel="Filter job posts by status"
+              options={[
+                { value: "All", label: "All Status" },
+                { value: "Active", label: "Active" },
+                { value: "Inactive", label: "Inactive" },
+                { value: "Closed", label: "Closed" },
+              ]}
               className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
-            >
-              <option value="All">All Status</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Closed">Closed</option>
-            </select>
+            />
           </label>
         </div>
       </section>

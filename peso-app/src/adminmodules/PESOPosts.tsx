@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { supabase } from "../services/supabase";
+import FilterDropdown from "../components/FilterDropdown";
 
 type PESOPost = {
   id: string;
@@ -779,25 +780,30 @@ export default function PESOPosts() {
                 aria-label="Search posts"
                 className="min-w-0 rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-blue-600"
               />
-              <select
+              <FilterDropdown
                 value={categoryFilter}
-                onChange={(event) => setCategoryFilter(event.target.value)}
-                aria-label="Filter by category"
+                onChange={setCategoryFilter}
+                ariaLabel="Filter by category"
+                options={[
+                  { value: "All", label: "All categories" },
+                  ...categories.map((category) => ({
+                    value: category,
+                    label: category,
+                  })),
+                ]}
                 className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-600"
-              >
-                <option value="All">All categories</option>
-                {categories.map((category) => <option key={category}>{category}</option>)}
-              </select>
-              <select
+              />
+              <FilterDropdown
                 value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
-                aria-label="Filter by status"
+                onChange={setStatusFilter}
+                ariaLabel="Filter by status"
+                options={[
+                  { value: "All", label: "All statuses" },
+                  { value: "published", label: "Published" },
+                  { value: "draft", label: "Draft" },
+                ]}
                 className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-600"
-              >
-                <option value="All">All statuses</option>
-                <option value="published">Published</option>
-                <option value="draft">Draft</option>
-              </select>
+              />
             </div>
             <button
               type="button"

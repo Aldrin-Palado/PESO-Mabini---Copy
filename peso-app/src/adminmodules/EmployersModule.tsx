@@ -1,6 +1,7 @@
 import React, { useEffect, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import AppIcon from "../components/AppIcon";
+import FilterDropdown from "../components/FilterDropdown";
 import ExportFormatControl from "../components/ExportFormatControl";
 import ModuleScoreboard from "../components/ModuleScoreboard";
 import ProfileAvatar from "../components/ProfileAvatar";
@@ -667,28 +668,32 @@ export default function EmployersModule({
         </label>
         <label className="block text-xs font-semibold text-slate-600">
           Verification status
-          <select
+          <FilterDropdown
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
+            onChange={setStatusFilter}
+            ariaLabel="Filter employers by verification status"
+            options={[
+              { value: "all", label: "All" },
+              { value: "verified", label: "Verified" },
+              { value: "pending", label: "Pending" },
+              { value: "not_approved", label: "Not approved" },
+            ]}
             className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
-          >
-            <option value="all">All</option>
-            <option value="verified">Verified</option>
-            <option value="pending">Pending</option>
-            <option value="not_approved">Not approved</option>
-          </select>
+          />
         </label>
         <label className="block text-xs font-semibold text-slate-600">
           Registration progress
-          <select
+          <FilterDropdown
             value={completionFilter}
-            onChange={(event) => setCompletionFilter(event.target.value)}
+            onChange={setCompletionFilter}
+            ariaLabel="Filter employers by registration progress"
+            options={[
+              { value: "all", label: "All profiles" },
+              { value: "ready", label: "Ready for verification" },
+              { value: "incomplete", label: "Incomplete" },
+            ]}
             className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
-          >
-            <option value="all">All profiles</option>
-            <option value="ready">Ready for verification</option>
-            <option value="incomplete">Incomplete</option>
-          </select>
+          />
         </label>
         </div>
       </section>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../services/supabase";
+import FilterDropdown from "../components/FilterDropdown";
 
 export type AdminAuditLog = {
   log_id: string;
@@ -362,20 +363,16 @@ export default function AdminAuditLogsModule({
           </label>
           <label className="block text-[11px] font-semibold text-slate-600">
             Admin
-            <select
+            <FilterDropdown
               value={filters.admin}
-              onChange={(event) =>
-                setFilters({ ...filters, admin: event.target.value })
-              }
+              onChange={(admin) => setFilters({ ...filters, admin })}
+              ariaLabel="Filter audit logs by admin"
+              options={[
+                { value: "all", label: "All admins" },
+                ...admins.map((admin) => ({ value: admin, label: admin })),
+              ]}
               className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-2 text-xs font-normal text-slate-800"
-            >
-              <option value="all">All admins</option>
-              {admins.map((admin) => (
-                <option key={admin} value={admin}>
-                  {admin}
-                </option>
-              ))}
-            </select>
+            />
           </label>
           <label className="block text-[11px] font-semibold text-slate-600">
             Keyword
@@ -394,37 +391,29 @@ export default function AdminAuditLogsModule({
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="block flex-1 text-[11px] font-semibold text-slate-600">
             Area
-            <select
+            <FilterDropdown
               value={filters.area}
-              onChange={(event) =>
-                setFilters({ ...filters, area: event.target.value })
-              }
+              onChange={(area) => setFilters({ ...filters, area })}
+              ariaLabel="Filter audit logs by area"
+              options={[
+                { value: "all", label: "All areas" },
+                ...areas.map((area) => ({ value: area, label: area })),
+              ]}
               className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-2 text-xs font-normal text-slate-800"
-            >
-              <option value="all">All areas</option>
-              {areas.map((area) => (
-                <option key={area} value={area}>
-                  {area}
-                </option>
-              ))}
-            </select>
+            />
           </label>
           <label className="block flex-1 text-[11px] font-semibold text-slate-600">
             Action
-            <select
+            <FilterDropdown
               value={filters.action}
-              onChange={(event) =>
-                setFilters({ ...filters, action: event.target.value })
-              }
+              onChange={(action) => setFilters({ ...filters, action })}
+              ariaLabel="Filter audit logs by action"
+              options={[
+                { value: "all", label: "All actions" },
+                ...actions.map((action) => ({ value: action, label: action })),
+              ]}
               className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-2 text-xs font-normal text-slate-800"
-            >
-              <option value="all">All actions</option>
-              {actions.map((action) => (
-                <option key={action} value={action}>
-                  {action}
-                </option>
-              ))}
-            </select>
+            />
           </label>
         </div>
         <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-400">

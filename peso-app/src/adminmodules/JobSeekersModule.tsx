@@ -1,6 +1,7 @@
 import React, { useEffect, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import AppIcon from "../components/AppIcon";
+import FilterDropdown from "../components/FilterDropdown";
 import ExportFormatControl from "../components/ExportFormatControl";
 import ModuleScoreboard from "../components/ModuleScoreboard";
 import ProfileAvatar from "../components/ProfileAvatar";
@@ -618,53 +619,61 @@ export default function JobSeekersModule({
           </label>
           <label className="block text-xs font-semibold text-slate-600">
             Profile completion
-            <select
+            <FilterDropdown
               value={completionFilter}
-              onChange={(event) => setCompletionFilter(event.target.value)}
+              onChange={setCompletionFilter}
+              ariaLabel="Filter job seekers by profile completion"
+              options={[
+                { value: "all", label: "All profiles" },
+                { value: "ready", label: "Ready for verification" },
+                { value: "incomplete", label: "Incomplete" },
+              ]}
               className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
-            >
-              <option value="all">All profiles</option>
-              <option value="ready">Ready for verification</option>
-              <option value="incomplete">Incomplete</option>
-            </select>
+            />
           </label>
           <label className="block text-xs font-semibold text-slate-600">
             Verification status
-            <select
+            <FilterDropdown
               value={verificationFilter}
-              onChange={(event) => setVerificationFilter(event.target.value)}
+              onChange={setVerificationFilter}
+              ariaLabel="Filter job seekers by verification status"
+              options={[
+                { value: "all", label: "All" },
+                { value: "pending", label: "Pending" },
+                { value: "verified", label: "Verified" },
+                { value: "not_approved", label: "Not approved" },
+              ]}
               className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
-            >
-              <option value="all">All</option>
-              <option value="pending">Pending</option>
-              <option value="verified">Verified</option>
-              <option value="not_approved">Not approved</option>
-            </select>
+            />
           </label>
           <label className="block text-xs font-semibold text-slate-600">
             Account status
-            <select
+            <FilterDropdown
               value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
+              onChange={setStatusFilter}
+              ariaLabel="Filter job seekers by account status"
+              options={[
+                { value: "all", label: "All" },
+                { value: "active", label: "Active" },
+                { value: "inactive", label: "Inactive" },
+              ]}
               className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
-            >
-              <option value="all">All</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+            />
           </label>
           <label className="block text-xs font-semibold text-slate-600">
             Gender
-            <select
+            <FilterDropdown
               value={genderFilter}
-              onChange={(event) => setGenderFilter(event.target.value)}
+              onChange={setGenderFilter}
+              ariaLabel="Filter job seekers by gender"
+              options={[
+                { value: "all", label: "All" },
+                { value: "female", label: "Female" },
+                { value: "male", label: "Male" },
+                { value: "prefer not to say", label: "Prefer not to say" },
+              ]}
               className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
-            >
-              <option value="all">All</option>
-              <option value="female">Female</option>
-              <option value="male">Male</option>
-              <option value="prefer not to say">Prefer not to say</option>
-            </select>
+            />
           </label>
         </div>
       </section>

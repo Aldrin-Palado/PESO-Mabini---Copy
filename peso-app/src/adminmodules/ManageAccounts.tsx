@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "../services/supabase";
 import AppIcon from "../components/AppIcon";
 import ProfileAvatar from "../components/ProfileAvatar";
+import FilterDropdown from "../components/FilterDropdown";
 import {
   getPasswordValidationError,
   PASSWORD_REQUIREMENTS_HELP_TEXT,
@@ -994,22 +995,26 @@ export default function AdminAccounts() {
             Filter by account status
           </label>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <select
-              id="staff-status-filter"
+            <FilterDropdown
               value={staffStatusFilter}
-              onChange={(event) =>
-                setStaffStatusFilter(event.target.value as StaffStatusFilter)
-              }
+              onChange={(value) => setStaffStatusFilter(value as StaffStatusFilter)}
+              ariaLabel="Filter staff accounts by status"
+              options={[
+                {
+                  value: "all",
+                  label: `All accounts (${staff.length})`,
+                },
+                {
+                  value: "active",
+                  label: `Active (${staff.filter((account) => account.is_active).length})`,
+                },
+                {
+                  value: "deactivated",
+                  label: `Deactivated (${staff.filter((account) => !account.is_active).length})`,
+                },
+              ]}
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 sm:w-56"
-            >
-              <option value="all">All accounts ({staff.length})</option>
-              <option value="active">
-                Active ({staff.filter((account) => account.is_active).length})
-              </option>
-              <option value="deactivated">
-                Deactivated ({staff.filter((account) => !account.is_active).length})
-              </option>
-            </select>
+            />
             <button
               type="button"
               onClick={() => {

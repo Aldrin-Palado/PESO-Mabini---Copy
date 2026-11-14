@@ -3,6 +3,7 @@ import { openStoredResume } from "../services/resumes";
 import type { ApplicationDecisionResult } from "../services/applicationDecisions";
 import ApplicationScopeToggle from "../components/ApplicationScopeToggle";
 import ModuleScoreboard from "../components/ModuleScoreboard";
+import FilterDropdown from "../components/FilterDropdown";
 
 type Application = {
   id?: string;
@@ -415,38 +416,45 @@ export default function ApplicationsModule({
           </label>
           <label className="text-[11px] font-semibold text-slate-600 xl:col-span-2">
             Status
-            <select
+            <FilterDropdown
               value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
+              onChange={setStatusFilter}
+              ariaLabel="Filter applications by status"
+              options={[
+                { value: "All", label: "All" },
+                ...STATUSES.map((status) => ({
+                  value: status.value,
+                  label: status.label,
+                })),
+              ]}
               className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal"
-            >
-              <option value="All">All</option>
-              {STATUSES.map((status) => (
-                <option key={status.value} value={status.value}>{status.label}</option>
-              ))}
-            </select>
+            />
           </label>
           <label className="text-[11px] font-semibold text-slate-600 xl:col-span-2">
             Employer
-            <select
+            <FilterDropdown
               value={employerFilter}
-              onChange={(event) => setEmployerFilter(event.target.value)}
+              onChange={setEmployerFilter}
+              ariaLabel="Filter applications by employer"
+              options={[
+                { value: "all", label: "All" },
+                ...employers.map(([id, name]) => ({ value: id, label: name })),
+              ]}
               className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal"
-            >
-              <option value="all">All</option>
-              {employers.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-            </select>
+            />
           </label>
           <label className="text-[11px] font-semibold text-slate-600 xl:col-span-2">
             Job
-            <select
+            <FilterDropdown
               value={jobFilter}
-              onChange={(event) => setJobFilter(event.target.value)}
+              onChange={setJobFilter}
+              ariaLabel="Filter applications by job"
+              options={[
+                { value: "all", label: "All" },
+                ...jobs.map((job) => ({ value: job, label: job })),
+              ]}
               className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal"
-            >
-              <option value="all">All</option>
-              {jobs.map((job) => <option key={job} value={job}>{job}</option>)}
-            </select>
+            />
           </label>
           <div className="grid grid-cols-2 gap-2 xl:col-span-3">
             <label className="text-[11px] font-semibold text-slate-600">
