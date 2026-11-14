@@ -1,4 +1,5 @@
 import React, { useState, type FormEvent } from "react";
+import AutoResizeTextarea from "../components/AutoResizeTextarea";
 import Footer from "../components/Footer";
 import LocationMap, {
   MABINI_MUNICIPAL_HALL,
@@ -318,7 +319,7 @@ const Contact: React.FC = () => {
                     Message
                   </label>
 
-                  <textarea
+                  <AutoResizeTextarea
                     id="contact-message"
                     name="message"
                     rows={6}

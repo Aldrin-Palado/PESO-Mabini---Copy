@@ -1,6 +1,7 @@
 import React, { useEffect, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import AppIcon from "../components/AppIcon";
+import AutoResizeTextarea from "../components/AutoResizeTextarea";
 import FilterDropdown from "../components/FilterDropdown";
 import ExportFormatControl from "../components/ExportFormatControl";
 import ModuleScoreboard from "../components/ModuleScoreboard";
@@ -1267,7 +1268,7 @@ export default function EmployersModule({
 
             <label className="block text-sm font-medium text-slate-700">
               Address
-              <textarea
+              <AutoResizeTextarea
                 rows={2}
                 value={formValues.address}
                 onChange={(event) => setFormValues({ ...formValues, address: event.target.value })}

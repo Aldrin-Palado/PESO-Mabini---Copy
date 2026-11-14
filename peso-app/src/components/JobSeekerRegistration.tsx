@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import AutoResizeTextarea from "./AutoResizeTextarea";
 import AuthSideImage from "./AuthSideImage";
 import PesoLogo from "./PesoLogo";
 import TermsAndConditionsModal from "./TermsAndConditionsModal";
@@ -297,7 +298,7 @@ function Register() {
                   </label>
                   <label className="block text-sm font-medium text-slate-800 sm:col-span-2">
                     Company Address <span className="text-red-600">*</span>
-                    <textarea
+                    <AutoResizeTextarea
                       name="companyAddress"
                       value={formData.companyAddress}
                       onChange={handleChange}
@@ -311,7 +312,7 @@ function Register() {
                   </label>
                   <label className="block text-sm font-medium text-slate-800 sm:col-span-2">
                     Company Description
-                    <textarea
+                    <AutoResizeTextarea
                       name="description"
                       value={formData.description}
                       onChange={handleChange}

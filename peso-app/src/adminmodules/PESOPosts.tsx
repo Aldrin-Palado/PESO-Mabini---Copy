@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { supabase } from "../services/supabase";
 import FilterDropdown from "../components/FilterDropdown";
+import AutoResizeTextarea from "../components/AutoResizeTextarea";
 
 type PESOPost = {
   id: string;
@@ -602,13 +603,13 @@ export default function PESOPosts() {
 
             <label className="block text-sm font-semibold text-gray-700">
               Description
-              <textarea
+              <AutoResizeTextarea
                 rows={7}
                 value={form.content}
                 maxLength={10000}
                 onChange={(event) => setForm({ ...form, content: event.target.value })}
                 placeholder="Share useful details about the PESO activity, event, program, or achievement."
-                className="mt-2 w-full resize-y rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
                 required
               />
               <span className="mt-1 block text-right text-xs font-normal text-gray-400">

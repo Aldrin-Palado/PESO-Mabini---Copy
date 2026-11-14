@@ -1,5 +1,6 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import AutoResizeTextarea from "./AutoResizeTextarea";
 import AuthSideImage from "./AuthSideImage";
 import PesoLogo from "./PesoLogo";
 import { supabase } from "../services/supabase";
@@ -215,7 +216,7 @@ export default function EmployerRegistration({
                 </label>
                 <label className={`${labelClassName} sm:col-span-2`}>
                   Company Address <span className="text-red-600">*</span>
-                  <textarea
+                  <AutoResizeTextarea
                     name="address"
                     value={form.address}
                     onChange={handleChange}
@@ -229,7 +230,7 @@ export default function EmployerRegistration({
                 </label>
                 <label className={`${labelClassName} sm:col-span-2`}>
                   Company Description
-                  <textarea
+                  <AutoResizeTextarea
                     name="description"
                     value={form.description}
                     onChange={handleChange}

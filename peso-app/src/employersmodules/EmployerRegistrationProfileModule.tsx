@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import ESignatureInput from "../components/ESignatureInput";
+import AutoResizeTextarea from "../components/AutoResizeTextarea";
 import VerificationDocumentsModule from "./VerificationDocumentsModule";
 import {
   employerDocumentRequirements,
@@ -580,7 +581,7 @@ export default function EmployerRegistrationProfileModule({
               <input type="url" name="website" value={form.website} onChange={update} required placeholder="https://example.com" className={inputClass} />
             </label>
             <label className={`${labelClass} sm:col-span-2`}>Remarks <span className="font-normal text-slate-500">(optional)</span>
-              <textarea name="remarks" value={form.remarks} onChange={update} rows={3} maxLength={2000} className={inputClass} />
+              <AutoResizeTextarea name="remarks" value={form.remarks} onChange={update} rows={3} maxLength={2000} className={inputClass} />
             </label>
           </div>
         </section>

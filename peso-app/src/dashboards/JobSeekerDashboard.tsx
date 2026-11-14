@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AppIcon from "../components/AppIcon";
+import AutoResizeTextarea from "../components/AutoResizeTextarea";
 import ESignatureInput from "../components/ESignatureInput";
 import ProfileAvatar from "../components/ProfileAvatar";
 
@@ -1229,7 +1230,7 @@ export default function JobSeekerDashboard() {
                                   })}
                                 </span>
                               ) : field.type === "textarea" ? (
-                                <textarea
+                                <AutoResizeTextarea
                                   rows={3}
                                   value={String(rawValue ?? "")}
                                   disabled={savingScreening}

@@ -1,5 +1,6 @@
 
 import { useRef, useState } from "react";
+import AutoResizeTextarea from "../components/AutoResizeTextarea";
 import { supabase } from "../services/supabase";
 import { getEmployerRegistrationChecklist } from "../services/employerRegistration";
 
@@ -742,7 +743,7 @@ export default function MyJobPostModule({
             <label className="text-sm font-semibold text-slate-700 md:col-span-2">
               Job Description *
 
-              <textarea
+              <AutoResizeTextarea
                 required
                 rows={4}
                 value={form.description}
@@ -759,7 +760,7 @@ export default function MyJobPostModule({
             <label className="text-sm font-semibold text-slate-700 md:col-span-2">
               Job Qualifications
 
-              <textarea
+              <AutoResizeTextarea
                 rows={4}
                 value={form.job_qualifications}
                 onChange={(event) =>
@@ -775,7 +776,7 @@ export default function MyJobPostModule({
             <label className="text-sm font-semibold text-slate-700 md:col-span-2">
               Job Requirements
 
-              <textarea
+              <AutoResizeTextarea
                 rows={4}
                 value={form.requirements}
                 onChange={(event) =>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import AutoResizeTextarea from "./AutoResizeTextarea";
 import { supabase } from "../services/supabase";
 
 export type MessageMode = "admin" | "staff" | "employer" | "job_seeker";
@@ -781,7 +782,7 @@ export default function DirectMessages({
           </div>
 
           <form onSubmit={sendMessage} className="flex gap-3 border-t border-slate-100 p-4">
-            <textarea
+            <AutoResizeTextarea
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               placeholder="Write a message..."
@@ -789,7 +790,8 @@ export default function DirectMessages({
               maxLength={5000}
               rows={2}
               disabled={!recipientUserId || sending}
-              className="min-h-12 flex-1 resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 disabled:bg-slate-100"
+              maxHeight={160}
+              className="min-h-12 flex-1 rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 disabled:bg-slate-100"
             />
             <button
               type="submit"

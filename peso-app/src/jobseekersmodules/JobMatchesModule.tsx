@@ -44,7 +44,6 @@ function isJobMatch(value: unknown): value is JobMatch {
 
 export default function JobMatchesModule() {
   const navigate = useNavigate();
-  const [profileText, setProfileText] = useState("");
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeAuthorized, setResumeAuthorized] = useState(false);
   const [matches, setMatches] = useState<JobMatch[]>([]);
@@ -54,11 +53,7 @@ export default function JobMatchesModule() {
   const [emptyReason, setEmptyReason] = useState("");
   const pendingRef = useRef(false);
 
-  const runMatching = async (
-    profile: string,
-    resume: File | null,
-    authorized = resumeAuthorized,
-  ) => {
+  const runMatching = async (resume: File | null, authorized = resumeAuthorized) => {
     if (pendingRef.current) return;
     pendingRef.current = true;
     setLoading(true);
@@ -68,33 +63,30 @@ export default function JobMatchesModule() {
     setHasSearched(false);
 
     try {
-      if (!resume && profile.trim().length < 10) {
-        throw new Error("Enter at least 10 characters about your skills or upload a PDF, DOC, or DOCX resume.");
+      if (!resume) {
+        throw new Error("Upload a PDF, DOC, or DOCX resume to find job matches.");
       }
 
-      let encodedResume: { fileName: string; data: string } | undefined;
-      if (resume) {
-        if (!authorized) {
-          throw new Error("Please authorize sending your resume for AI analysis.");
-        }
-        if (resume.size > maxResumeBytes) {
-          throw new Error("Resume files must be 500 KB or smaller.");
-        }
-        const bytes = new Uint8Array(await resume.arrayBuffer());
-        if (!isResumeFileTypeValid(resume, bytes)) {
-          throw new Error("Choose a valid PDF, DOC, or DOCX resume.");
-        }
-        let binary = "";
-        const chunkSize = 0x8000;
-        for (let index = 0; index < bytes.length; index += chunkSize) {
-          binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
-        }
-        encodedResume = { fileName: resume.name, data: btoa(binary) };
+      if (!authorized) {
+        throw new Error("Please authorize sending your resume for AI analysis.");
       }
+      if (resume.size > maxResumeBytes) {
+        throw new Error("Resume files must be 500 KB or smaller.");
+      }
+      const bytes = new Uint8Array(await resume.arrayBuffer());
+      if (!isResumeFileTypeValid(resume, bytes)) {
+        throw new Error("Choose a valid PDF, DOC, or DOCX resume.");
+      }
+      let binary = "";
+      const chunkSize = 0x8000;
+      for (let index = 0; index < bytes.length; index += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+      }
+      const encodedResume = { fileName: resume.name, data: btoa(binary) };
 
       const result = await invokePesoAI<{ matches: JobMatch[] }>(
         "job-matches",
-        encodedResume ? { resume: encodedResume } : { profileText: profile },
+        { resume: encodedResume },
       );
       if (!result || !Array.isArray(result.matches)) {
         throw new Error("The AI service returned an invalid matching response. Please try again.");
@@ -127,7 +119,7 @@ export default function JobMatchesModule() {
 
   const findMatches = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    void runMatching(profileText, resumeFile);
+    void runMatching(resumeFile);
   };
 
   return (
@@ -138,10 +130,9 @@ export default function JobMatchesModule() {
         </p>
         <h2 className="mt-1 text-2xl font-black text-[#123B70]">AI Job Matching</h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-          Upload a PDF, DOC, or DOCX resume or describe your skills to compare your profile with open
-          vacancies and the requirements employers submitted. Resume files are sent to
-          Groq AI for this analysis and are not stored. Recommendations are not hiring
-          decisions.
+          Upload a PDF, DOC, or DOCX resume to compare your profile with open vacancies
+          and employer-submitted requirements. Resume files are sent to Groq AI for
+          this analysis and are not stored. Recommendations are not hiring decisions.
         </p>
       </header>
 
@@ -194,41 +185,22 @@ export default function JobMatchesModule() {
           </div>
         )}
 
-        <div className="my-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-          <span className="h-px flex-1 bg-slate-200" />
-          Or enter your details
-          <span className="h-px flex-1 bg-slate-200" />
-        </div>
-
-        <label htmlFor="job-match-profile" className="text-sm font-bold text-slate-800">
-          Skills, experience, qualifications, and preferred work
-        </label>
-        <textarea
-          id="job-match-profile"
-          value={profileText}
-          onChange={(event) => setProfileText(event.target.value)}
-          maxLength={4000}
-          rows={6}
-          disabled={loading || Boolean(resumeFile)}
-          placeholder="For example: Two years of customer service experience, Microsoft Office, bookkeeping NC II, looking for full-time work near Mabini..."
-          className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm leading-6 outline-none transition focus:border-[#0759AE] focus:ring-2 focus:ring-[#0759AE]/15"
-        />
-        <div className="mt-3 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+        <div className="mt-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <p className="text-xs text-slate-500">
             {resumeFile
-              ? "Your resume is scanned after you authorize AI analysis. Use the button to scan it again."
-              : "Upload a PDF, DOC, or DOCX resume or enter at least 10 characters. For manual entry, do not include your name, address, contact information, or other sensitive details."}
+              ? "After you authorize AI analysis, scan your resume to see matching jobs."
+              : "Upload a PDF, DOC, or DOCX resume to get personalized job matches."}
           </p>
           <button
             type="submit"
             disabled={
               loading ||
-              (!resumeFile && profileText.trim().length < 10) ||
-              (Boolean(resumeFile) && !resumeAuthorized)
+              !resumeFile ||
+              !resumeAuthorized
             }
             className="shrink-0 rounded-xl bg-[#0759AE] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#064A91] disabled:cursor-wait disabled:opacity-50"
           >
-            {loading ? "Scanning..." : resumeFile ? "Scan resume" : "Find my matches"}
+            {loading ? "Scanning..." : "Scan resume"}
           </button>
         </div>
       </form>

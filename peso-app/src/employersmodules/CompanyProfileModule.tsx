@@ -1,4 +1,5 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import AutoResizeTextarea from "../components/AutoResizeTextarea";
 
 interface CompanyProfile {
   employer_id?: number | string;
@@ -263,7 +264,7 @@ export default function CompanyProfileModule({
               <label htmlFor="company_description" className="mb-2 block text-sm font-bold text-slate-700">
                 Description
               </label>
-              <textarea
+              <AutoResizeTextarea
                 id="company_description"
                 name="company_description"
                 rows={6}
@@ -272,7 +273,7 @@ export default function CompanyProfileModule({
                 onChange={handleChange}
                 disabled={isSaving}
                 placeholder="Describe your company, services, and workplace..."
-                className={`${inputClass} resize-y`}
+                className={inputClass}
               />
               <p className="mt-2 text-right text-xs text-slate-400">
                 {(formData.company_description ?? "").length}/3000 characters

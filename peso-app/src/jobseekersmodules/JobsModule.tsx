@@ -8,6 +8,7 @@ import {
 } from "react";
 import { supabase } from "../services/supabase";
 import AppIcon from "../components/AppIcon";
+import AutoResizeTextarea from "../components/AutoResizeTextarea";
 import FilterDropdown from "../components/FilterDropdown";
 import {
   RESUME_ACCEPT,
@@ -1320,7 +1321,7 @@ export default function JobsModule({
                     <span className="mb-1.5 block text-sm font-semibold text-slate-700">
                       Address
                     </span>
-                    <textarea
+                    <AutoResizeTextarea
                       required
                       autoComplete="street-address"
                       rows={3}
@@ -1331,7 +1332,7 @@ export default function JobsModule({
                           address: event.target.value,
                         }))
                       }
-                      className="w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                     />
                   </label>
                   <label className="block">

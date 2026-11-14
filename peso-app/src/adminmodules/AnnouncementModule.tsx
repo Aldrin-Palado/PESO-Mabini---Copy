@@ -1,4 +1,5 @@
 import React from "react";
+import AutoResizeTextarea from "../components/AutoResizeTextarea";
 
 type Announcement = {
   id: string;
@@ -58,7 +59,7 @@ export default function AnnouncementModule({
             className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500"
           />
 
-          <textarea
+          <AutoResizeTextarea
             value={message}
             onChange={(e) =>
               setMessage(e.target.value)
