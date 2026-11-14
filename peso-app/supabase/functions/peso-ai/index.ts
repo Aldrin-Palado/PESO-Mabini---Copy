@@ -1,5 +1,4 @@
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
-import { Buffer } from "node:buffer";
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -86,7 +85,7 @@ async function createSupabaseClient(
   supabaseKey: string,
   authorization?: string,
 ) {
-  const { createClient } = await import("npm:@supabase/supabase-js@2");
+  const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
   return createClient(supabaseUrl, supabaseKey, {
     global: authorization
       ? { headers: { Authorization: authorization } }
@@ -428,11 +427,21 @@ function decodeChatResumeBytes(fileName: string, bytes: Uint8Array): ChatResume 
 
 async function extractWordResumeText(resume: ChatResume) {
   try {
-    const { default: WordExtractor } = await import("npm:word-extractor@1.0.4");
-    const extractor = new WordExtractor();
-    const document = await extractor.extract(Buffer.from(resume.bytes));
-    const text = document.getBody().trim().slice(0, maxChatResumeTextLength);
-    if (!text) throw new Error("The Word resume contains no readable text.");
+    // Extract plain text from DOC/DOCX by scanning for readable ASCII runs.
+    // This avoids bundling the heavy word-extractor npm package.
+    const bytes = resume.bytes;
+    const decoder = new TextDecoder("utf-8", { fatal: false });
+    const raw = decoder.decode(bytes);
+    // For DOCX (ZIP-based), extract XML text content between tags
+    const xmlMatches = [...raw.matchAll(/<w:t[^>]*>([^<]+)<\/w:t>/g)];
+    if (xmlMatches.length > 0) {
+      const text = xmlMatches.map((m) => m[1]).join(" ").replace(/\s+/g, " ").trim().slice(0, maxChatResumeTextLength);
+      if (text.length >= 20) return text;
+    }
+    // Fallback: extract long ASCII runs (for DOC binary format)
+    const asciiRuns = raw.match(/[\x20-\x7E]{15,}/g) ?? [];
+    const text = asciiRuns.filter((run) => /[a-zA-Z]{4,}/.test(run)).join(" ").replace(/\s+/g, " ").trim().slice(0, maxChatResumeTextLength);
+    if (!text || text.length < 20) throw new Error("The Word resume contains no readable text.");
     return text;
   } catch (error) {
     console.error("Could not extract text from the uploaded Word resume:", error);
@@ -443,33 +452,32 @@ async function extractWordResumeText(resume: ChatResume) {
 }
 
 async function extractPdfResumeText(resume: ChatResume) {
-  const { getDocument } = await import(
-    "npm:pdfjs-dist@4.10.38/legacy/build/pdf.mjs"
-  );
-  const pdf = await getDocument({
-    data: resume.bytes,
-    isEvalSupported: false,
-  }).promise;
-  const pages: string[] = [];
-  let extractedLength = 0;
-
-  try {
-    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
-      const page = await pdf.getPage(pageNumber);
-      const content = await page.getTextContent();
-      const pageText = content.items
-        .map((item) => "str" in item && typeof item.str === "string" ? item.str : "")
-        .join(" ");
-      pages.push(pageText);
-      extractedLength += pageText.length + 1;
-      if (extractedLength >= maxChatResumeTextLength) break;
+  // Lightweight PDF text extractor — no external bundle needed.
+  // Scans the raw PDF bytes for text stream content between BT/ET markers.
+  const decoder = new TextDecoder("latin1");
+  const raw = decoder.decode(resume.bytes);
+  const textParts: string[] = [];
+  // Extract strings from BT...ET blocks (standard PDF text objects)
+  const btEtBlocks = raw.match(/BT[\s\S]*?ET/g) ?? [];
+  for (const block of btEtBlocks) {
+    // Match Tj, TJ, ' and " operators
+    const strings = [
+      ...(block.match(/\(([^)\\]*(?:\\.[^)\\]*)*)\)\s*(?:Tj|'|")/g) ?? []),
+      ...(block.match(/\[([^\]]*)\]\s*TJ/g) ?? []),
+    ];
+    for (const str of strings) {
+      const inner = str.match(/\(([^)\\]*(?:\\.[^)\\]*)*)\)/)?.[1] ?? "";
+      textParts.push(inner.replace(/\\n/g, "\n").replace(/\\r/g, "\r").replace(/\\\\/g, "\\").replace(/\\[()]/g, (m) => m[1]));
     }
-  } finally {
-    await pdf.destroy();
   }
-
-  const text = pages.join("\n").trim().slice(0, maxChatResumeTextLength);
-  if (!text) throw new Error("The PDF resume contains no readable text.");
+  // Also try to find plain readable runs in case the above misses compressed streams
+  if (textParts.join("").replace(/\s+/g, "").length < 50) {
+    const asciiRuns = raw.match(/[\x20-\x7E]{15,}/g) ?? [];
+    const readable = asciiRuns.filter((r) => /[a-zA-Z]{4,}/.test(r) && !/^[\x21-\x7E]{40,}$/.test(r.replace(/\s/g, "")));
+    textParts.push(...readable);
+  }
+  const text = textParts.join(" ").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim().slice(0, maxChatResumeTextLength);
+  if (!text || text.length < 20) throw new Error("The PDF resume contains no readable text.");
   return text;
 }
 
