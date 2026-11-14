@@ -15,8 +15,7 @@ function isResumeFileTypeValid(file: File, bytes: Uint8Array) {
   return extension === "docx" && bytes[0] === 0x50 && bytes[1] === 0x4b;
 }
 
-type JobMatch = {
-  job: {
+type PublicJob = {
     id: string;
     title: string;
     employer: string;
@@ -25,7 +24,10 @@ type JobMatch = {
     salary: string;
     description: string;
     requirements: string;
-  };
+};
+
+type JobMatch = {
+  job: PublicJob;
   match_score: number;
   reasons: string[];
   skill_gaps: string[];
@@ -33,6 +35,12 @@ type JobMatch = {
 
 // Documents are verification requirements, not skills to improve.
 const employmentDocumentPattern = /\b(?:NBI(?:\s+clearance)?|SSS|PhilHealth|TIN|Pag[- ]?IBIG|police clearance|barangay clearance|government[- ]issued ID|birth certificate)\b/i;
+
+function isPublicJob(value: unknown): value is PublicJob {
+  if (!value || typeof value !== "object") return false;
+  const job = value as Partial<PublicJob>;
+  return typeof job.id === "string" && job.id.length > 0 && typeof job.title === "string";
+}
 
 function isJobMatch(value: unknown): value is JobMatch {
   if (!value || typeof value !== "object") return false;
@@ -47,6 +55,7 @@ export default function JobMatchesModule() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeAuthorized, setResumeAuthorized] = useState(false);
   const [matches, setMatches] = useState<JobMatch[]>([]);
+  const [availableJobs, setAvailableJobs] = useState<PublicJob[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
@@ -58,6 +67,7 @@ export default function JobMatchesModule() {
     pendingRef.current = true;
     setLoading(true);
     setMatches([]);
+    setAvailableJobs([]);
     setEmptyReason("");
     setError("");
     setHasSearched(false);
@@ -84,7 +94,7 @@ export default function JobMatchesModule() {
       }
       const encodedResume = { fileName: resume.name, data: btoa(binary) };
 
-      const result = await invokePesoAI<{ matches: JobMatch[] }>(
+      const result = await invokePesoAI<{ matches: JobMatch[]; available_jobs?: PublicJob[]; reason?: string }>(
         "job-matches",
         { resume: encodedResume },
       );
@@ -100,10 +110,21 @@ export default function JobMatchesModule() {
       if (result.matches.length > 0 && validMatches.length === 0) {
         throw new Error("AI recommendations were returned in an unexpected format. Please try again.");
       }
+      const rankedIds = new Set(validMatches.map((match) => match.job.id));
+      const fallbackJobs = Array.isArray(result.available_jobs)
+        ? result.available_jobs.filter(isPublicJob).filter((job) => !rankedIds.has(job.id))
+        : [];
       setMatches(validMatches);
-      setEmptyReason(validMatches.length === 0
-        ? "No recommendations were returned for this search. This does not necessarily mean there are no open jobs. Try adding more relevant skills or experience, or try again."
-        : "");
+      setAvailableJobs(fallbackJobs);
+      if (validMatches.length > 0 || fallbackJobs.length > 0) {
+        setEmptyReason("");
+      } else if (result.reason === "NO_OPEN_VACANCIES") {
+        setEmptyReason("No open vacancies are currently visible to your account. Check Explore Jobs or contact PESO Mabini.");
+      } else if (result.reason === "NO_CONFIRMED_MATCHES") {
+        setEmptyReason("No suitable AI matches could be confirmed from your information. You can still browse vacancies in Explore Jobs.");
+      } else {
+        setEmptyReason("No recommendations were returned. The AI service may not have produced usable matches. Please try again or browse Explore Jobs.");
+      }
       setHasSearched(true);
     } catch (requestError) {
       setError(
@@ -150,6 +171,7 @@ export default function JobMatchesModule() {
             setResumeFile(selectedFile);
             setResumeAuthorized(false);
             setMatches([]);
+            setAvailableJobs([]);
             setHasSearched(false);
             setEmptyReason("");
             setError("");
@@ -211,17 +233,48 @@ export default function JobMatchesModule() {
         </p>
       )}
 
-      {hasSearched && matches.length === 0 && (
+      {hasSearched && matches.length === 0 && availableJobs.length === 0 && (
         <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
           {emptyReason}
         </p>
+      )}
+
+      {hasSearched && availableJobs.length > 0 && (
+        <section className="space-y-3" aria-label="Currently open vacancies">
+          <div>
+            <h3 className="text-lg font-bold text-[#123B70]">Currently open jobs (not AI-ranked)</h3>
+            <p className="mt-1 text-sm text-slate-600">
+              These vacancies were returned by PESO-Hub, but Groq did not confirm an AI match.
+              Review the employer requirements before applying.
+            </p>
+          </div>
+          {availableJobs.map((job) => (
+            <article key={job.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h4 className="font-bold text-slate-900">{job.title}</h4>
+              <p className="mt-1 text-sm text-[#0759AE]">{job.employer || "Employer"}</p>
+              <p className="mt-2 text-sm text-slate-600">
+                {[job.location, job.type, job.salary].filter(Boolean).join(" · ")}
+              </p>
+              {job.requirements && (
+                <details className="mt-3 text-sm text-slate-600">
+                  <summary className="cursor-pointer font-semibold">Employer requirements</summary>
+                  <p className="mt-2 whitespace-pre-line">{job.requirements}</p>
+                </details>
+              )}
+              <button type="button"
+                onClick={() => navigate(`/jobseeker?job=${encodeURIComponent(job.id)}&apply=true`)}
+                className="mt-4 rounded-xl bg-[#0759AE] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#064A91]">
+                View job / Apply
+              </button>
+            </article>
+          ))}
+        </section>
       )}
 
       <div className="space-y-4">
         {matches.map((match, rank) => {
           const score = match.match_score;
           const skillGaps = match.skill_gaps.filter((gap) => !employmentDocumentPattern.test(gap));
-          const documentsToVerify = match.skill_gaps.filter((gap) => employmentDocumentPattern.test(gap));
           const scoreColor =
             score >= 75
               ? { bar: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Strong match" }
