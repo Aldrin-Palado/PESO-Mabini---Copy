@@ -19,6 +19,7 @@ type PesoMessage = {
   employer_id: string | null;
   sender_user_id: string;
   recipient_user_id: string;
+  author_user_id: string | null;
   body: string;
   created_at: string;
   read_at: string | null;
@@ -51,6 +52,7 @@ export default function DirectMessages({
   const [resolvingRecipient, setResolvingRecipient] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [realtimeUnavailable, setRealtimeUnavailable] = useState(false);
   const [sessionMissing, setSessionMissing] = useState(false);
@@ -225,6 +227,13 @@ export default function DirectMessages({
           }
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "peso_messages" },
+        () => {
+          refreshContacts();
+        },
+      )
       .subscribe((status, subscriptionError) => {
         if (status === "SUBSCRIBED") {
           if (fallbackPoll) {
@@ -307,7 +316,7 @@ export default function DirectMessages({
         : await supabase
             .from("peso_messages")
             .select(
-              "message_id, employer_id, sender_user_id, recipient_user_id, body, created_at, read_at",
+              "message_id, employer_id, sender_user_id, recipient_user_id, author_user_id, body, created_at, read_at",
             )
             .or(
               `and(sender_user_id.eq.${conversationOwnerId},recipient_user_id.eq.${selectedUserId}),and(sender_user_id.eq.${selectedUserId},recipient_user_id.eq.${conversationOwnerId})`,
@@ -379,6 +388,13 @@ export default function DirectMessages({
           }
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "peso_messages" },
+        () => {
+          void loadMessages(false);
+        },
+      )
       .subscribe((status, subscriptionError) => {
         if (status === "SUBSCRIBED") {
           if (fallbackPoll) {
@@ -439,6 +455,7 @@ export default function DirectMessages({
   : await supabase.from("peso_messages").insert({
       sender_user_id: userId,
       recipient_user_id: recipientUserId,
+      author_user_id: userId,
       body,
     });
 
@@ -471,6 +488,54 @@ export default function DirectMessages({
     }
 
     setSending(false);
+  };
+
+  const deleteMessage = async (message: PesoMessage) => {
+    const isAdminInbox = mode === "admin" || mode === "staff";
+    if (
+      !isAdminInbox ||
+      message.author_user_id !== userId ||
+      deletingMessageId
+    ) {
+      return;
+    }
+
+    if (!window.confirm("Delete this message? This cannot be undone.")) return;
+
+    setDeletingMessageId(message.message_id);
+    setError("");
+
+    const { data: deletedMessage, error: deleteError } = await supabase
+      .from("peso_messages")
+      .delete()
+      .eq("message_id", message.message_id)
+      .select("message_id")
+      .maybeSingle();
+
+    if (deleteError) {
+      setError(`Message could not be deleted: ${deleteError.message}`);
+    } else if (!deletedMessage) {
+      setError("You can only delete your own messages.");
+    } else {
+      setMessages((current) =>
+        current.filter((item) => item.message_id !== message.message_id),
+      );
+      if (conversationOwnerId) {
+        try {
+          setContacts(await refreshConversationContacts(conversationOwnerId));
+        } catch (refreshError) {
+          console.error(
+            "Message deleted, but the conversation list could not be refreshed:",
+            refreshError,
+          );
+          setError(
+            "Message deleted, but the conversation list could not be refreshed.",
+          );
+        }
+      }
+    }
+
+    setDeletingMessageId(null);
   };
 
   return (
@@ -613,6 +678,10 @@ export default function DirectMessages({
                   const ownMessage = isAdminInbox
                     ? message.sender_user_id !== selectedUserId
                     : message.sender_user_id === conversationOwnerId;
+                  const canDeleteMessage =
+                    isAdminInbox &&
+                    ownMessage &&
+                    message.author_user_id === userId;
                   return (
                     <div
                       key={message.message_id}
@@ -634,6 +703,24 @@ export default function DirectMessages({
                         >
                           {new Date(message.created_at).toLocaleString()}
                         </time>
+                        {canDeleteMessage && (
+                          <div className="mt-2 text-right">
+                            <button
+                              type="button"
+                              onClick={() => void deleteMessage(message)}
+                              disabled={deletingMessageId !== null}
+                              className={`text-xs font-semibold ${
+                                ownMessage
+                                  ? "text-blue-100 hover:text-white"
+                                  : "text-red-600 hover:text-red-800"
+                              } disabled:cursor-not-allowed disabled:opacity-50`}
+                            >
+                              {deletingMessageId === message.message_id
+                                ? "Deleting..."
+                                : "Delete"}
+                            </button>
+                          </div>
+                        )}
                       </article>
                     </div>
                   );
