@@ -59,6 +59,8 @@ type Props = {
   verificationDocuments: unknown;
   onSave: (details: Record<string, unknown>) => Promise<void>;
   onDocumentsSaved: (documents: EmployerVerificationDocument[]) => void;
+  isEditing: boolean;
+  onEditComplete: () => void;
 };
 
 const emptyDetails: RegistrationDetails = {
@@ -157,7 +159,7 @@ function getInitialDetails(value: unknown, profile: EmployerProfile): Registrati
 }
 
 const inputClass =
-  "mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-[#0759AE] focus:ring-2 focus:ring-blue-100";
+  "mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-[#0759AE] focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500";
 const labelClass = "block text-sm font-semibold text-slate-700";
 const required = <span className="text-red-600"> *</span>;
 
@@ -167,6 +169,8 @@ export default function EmployerRegistrationProfileModule({
   verificationDocuments,
   onSave,
   onDocumentsSaved,
+  isEditing,
+  onEditComplete,
 }: Props) {
   const [form, setForm] = useState(() =>
     getInitialDetails(registrationDetails, profile),
@@ -180,6 +184,7 @@ export default function EmployerRegistrationProfileModule({
   const [registrationDetailsOpen, setRegistrationDetailsOpen] = useState(false);
 
   useEffect(() => {
+    if (isEditing) return;
     setForm(getInitialDetails(registrationDetails, profile));
     setConsentAccepted(
       asRecord(asRecord(registrationDetails).certification).consent_accepted === true,
@@ -190,8 +195,15 @@ export default function EmployerRegistrationProfileModule({
     profile.email,
     profile.name,
     profile.website,
+    isEditing,
     registrationDetails,
   ]);
+
+  useEffect(() => {
+    if (isEditing) {
+      setRegistrationDetailsOpen(true);
+    }
+  }, [isEditing]);
 
   const savedDetails = asRecord(registrationDetails);
   const registrationChecklist = getEmployerRegistrationChecklist(
@@ -240,6 +252,7 @@ export default function EmployerRegistrationProfileModule({
     setError("");
     setSuccess("");
     setRegistrationDetailsOpen(false);
+    onEditComplete();
   };
 
   const toggleIndustry = (industry: string) => {
@@ -338,6 +351,7 @@ export default function EmployerRegistrationProfileModule({
     try {
       await onSave(details);
       setSuccess("Employer registration profile saved.");
+      onEditComplete();
     } catch (saveError) {
       console.error("Could not save employer registration profile:", saveError);
       setError(
@@ -419,6 +433,7 @@ export default function EmployerRegistrationProfileModule({
         onSubmit={(event) => void handleSubmit(event)}
         className="space-y-6"
       >
+        <fieldset disabled={!isEditing || saving} className="space-y-6 border-0 p-0">
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <h3 className="font-bold text-slate-900">Establishment Information</h3>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -440,6 +455,7 @@ export default function EmployerRegistrationProfileModule({
                     label: status,
                   })),
                 ]}
+                disabled={!isEditing || saving}
                 className={inputClass}
               />
             </label>
@@ -458,6 +474,7 @@ export default function EmployerRegistrationProfileModule({
                     label: type,
                   })),
                 ]}
+                disabled={!isEditing || saving}
                 className={inputClass}
               />
             </label>
@@ -478,6 +495,7 @@ export default function EmployerRegistrationProfileModule({
                     label: option,
                   })),
                 ]}
+                disabled={!isEditing || saving}
                 className={inputClass}
               />
             </label>
@@ -582,7 +600,7 @@ export default function EmployerRegistrationProfileModule({
               )}
             <ESignatureInput
               value={form.authorized_representative_signature}
-              disabled={saving}
+              disabled={!isEditing || saving}
               onChange={(signature) => {
                 setForm((current) => ({
                   ...current,
@@ -598,6 +616,7 @@ export default function EmployerRegistrationProfileModule({
             <span>I certify that the information is true and correct and consent to the declaration above.{required}</span>
           </label>
         </section>
+        </fieldset>
       </form>
 
       <VerificationDocumentsModule
@@ -616,6 +635,7 @@ export default function EmployerRegistrationProfileModule({
           asText(asRecord(registrationDetails).establishment_status) === "New Registrant",
         ).length} document types, plus any applicable job vacancy ads.
       </p>
+      {isEditing && (
       <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
         <button
           type="button"
@@ -634,6 +654,7 @@ export default function EmployerRegistrationProfileModule({
           {saving ? "Saving..." : "Save Screening Details"}
         </button>
       </div>
+      )}
       </div>}
     </div>
   );
