@@ -348,6 +348,7 @@ export default function JobSeekerDashboard() {
   const [editingProfilePhoto, setEditingProfilePhoto] = useState(false);
   const [editingResume, setEditingResume] = useState(false);
   const [screeningDetailsOpen, setScreeningDetailsOpen] = useState(false);
+  const [selectedScreeningSection, setSelectedScreeningSection] = useState<string | null>(null);
   const [editingScreening, setEditingScreening] = useState(false);
   const [savingScreening, setSavingScreening] = useState(false);
   const [screeningForm, setScreeningForm] = useState<ScreeningDetails>({});
@@ -562,6 +563,7 @@ export default function JobSeekerDashboard() {
     setProfileError("");
     setProfileSuccess("");
     setScreeningDetailsOpen(true);
+    setSelectedScreeningSection((current) => current || screeningSections[0]?.title || null);
     setEditingScreening(true);
   };
 
@@ -850,9 +852,11 @@ export default function JobSeekerDashboard() {
         <div className="grid items-start gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
           {/* LEFT PROFILE CARD */}
           <aside className="overflow-hidden rounded-[24px] border border-blue-100 bg-white shadow-[0_12px_35px_rgba(30,85,150,0.10)]">
-            <div className="relative flex min-h-[150px] items-start justify-center overflow-hidden bg-gradient-to-br from-[#064A9B] via-[#1768C1] to-[#2D8CE0] px-5 pt-8">
-              <div aria-hidden="true" className="absolute -right-10 -top-16 h-52 w-52 rounded-full border-[26px] border-white/10" />
-              <div aria-hidden="true" className="absolute -left-12 top-20 h-32 w-72 -rotate-12 rounded-[50%] bg-white/10" />
+            <div className="relative flex min-h-[150px] items-start justify-center overflow-visible rounded-t-[24px] bg-gradient-to-br from-[#064A9B] via-[#1768C1] to-[#2D8CE0] px-5 pt-8">
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-t-[24px]">
+                <div className="absolute -right-10 -top-16 h-52 w-52 rounded-full border-[26px] border-white/10" />
+                <div className="absolute -left-12 top-20 h-32 w-72 -rotate-12 rounded-[50%] bg-white/10" />
+              </div>
               <div className="relative z-10 translate-y-10 rounded-full border-[7px] border-white bg-white shadow-lg">
                 <ProfileAvatar
                   userId={seeker.user_id}
@@ -911,6 +915,7 @@ export default function JobSeekerDashboard() {
                 <button
                   type="button"
                   onClick={() => {
+                    setSelectedScreeningSection(screeningSections[0]?.title || null);
                     setScreeningDetailsOpen(true);
                     document.getElementById("job-seeker-registration-details")?.scrollIntoView({ behavior: "smooth", block: "start" });
                   }}
@@ -970,7 +975,7 @@ export default function JobSeekerDashboard() {
                 {registrationTasks.map((task) => {
                   const complete = !incompleteTasks.includes(task);
                   const isResume = task === "Resume / CV";
-                  const open = isResume ? editingResume : screeningDetailsOpen;
+                  const open = isResume ? editingResume : selectedScreeningSection === task;
                   return (
                     <button
                       key={task}
@@ -981,6 +986,7 @@ export default function JobSeekerDashboard() {
                           setResumeError("");
                           setResumeSuccess("");
                         } else {
+                          setSelectedScreeningSection((current) => current === task ? null : task);
                           setScreeningDetailsOpen(true);
                           document.getElementById("job-seeker-registration-details")?.scrollIntoView({ behavior: "smooth", block: "start" });
                         }
@@ -1077,7 +1083,7 @@ export default function JobSeekerDashboard() {
           </div>
 
           <div className="space-y-6">
-            {screeningSections.map((section) => (
+            {screeningSections.filter((section) => section.title === selectedScreeningSection).map((section) => (
               <section key={section.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                 <h3 className="font-bold text-slate-900">
                   {section.title}
