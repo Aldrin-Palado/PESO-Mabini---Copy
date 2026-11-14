@@ -10,6 +10,7 @@ import {
   workforceOptions,
   type EmployerVerificationDocument,
 } from "../services/employerRegistration";
+import FilterDropdown from "../components/FilterDropdown";
 
 type RegistrationDetails = {
   acronym: string;
@@ -225,6 +226,22 @@ export default function EmployerRegistrationProfileModule({
     setSuccess("");
   };
 
+  const updateScreeningField = (name: string, value: string) => {
+    setForm((current) => ({ ...current, [name]: value }));
+    setError("");
+    setSuccess("");
+  };
+
+  const cancelChanges = () => {
+    setForm(getInitialDetails(registrationDetails, profile));
+    setConsentAccepted(
+      asRecord(asRecord(registrationDetails).certification).consent_accepted === true,
+    );
+    setError("");
+    setSuccess("");
+    setRegistrationDetailsOpen(false);
+  };
+
   const toggleIndustry = (industry: string) => {
     setForm((current) => ({
       ...current,
@@ -245,6 +262,10 @@ export default function EmployerRegistrationProfileModule({
     const totalEmployees = Number(form.total_employees);
     if (mabiniResidents + nonMabiniResidents !== totalEmployees) {
       setError("Total employees must equal Mabini residents plus non-Mabini residents.");
+      return;
+    }
+    if (!form.establishment_status || !form.establishment_type || !form.workforce) {
+      setError("Complete the establishment status, type, and workforce fields.");
       return;
     }
     if (form.industries.length === 0) {
@@ -393,7 +414,11 @@ export default function EmployerRegistrationProfileModule({
       {success && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{success}</p>}
 
       {registrationDetailsOpen && <div id="employer-registration-details" className="space-y-6">
-      <form onSubmit={(event) => void handleSubmit(event)} className="space-y-6">
+      <form
+        id="employer-screening-details-form"
+        onSubmit={(event) => void handleSubmit(event)}
+        className="space-y-6"
+      >
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <h3 className="font-bold text-slate-900">Establishment Information</h3>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -404,19 +429,37 @@ export default function EmployerRegistrationProfileModule({
               <input name="acronym" value={form.acronym} onChange={update} required className={inputClass} />
             </label>
             <label className={labelClass}>Status{required}
-              <select name="establishment_status" value={form.establishment_status} onChange={update} required className={inputClass}>
-                <option value="">Select status</option>
-                {establishmentStatuses.map((status) => <option key={status}>{status}</option>)}
-              </select>
+              <FilterDropdown
+                value={form.establishment_status}
+                onChange={(value) => updateScreeningField("establishment_status", value)}
+                ariaLabel="Establishment status"
+                options={[
+                  { value: "", label: "Select status" },
+                  ...establishmentStatuses.map((status) => ({
+                    value: status,
+                    label: status,
+                  })),
+                ]}
+                className={inputClass}
+              />
             </label>
             <label className={labelClass}>Company TIN{required}
               <input name="tin" value={form.tin} onChange={update} required maxLength={30} className={inputClass} />
             </label>
             <label className={labelClass}>Establishment Type{required}
-              <select name="establishment_type" value={form.establishment_type} onChange={update} required className={inputClass}>
-                <option value="">Select type</option>
-                {establishmentTypes.map((type) => <option key={type}>{type}</option>)}
-              </select>
+              <FilterDropdown
+                value={form.establishment_type}
+                onChange={(value) => updateScreeningField("establishment_type", value)}
+                ariaLabel="Establishment type"
+                options={[
+                  { value: "", label: "Select type" },
+                  ...establishmentTypes.map((type) => ({
+                    value: type,
+                    label: type,
+                  })),
+                ]}
+                className={inputClass}
+              />
             </label>
             {form.establishment_type === "Other" && (
               <label className={labelClass}>Specify establishment type{required}
@@ -424,10 +467,19 @@ export default function EmployerRegistrationProfileModule({
               </label>
             )}
             <label className={labelClass}>Workforce{required}
-              <select name="workforce" value={form.workforce} onChange={update} required className={inputClass}>
-                <option value="">Select workforce</option>
-                {workforceOptions.map((option) => <option key={option}>{option}</option>)}
-              </select>
+              <FilterDropdown
+                value={form.workforce}
+                onChange={(value) => updateScreeningField("workforce", value)}
+                ariaLabel="Workforce"
+                options={[
+                  { value: "", label: "Select workforce" },
+                  ...workforceOptions.map((option) => ({
+                    value: option,
+                    label: option,
+                  })),
+                ]}
+                className={inputClass}
+              />
             </label>
           </div>
         </section>
@@ -545,9 +597,6 @@ export default function EmployerRegistrationProfileModule({
             <input type="checkbox" checked={consentAccepted} onChange={(event) => setConsentAccepted(event.target.checked)} required className="mt-1 h-4 w-4 accent-[#0759AE]" />
             <span>I certify that the information is true and correct and consent to the declaration above.{required}</span>
           </label>
-          <button type="submit" disabled={saving} className="mt-5 rounded-xl bg-[#0759AE] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#064A91] disabled:opacity-60">
-            {saving ? "Saving..." : "Save Registration Details"}
-          </button>
         </section>
       </form>
 
@@ -567,6 +616,24 @@ export default function EmployerRegistrationProfileModule({
           asText(asRecord(registrationDetails).establishment_status) === "New Registrant",
         ).length} document types, plus any applicable job vacancy ads.
       </p>
+      <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          onClick={cancelChanges}
+          disabled={saving}
+          className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          form="employer-screening-details-form"
+          disabled={saving}
+          className="rounded-xl bg-[#0759AE] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#064A91] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {saving ? "Saving..." : "Save Screening Details"}
+        </button>
+      </div>
       </div>}
     </div>
   );
