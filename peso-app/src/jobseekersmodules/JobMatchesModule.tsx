@@ -317,7 +317,7 @@ export default function JobMatchesModule() {
                       <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      Areas to strengthen
+                      Requirements to Improve
                     </h4>
                     <ul className="mt-2 space-y-1">
                       {match.skill_gaps.map((gap, index) => (
