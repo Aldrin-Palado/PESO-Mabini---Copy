@@ -862,7 +862,7 @@ export default function JobSeekerDashboard() {
         )}
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-5 md:items-center xl:grid-cols-[auto_minmax(0,1fr)_minmax(15rem,auto)]">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-5 md:items-center xl:grid-cols-[auto_minmax(0,1.35fr)_minmax(15rem,auto)_minmax(0,0.65fr)]">
             <ProfileAvatar
               userId={seeker.user_id}
               fullName={seeker.full_name}
