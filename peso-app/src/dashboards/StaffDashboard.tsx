@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import SidebarToggle from "../components/SidebarToggle";
 import AppIcon, { type AppIconName } from "../components/AppIcon";
+import ModuleIcon from "../components/ModuleIcon";
 import ProfileAvatar from "../components/ProfileAvatar";
 import { supabase } from "../services/supabase";
 import { openStoredResume } from "../services/resumes";
@@ -426,42 +427,15 @@ export default function StaffDashboard() {
      MODULE LIST
   ===================================================== */
 
-  const modules: {
-    name: ModuleName;
-    icon: string;
-  }[] = [
-    {
-      name: "Dashboard Overview",
-      icon: "▦",
-    },
-    {
-      name: "Analytics",
-      icon: "▥",
-    },
-    {
-      name: "Job Posts",
-      icon: "▤",
-    },
-    {
-      name: "Job Application",
-      icon: "▣",
-    },
-    {
-      name: "Employers",
-      icon: "◆",
-    },
-    {
-      name: "Job Seekers",
-      icon: "♙",
-    },
-    {
-      name: "Messages",
-      icon: "✉",
-    },
-    {
-      name: "PESO Posts",
-      icon: "▣",
-    },
+  const modules: { name: ModuleName }[] = [
+    { name: "Dashboard Overview" },
+    { name: "Analytics" },
+    { name: "Job Posts" },
+    { name: "Job Application" },
+    { name: "Employers" },
+    { name: "Job Seekers" },
+    { name: "Messages" },
+    { name: "PESO Posts" },
   ];
 
   /* =====================================================
@@ -688,8 +662,8 @@ export default function StaffDashboard() {
                     }`}
                   >
 
-                    <span className="w-6 text-center">
-                      {module.icon}
+                    <span className="flex w-6 justify-center" aria-hidden="true">
+                      <ModuleIcon module={module.name} />
                     </span>
 
                     <span className="relative inline-flex">
@@ -727,8 +701,8 @@ export default function StaffDashboard() {
             }`}
           >
 
-            <span className="w-6 text-center">
-              ◉
+            <span className="flex w-6 justify-center" aria-hidden="true">
+              <ModuleIcon module="My Profile" />
             </span>
 
             <span>

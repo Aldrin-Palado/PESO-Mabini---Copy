@@ -221,12 +221,12 @@ async function loadEmployerApplications(
    CONSTANTS
 ========================= */
 
-const menuItems: { name: MenuName; icon: string }[] = [
-  { name: "Dashboard", icon: "▦" },
-  { name: "My Job Posts", icon: "▤" },
-  { name: "Applications", icon: "✓" },
-  { name: "Messages", icon: "✉" },
-  { name: "Company Profile", icon: "▣" },
+const menuItems: { name: MenuName }[] = [
+  { name: "Dashboard" },
+  { name: "My Job Posts" },
+  { name: "Applications" },
+  { name: "Messages" },
+  { name: "Company Profile" },
 ];
 
 /* =========================

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import PesoLogo from "./PesoLogo";
 import SidebarToggle from "./SidebarToggle";
 import AppIcon from "./AppIcon";
+import ModuleIcon from "./ModuleIcon";
 import { supabase } from "../services/supabase";
 
 export type AdminModule =
@@ -168,6 +169,9 @@ export default function AdminSidebar({
                   }`}
                 >
                   <span className="flex items-center">
+                    <span className="mr-3 flex w-5 justify-center" aria-hidden="true">
+                      <ModuleIcon module={module} className="h-4 w-4" />
+                    </span>
                     <span className="relative inline-flex">
                       {module}
                       {module === "Messages" && hasUnreadMessages && (
@@ -212,7 +216,12 @@ export default function AdminSidebar({
                         : "text-blue-50/90 hover:bg-white/10 hover:text-white"
                     }`}
                   >
-                    {label}
+                    <span className="flex items-center">
+                      <span className="mr-3 flex w-5 justify-center" aria-hidden="true">
+                        <ModuleIcon module={module} className="h-4 w-4" />
+                      </span>
+                      {label}
+                    </span>
                   </button>
                   );
                 })}
@@ -236,7 +245,12 @@ export default function AdminSidebar({
                 : "text-blue-50/90 hover:bg-white/10 hover:text-white"
             }`}
           >
-            My Profile
+            <span className="flex items-center">
+              <span className="mr-3 flex w-5 justify-center" aria-hidden="true">
+                <ModuleIcon module="My Profile" className="h-4 w-4" />
+              </span>
+              My Profile
+            </span>
           </button>
 
           {/* Logout */}

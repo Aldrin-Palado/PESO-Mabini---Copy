@@ -15,6 +15,7 @@ export type AppIconName =
   | "factory"
   | "file"
   | "graduationCap"
+  | "home"
   | "lightbulb"
   | "logOut"
   | "mail"
@@ -92,6 +93,7 @@ const iconPaths: Record<AppIconName, ReactNode> = {
       <path d="M6 12v5c3.5 2.5 8.5 2.5 12 0v-5m4-2v6" />
     </>
   ),
+  home: <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
   lightbulb: (
     <>
       <path d="M9 18h6m-5 4h4m-2-20a7 7 0 0 0-4 12.7c.8.5 1 1.2 1 1.8h6c0-.6.2-1.3 1-1.8A7 7 0 0 0 12 2z" />

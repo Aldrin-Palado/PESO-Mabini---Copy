@@ -1,5 +1,6 @@
 import React from "react";
 import AppIcon from "./AppIcon";
+import ModuleIcon from "./ModuleIcon";
 
 const pesoLogo = new URL("../assets/images/Peso-logo.png", import.meta.url).href;
 
@@ -22,49 +23,17 @@ type Props = {
   hasUnreadMessages: boolean;
 };
 
-const menuItems: {
-  label: JobSeekerPage;
-  icon: string;
-}[] = [
-  {
-    label: "Home",
-    icon: "⌂",
-  },
-  {
-    label: "Jobs",
-    icon: "briefcase",
-  },
-  {
-    label: "Saved Jobs",
-    icon: "☆",
-  },
-  {
-    label: "Application",
-    icon: "▤",
-  },
-  {
-    label: "Messages",
-    icon: "▣",
-  },
-  {
-    label: "AI Job Matches",
-    icon: "✦",
-  },
-  {
-    label: "AI Assistant",
-    icon: "✧",
-  },
+const menuItems: { label: JobSeekerPage }[] = [
+  { label: "Home" },
+  { label: "Jobs" },
+  { label: "Saved Jobs" },
+  { label: "Application" },
+  { label: "Messages" },
+  { label: "AI Job Matches" },
+  { label: "AI Assistant" },
 ];
 
-const accountItems: {
-  label: JobSeekerPage;
-  icon: string;
-}[] = [
-  {
-    label: "Profile",
-    icon: "◉",
-  },
-];
+const accountItems: { label: JobSeekerPage }[] = [{ label: "Profile" }];
 
 export default function JobSeekerSidebar({
   activePage,
@@ -147,12 +116,8 @@ export default function JobSeekerSidebar({
                       : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
                   }`}
                 >
-                  <span className="flex w-5 justify-center text-lg">
-                    {item.icon === "briefcase" ? (
-                      <AppIcon name="briefcase" className="h-5 w-5" />
-                    ) : (
-                      item.icon
-                    )}
+                  <span className="flex w-5 justify-center" aria-hidden="true">
+                    <ModuleIcon module={item.label} />
                   </span>
 
                   <span className="relative inline-flex">
@@ -191,8 +156,8 @@ export default function JobSeekerSidebar({
                       : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
                   }`}
                 >
-                  <span className="flex w-5 justify-center text-lg">
-                    {item.icon}
+                  <span className="flex w-5 justify-center" aria-hidden="true">
+                    <ModuleIcon module={item.label} />
                   </span>
 
                   <span>{item.label}</span>
